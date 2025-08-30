@@ -9,7 +9,6 @@ import {
   Platform,
   FlatList,
   Keyboard,
-  Image,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -21,6 +20,8 @@ import { shadowStyles } from '../utils/shadow';
 import { Message, MessageButton, MessageImage, MessageCard, ChatProps } from './types';
 import { ImageUpload } from './ImageUpload';
 import { uploadImageWithFileSystem } from '@/services/FileUploadService';
+import { Image } from 'expo-image';
+
 
 export function Chat({
   messages = [],
