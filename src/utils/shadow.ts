@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
 // 通用的阴影样式配置
 export const createShadowStyle = (options: {
@@ -9,18 +9,22 @@ export const createShadowStyle = (options: {
   elevation?: number;
 }) => {
   const {
-    shadowColor = '#000',
+    shadowColor = "#000",
     shadowOffset = { width: 0, height: 2 },
     shadowOpacity = 0.25,
     shadowRadius = 4,
     elevation = 5,
   } = options;
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     // Web 环境使用 boxShadow
     const { width, height } = shadowOffset;
     return {
-      boxShadow: `${width}px ${height}px ${shadowRadius}px ${shadowColor}${Math.round(shadowOpacity * 255).toString(16).padStart(2, '0')}`,
+      boxShadow: `${width}px ${height}px ${shadowRadius}px ${shadowColor}${Math.round(
+        shadowOpacity * 255,
+      )
+        .toString(16)
+        .padStart(2, "0")}`,
     };
   } else {
     // 移动端使用原生阴影属性

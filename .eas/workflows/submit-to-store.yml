@@ -1,0 +1,9 @@
+name: Submit to App Store
+
+jobs:
+  submit_ios:
+    type: submit # This job type submits the build to App Store Connect
+    params:
+      platform: ios
+      profile: production
+      latest: true

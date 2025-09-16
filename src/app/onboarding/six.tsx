@@ -1,8 +1,8 @@
-import { View, Text } from 'react-native';
+import { View, Text } from "react-native";
 
 export default function Six() {
   return (
-    <View>
+    <View className="flex-1">
       <Text>Six</Text>
     </View>
   );

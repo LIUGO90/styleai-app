@@ -8,6 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,9 +16,12 @@
     },
     "ios": {
       "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "bundleIdentifier": "com.styleai.app",
       "infoPlist": {
         "NSCameraUsageDescription": "此应用需要访问相机来拍摄照片",
-        "NSPhotoLibraryUsageDescription": "此应用需要访问相册来选择照片"
+        "NSPhotoLibraryUsageDescription": "此应用需要访问相册来选择照片",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -28,7 +32,10 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -36,6 +43,10 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
+      "expo-background-task",
+      "expo-background-fetch",
+      "expo-task-manager",
       [
         "expo-image-picker",
         {
@@ -44,6 +55,13 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
         }
       ]
-    ]
+    ],
+    "scheme": "mycoolredirect",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f7b01d63-093d-4865-b0aa-130db5429e4c"
+      }
+    }
   }
 }

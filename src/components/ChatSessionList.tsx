@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   FlatList,
   Alert,
   StyleSheet,
-} from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { ChatSession, ChatSessionService } from '@/services/ChatSessionService';
-import { cn } from '../utils/cn';
+} from "react-native";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
+import { cn } from "../utils/cn";
 
 interface ChatSessionListProps {
   sessions: ChatSession[];
@@ -28,7 +28,8 @@ export function ChatSessionList({
 }: ChatSessionListProps) {
   const renderSessionItem = ({ item }: { item: ChatSession }) => {
     const isCurrentSession = item.id === currentSessionId;
-    const isLastMessageEmpty = !item.lastMessage || item.lastMessage.trim() === '';
+    const isLastMessageEmpty =
+      !item.lastMessage || item.lastMessage.trim() === "";
 
     return (
       <Pressable
@@ -38,14 +39,14 @@ export function ChatSessionList({
         ]}
         onPress={() => onSessionSelect(item)}
         onLongPress={() => {
-          Alert.alert(
-            '删除会话',
-            '确定要删除这个会话吗？删除后无法恢复。',
-            [
-              { text: '取消', style: 'cancel' },
-              { text: '删除', style: 'destructive', onPress: () => onDeleteSession(item.id) },
-            ]
-          );
+          Alert.alert("删除会话", "确定要删除这个会话吗？删除后无法恢复。", [
+            { text: "取消", style: "cancel" },
+            {
+              text: "删除",
+              style: "destructive",
+              onPress: () => onDeleteSession(item.id),
+            },
+          ]);
         }}
       >
         <View style={styles.sessionContent}>
@@ -74,7 +75,7 @@ export function ChatSessionList({
               />
             </View>
           </View>
-          
+
           <Text
             style={[
               styles.lastMessage,
@@ -82,7 +83,7 @@ export function ChatSessionList({
             ]}
             numberOfLines={2}
           >
-            {isLastMessageEmpty ? '暂无消息' : item.lastMessage}
+            {isLastMessageEmpty ? "暂无消息" : item.lastMessage}
           </Text>
         </View>
       </Pressable>
@@ -124,21 +125,21 @@ export function ChatSessionList({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   newSessionButton: {
     padding: 4,
@@ -150,20 +151,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8f8f8',
+    borderBottomColor: "#f8f8f8",
   },
   currentSessionItem: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: "#f0f8ff",
     borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: "#007AFF",
   },
   sessionContent: {
     flex: 1,
   },
   sessionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 4,
   },
   sessionInfo: {
@@ -172,25 +173,25 @@ const styles = StyleSheet.create({
   },
   sessionTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 2,
   },
   currentSessionTitle: {
-    color: '#007AFF',
-    fontWeight: '600',
+    color: "#007AFF",
+    fontWeight: "600",
   },
   sessionTime: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
   },
   sessionActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   messageCount: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
     marginRight: 4,
   },
   moreIcon: {
@@ -198,27 +199,27 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     lineHeight: 18,
   },
   emptyMessage: {
-    color: '#ccc',
-    fontStyle: 'italic',
+    color: "#ccc",
+    fontStyle: "italic",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: "#999",
     marginTop: 12,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#ccc',
+    color: "#ccc",
   },
 });

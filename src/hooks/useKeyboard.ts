@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Keyboard, KeyboardEvent, Platform } from 'react-native';
+import { useState, useEffect } from "react";
+import { Keyboard, KeyboardEvent, Platform } from "react-native";
 
 interface KeyboardState {
   keyboardHeight: number;
@@ -14,23 +14,23 @@ export function useKeyboard() {
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (e: KeyboardEvent) => {
         setKeyboardState({
           keyboardHeight: e.endCoordinates.height,
           isKeyboardVisible: true,
         });
-      }
+      },
     );
 
     const hideSubscription = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
         setKeyboardState({
           keyboardHeight: 0,
           isKeyboardVisible: false,
         });
-      }
+      },
     );
 
     return () => {
