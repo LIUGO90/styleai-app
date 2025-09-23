@@ -26,6 +26,7 @@ export const getImageDimensions = async (
   return new Promise((resolve, reject) => {
     if (typeof imageSource === "number") {
       // 本地图片 (require() 返回的数字) - 直接返回图片对象的尺寸
+      console.log("imageSource", imageSource);
       try {
         const image = Image.resolveAssetSource(imageSource);
         if (image && image.width && image.height) {

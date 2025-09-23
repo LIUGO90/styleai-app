@@ -4,6 +4,16 @@ import { Chat, ChatHeader } from "@/components/Chat";
 import { Message, MessageButton } from "@/components/types";
 import { useRouter } from "expo-router";
 import { ChatSessionService } from "@/services/ChatSessionService";
+import { Image } from "expo-image";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
+import {
+  BACKGROUNDS,
+  IMAGE_PATHS,
+  getTestImage,
+} from "@/config/imagePaths";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function StylingScreen() {
   const router = useRouter();
@@ -117,23 +127,116 @@ How can I help to make your outfit shine today? `,
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+      {/* 背景图片 */}
+      <Image
+        source={BACKGROUNDS("MAIN")}
+        style={StyleSheet.absoluteFillObject}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+      />
       <ChatHeader
-        title="Styleme"
+        title="Styla"
         // subtitle="在线"
         isOnline={true}
         showAvatar={false}
-        // onBack={() => console.log('返回')}
-        // onMore={() => console.log('更多选项')}
+      // onBack={() => console.log('返回')}
+      // onMore={() => console.log('更多选项')}
       />
+      <View className="flex-1 items-start justify-center pl-6">
+        <MaskedView
+          style={{ height: 120, flexDirection: 'row' }}
+          maskElement={
+            <Text style={styles.gradientText}>
+              Hi {AsyncStorage.getItem("name")} !{"\n"}Ready to shine today?
+            </Text>
+          }
+        >
+          <LinearGradient
+            colors={['#ff9a9e', '#fecfef', '#fecfef', '#f8cd69', '#ff9a9e']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
+          />
+        </MaskedView>
 
-      <Chat
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        onButtonPress={handleButtonPress}
-        placeholder="输入消息..."
-        showAvatars={true}
-      />
+        {/* 按钮区域 */}
+        <View className="mt-8 px-2 w-full">
+          <View className="bg-white/10 backdrop-blur-sm rounded-2xl">
+            <View className="flex-row  justify-between">
+              <TouchableOpacity
+                className="flex-1 bg-white rounded-xl py-3 px-4 mx-2"
+                onPress={() => handleButtonPress({ id: "card_btn1", text: "Style an Item", type: "primary", action: "style_an_item" }, {} as Message)}
+                activeOpacity={1}
+              >
+                <Text className="text-black text-center font-medium">Style an Item</Text>
+              </TouchableOpacity>
+{/* 
+              <TouchableOpacity
+                className="flex-1 bg-white  backdrop-blur-sm rounded-xl py-3 px-4 mx-2"
+                onPress={() => handleButtonPress({ id: "card_btn2", text: "Outfit Check", type: "secondary", action: "outfit_check" }, {} as Message)}
+                activeOpacity={1}
+              >
+                <Text className="text-black text-center font-medium">Outfit Check</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-1 bg-white backdrop-blur-sm rounded-xl py-3 px-4 mx-2"
+                onPress={() => handleButtonPress({ id: "card_btn3", text: "Generate OOTD", type: "secondary", action: "generate_ootd" }, {} as Message)}
+                activeOpacity={1}
+              >
+                <Text className="text-gray-700 text-center font-medium">Generate OOTD</Text>
+              </TouchableOpacity> */}
+            </View>
+          </View>
+        </View>
+      </View>
+      <View className="bg-white rounded-t-3xl p-6 border border-gray-200" >
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-2xl font-bold text-black">My Lookbook</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/tabs/lookbook")}
+          >
+            <Text className="text-gray-500 text-base">More</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 图片展示区域 */}
+        <View className="flex-row space-x-3 mb-2">
+          <TouchableOpacity className="flex-1 mx-2">
+            <View className="bg-gray-200 rounded-2xl aspect-[3/4] overflow-hidden">
+              <Image
+                source={require("../../../../assets/onboarding/Final/1.jpg")}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                placeholder="Loading..."
+              />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity className="flex-1 mx-2">
+            <View className="bg-gray-200 rounded-2xl aspect-[3/4] overflow-hidden">
+              <Image
+                source={require("../../../../assets/onboarding/Final/2.jpg")}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                placeholder="Loading..."
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  gradientText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'left',
+    lineHeight: 36,
+    backgroundColor: 'transparent',
+  },
+});

@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "StyleAI",
-    "slug": "expo-starter",
-    "scheme": "expo-starter",
+    "slug": "styleai-app",
+    "scheme": "styleai-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

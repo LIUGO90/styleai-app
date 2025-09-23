@@ -25,7 +25,7 @@ export default function BaseThree() {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
-        if (onboardingDataObj.fullBodyPhoto.length !== 0) {
+        if (onboardingDataObj.stylePreferences.length !== 0) {
           setSelectedIndices(
             onboardingDataObj.stylePreferences.map((item) =>
               chooseTitles.indexOf(item),

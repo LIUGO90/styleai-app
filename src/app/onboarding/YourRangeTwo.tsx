@@ -11,6 +11,8 @@ import {
 import { Image } from "expo-image";
 import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { OnboardingData } from "@/components/types";
 
 export default function YourRangeTwo() {
   // 体型选项数据
@@ -49,6 +51,21 @@ export default function YourRangeTwo() {
 
   const router = useRouter();
   const [selectedBodyType, setSelectedBodyType] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadOnboardingData = async () => {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        if (onboardingDataObj.bodyType) {
+          setSelectedBodyType(onboardingDataObj.bodyType);
+        }
+      } else {
+        setSelectedBodyType(null);
+      }
+    };
+    loadOnboardingData();
+  }, []);
 
   const handleSkip = async () => {
     router.replace("/");
@@ -56,6 +73,15 @@ export default function YourRangeTwo() {
 
   const handleNext = async () => {
     if (selectedBodyType) {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        onboardingDataObj.bodyType = selectedBodyType;
+        await AsyncStorage.setItem(
+          "onboardingData",
+          JSON.stringify(onboardingDataObj),
+        );
+      }
       router.push("/onboarding/YourRangeThree");
     }
   };

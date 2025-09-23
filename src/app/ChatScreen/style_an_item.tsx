@@ -6,6 +6,7 @@ import {
   Message,
   MessageButton,
   ImageUploadCallback,
+  OnboardingData,
 } from "@/components/types";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
@@ -18,6 +19,8 @@ import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { ChatSessionService, ChatSession } from "@/services/ChatSessionService";
 import { getTestImage } from "@/config/imagePaths";
 import { uploadImageWithFileSystem } from "@/services/FileUploadService";
+import { getImageDimensions } from "@/utils/imageDimensions";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = "") => {
@@ -330,6 +333,8 @@ export default function StyleAnItemScreen() {
           },
         };
         addMessage(progressMessage);
+        const imageDimensions = await getImageDimensions(selectedImageRef.current);
+        console.log("imageDimensions", imageDimensions);
         const imageUrl = await uploadImageWithFileSystem(
           selectedImageRef.current,
         );
@@ -346,33 +351,45 @@ export default function StyleAnItemScreen() {
               id: generateUniqueId("img_"),
               url: imageUrl,
               alt: "Garment Image",
+              width: imageDimensions.width,
+              height: imageDimensions.height,
             },
           ],
         });
         addMessage(progressMessage);
 
-        const { jobId, message: aimessage } = await aiRequest(imageUrl);
-        if (jobId === "error") {
-          Alert.alert("AI请求失败");
-          return;
+        // const { jobId, message: aimessage } = await aiRequest(imageUrl);
+        // if (jobId === "error") {
+        //   Alert.alert("AI请求失败");
+        //   return;
+        // }
+
+        // dateleMessage(progressMessage.id);
+        // const confirmMessage: Message = {
+        //   id: (Date.now() + 2).toString(),
+        //   // text: `Your selection has been confirmed! Generating outfit suggestions...`,
+        //   text: aimessage,
+        //   sender: "ai",
+        //   senderName: "AI助手",
+        //   timestamp: new Date(),
+        //   showAvatars: true,
+        // };
+        // addMessage(confirmMessage);
+
+        // progressMessage.progress!.current = 6;
+        // addMessage(progressMessage);
+        const onboardingData = await AsyncStorage.getItem("onboardingData");
+
+        if (!onboardingData) {
+          throw new Error("Onboarding data not found");
         }
-
-        dateleMessage(progressMessage.id);
-        const confirmMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          // text: `Your selection has been confirmed! Generating outfit suggestions...`,
-          text: aimessage,
-          sender: "ai",
-          senderName: "AI助手",
-          timestamp: new Date(),
-          showAvatars: true,
-        };
-        addMessage(confirmMessage);
-
-        progressMessage.progress!.current = 6;
-        addMessage(progressMessage);
-
-        const resultGemini = await aiRequestGemini(jobId, 0);
+    
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        if (!onboardingDataObj.fullBodyPhoto) {
+          throw new Error("Full body photo not found");
+        }
+        console.log("onboardingDataObj.fullBodyPhoto", onboardingDataObj.fullBodyPhoto);
+        const resultGemini = await aiRequestGemini(onboardingDataObj.fullBodyPhoto,imageUrl||"");
         if (resultGemini.length === 0) {
           Alert.alert("AI请求失败");
           return;

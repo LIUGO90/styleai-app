@@ -92,6 +92,7 @@ export interface Message {
 }
 
 export interface OnboardingData {
+  gender: any;
   userId: string;
   hasStylingDifficulty?: boolean;
   stylePreferences: string[];

@@ -98,7 +98,10 @@ export default function LookbookOne() {
 
   return (
     <View className="flex-1 bg-white px-5">
-      <ScrollView>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+      >
         <View className="flex-1 p-2 ">
           <Text className="text-xl font-bold text-start  text-black">
             Select a style and generate persoanlized lookbook.

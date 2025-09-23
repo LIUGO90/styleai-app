@@ -706,7 +706,7 @@ export function ChatHeader({
   showDrawerButton = false,
 }: ChatHeaderProps) {
   return (
-    <View className="flex-row items-center bg-white border-b border-gray-200 px-3 py-2">
+    <View className="flex-row items-center bg-transparent border-b border-gray-200 px-3 py-2">
       {onBack && (
         <Pressable
           onPress={onBack}
@@ -733,7 +733,7 @@ export function ChatHeader({
         )}
 
         <View className="flex-1">
-          <Text className="text-base font-semibold text-black">{title}</Text>
+          <Text className="text-xl font-semibold text-black">{title}</Text>
           {subtitle && (
             <Text className="text-xs text-gray-500">{subtitle}</Text>
           )}

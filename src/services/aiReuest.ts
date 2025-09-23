@@ -69,11 +69,11 @@ export const aiRequestKling = async (
 
 // 使用Web Worker模拟处理Gemini请求
 export const aiRequestGemini = async (
-  jobId: string,
-  index: number,
+  fullBodyPhoto: string,
+  garmentImage: string,
 ): Promise<string[]> => {
   try {
-    return await webWorkerAIService.aiRequestGemini(jobId, index, {
+    return await webWorkerAIService.aiRequestGemini(fullBodyPhoto, garmentImage, {
       onProgress: (progress) => {
         console.log(`Gemini Request Progress: ${progress}%`);
       },

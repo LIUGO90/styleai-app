@@ -11,6 +11,8 @@ import {
 import { Image } from "expo-image";
 import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
+import { OnboardingData } from "@/components/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function YourRangeThree() {
   // 身体量感结构选项数据
@@ -46,7 +48,18 @@ export default function YourRangeThree() {
   const [selectedBodyStructure, setSelectedBodyStructure] = useState<
     string | null
   >(null);
-
+  useEffect(() => {
+    const loadOnboardingData = async () => {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        if (onboardingDataObj.bodyStructure) {
+          setSelectedBodyStructure(onboardingDataObj.bodyStructure);
+        }
+      }
+    };
+    loadOnboardingData();
+  }, []);
   const handleSkip = async () => {
     router.replace("/");
   };
@@ -55,6 +68,15 @@ export default function YourRangeThree() {
     if (selectedBodyStructure) {
       // router.dismissAll();
       // router.replace("/");
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        onboardingDataObj.bodyStructure = selectedBodyStructure;
+        await AsyncStorage.setItem(
+          "onboardingData",
+          JSON.stringify(onboardingDataObj),
+        );
+      }
       router.push("/onboarding/BaseSix");
     }
   };

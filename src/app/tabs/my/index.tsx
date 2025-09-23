@@ -20,11 +20,12 @@ export default function MyProfile() {
       created_at: user?.created_at,
     });
   }, [user]);
-
+  const name = AsyncStorage.getItem("name") || "";
   const email = user?.user_metadata?.email || user?.email || "No email";
   // 从认证用户数据获取信息
   const userData = {
     name:
+      name ||
       user?.user_metadata?.full_name ||
       user?.user_metadata?.name ||
       email?.split("@")[0] ||
@@ -36,9 +37,9 @@ export default function MyProfile() {
       "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U",
     memberSince: user?.created_at
       ? new Date(user.created_at).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        })
+        month: "long",
+        year: "numeric",
+      })
       : "Recently",
     provider:
       user?.user_metadata?.provider || user?.app_metadata?.provider || "Email",
@@ -89,54 +90,32 @@ export default function MyProfile() {
 
   const menuItems = [
     {
-      id: "profile",
-      title: "Edit Profile",
+      id: "Profile Photo",
+      title: "Profile Photo",
       icon: "account-edit" as const,
       color: "#3b82f6",
-      onPress: () => console.log("Edit Profile"),
+      onPress: () => {
+        router.replace({
+        pathname: '/onboarding/BaseFive',
+        params: { isUpdate: "true" }
+        });
+      },
     },
+    // {
+    //   id: "Physical Profile",
+    //   title: "Physical Profile",
+    //   icon: "hanger" as const,
+    //   color: "#10b981",
+    //   onPress: () => console.log("My Wardrobe"),
+    // },
     {
-      id: "wardrobe",
-      title: "My Wardrobe",
-      icon: "hanger" as const,
-      color: "#10b981",
-      onPress: () => console.log("My Wardrobe"),
-    },
-    {
-      id: "outfits",
-      title: "Saved Outfits",
+      id: "Style Preference",
+      title: "Style Preference",
       icon: "heart" as const,
       color: "#ef4444",
-      onPress: () => console.log("Saved Outfits"),
-    },
-    {
-      id: "preferences",
-      title: "Style Preferences",
-      icon: "palette" as const,
-      color: "#8b5cf6",
       onPress: () => router.replace("/onboarding/BaseOne"),
     },
-    {
-      id: "settings",
-      title: "Settings",
-      icon: "cog" as const,
-      color: "#6b7280",
-      onPress: () => console.log("Settings"),
-    },
-    {
-      id: "help",
-      title: "Help & Support",
-      icon: "help-circle" as const,
-      color: "#f59e0b",
-      onPress: () => console.log("Help & Support"),
-    },
-    {
-      id: "clearData",
-      title: "Clear All Data",
-      icon: "delete-sweep" as const,
-      color: "#dc2626",
-      onPress: clearAllData,
-    },
+
   ];
 
   const refreshUserInfo = async () => {
@@ -185,7 +164,7 @@ export default function MyProfile() {
       <ScrollView style={{ flex: 1 }}>
         {/* Header */}
         <View className="bg-white pt-12 pb-6 px-5">
-          <View className="flex-row items-center justify-between mb-6">
+          {/* <View className="flex-row items-center justify-between mb-6">
             <Text className="text-2xl font-bold text-gray-800">My Profile</Text>
             <View className="flex-row items-center space-x-2">
               <Pressable
@@ -207,36 +186,28 @@ export default function MyProfile() {
                 />
               </Pressable>
             </View>
-          </View>
+          </View> */}
 
           {/* User Info Card */}
-          <View
-            style={{
-              backgroundColor: "#3b82f6",
-              borderRadius: 16,
-              padding: 24,
-              marginBottom: 24,
-            }}
-          >
-            <View className="flex-row items-center">
-              <Image
-                source={{ uri: userData.avatar }}
-                className="w-16 h-16 rounded-full mr-4"
-              />
-              <View className="flex-1">
-                <Text className="text-white text-xl font-bold mb-1">
-                  {userData.name}
-                </Text>
-                <Text className="text-blue-100 text-sm mb-1">
-                  {userData.email}
-                </Text>
-                <Text className="text-blue-100 text-xs">
-                  Member since {userData.memberSince}
-                </Text>
-                <Text className="text-blue-100 text-xs">
-                  Signed in with {userData.provider}
-                </Text>
-                {userData.isVerified && (
+          <View className="flex-row items-center">
+            <Image
+              source={{ uri: userData.avatar }}
+              className="w-16 h-16 rounded-full mr-4"
+            />
+            <View className="flex-1">
+              <Text className="text-black text-xl font-bold mb-1">
+                {userData.name}
+              </Text>
+              <Text className="text-black text-sm mb-1">
+                {userData.email}
+              </Text>
+              {/* <Text className="text-black text-xs">
+                Member since {userData.memberSince}
+              </Text>
+              <Text className="text-black-100 text-xs">
+                Signed in with {userData.provider}
+              </Text> */}
+              {/* {userData.isVerified && (
                   <View className="flex-row items-center mt-1">
                     <MaterialCommunityIcons
                       name="check-circle"
@@ -247,174 +218,19 @@ export default function MyProfile() {
                       Verified
                     </Text>
                   </View>
-                )}
-              </View>
-              <Pressable className="p-2">
-                <MaterialCommunityIcons name="pencil" size={20} color="white" />
-              </Pressable>
+                )} */}
             </View>
-          </View>
-
-          {/* Stats */}
-          <View className="flex-row space-x-4">
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: "#f3f4f6",
-              }}
-            >
-              <View className="flex-row items-center mb-2">
-                <MaterialCommunityIcons
-                  name="tshirt-crew"
-                  size={20}
-                  color="#3b82f6"
-                />
-                <Text className="text-gray-600 text-sm ml-2">Outfits</Text>
-              </View>
-              <Text className="text-2xl font-bold text-gray-800">
-                {userData.outfitsCreated}
-              </Text>
-            </View>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: "#f3f4f6",
-              }}
-            >
-              <View className="flex-row items-center mb-2">
-                <MaterialCommunityIcons
-                  name="hanger"
-                  size={20}
-                  color="#10b981"
-                />
-                <Text className="text-gray-600 text-sm ml-2">Items</Text>
-              </View>
-              <Text className="text-2xl font-bold text-gray-800">
-                {userData.itemsInWardrobe}
-              </Text>
-            </View>
+            <Pressable className="p-2">
+              <MaterialCommunityIcons name="pencil" size={20} color="white" />
+            </Pressable>
           </View>
         </View>
 
-        {/* Debug Info - Only in development */}
-        {__DEV__ && user && (
-          <View
-            style={{
-              backgroundColor: "#f3f4f6",
-              marginHorizontal: 20,
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 24,
-            }}
-          >
-            <Text className="text-lg font-semibold text-gray-800 mb-4">
-              Debug Info (Development Only)
-            </Text>
-            <View className="space-y-2">
-              <Text className="text-sm text-gray-600">
-                <Text className="font-medium">User ID:</Text> {userData.userId}
-              </Text>
-              <Text className="text-sm text-gray-600">
-                <Text className="font-medium">Provider:</Text>{" "}
-                {userData.provider}
-              </Text>
-              <Text className="text-sm text-gray-600">
-                <Text className="font-medium">Email Verified:</Text>{" "}
-                {userData.isVerified ? "Yes" : "No"}
-              </Text>
-              <Text className="text-sm text-gray-600">
-                <Text className="font-medium">Created At:</Text>{" "}
-                {user?.created_at || "Unknown"}
-              </Text>
-              {user?.user_metadata && (
-                <Text className="text-sm text-gray-600">
-                  <Text className="font-medium">Metadata:</Text>{" "}
-                  {JSON.stringify(user.user_metadata, null, 2)}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
 
-        {/* Style Preferences */}
-        <View
-          style={{
-            backgroundColor: "white",
-            marginHorizontal: 20,
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 24,
-          }}
-        >
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Style Preferences
-          </Text>
-          <View className="flex-row flex-wrap">
-            {userData.stylePreferences.map((style, index) => (
-              <View
-                key={index}
-                className="bg-blue-100 rounded-full px-4 py-2 mr-2 mb-2"
-              >
-                <Text className="text-blue-600 text-sm font-medium">
-                  {style}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Favorite Colors */}
-        <View
-          style={{
-            backgroundColor: "white",
-            marginHorizontal: 20,
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 24,
-          }}
-        >
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Favorite Colors
-          </Text>
-          <View className="flex-row space-x-3">
-            {userData.favoriteColors.map((color, index) => (
-              <View key={index} className="flex-1 items-center">
-                <View
-                  className="w-12 h-12 rounded-full mb-2"
-                  style={{
-                    backgroundColor:
-                      color === "Navy Blue"
-                        ? "#1e3a8a"
-                        : color === "Emerald Green"
-                          ? "#059669"
-                          : "#f97316",
-                  }}
-                />
-                <Text className="text-xs text-gray-600 text-center">
-                  {color}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
 
         {/* Menu Items */}
         <View
-          style={{
-            backgroundColor: "white",
-            marginHorizontal: 20,
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 24,
-          }}
+          className="bg-white rounded-2xl p-4 m-6"
         >
           <Text className="text-lg font-semibold text-gray-800 mb-4">
             Settings & Preferences
@@ -424,7 +240,7 @@ export default function MyProfile() {
               <Pressable
                 key={item.id}
                 onPress={item.onPress}
-                className="flex-row items-center p-4 rounded-xl bg-gray-50"
+                className="flex-row items-center p-4 my-2 rounded-xl bg-gray-50"
               >
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center mr-4"

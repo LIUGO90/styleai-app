@@ -206,15 +206,15 @@ class WebWorkerAIService {
    * Gemini AI请求
    */
   async aiRequestGemini(
-    jobId: string,
-    index: number,
+    fullBodyPhoto: string,
+    garmentImage: string,
     options: AIRequestOptions = {},
   ): Promise<string[]> {
     return new Promise((resolve, reject) => {
       const task: RequestTask = {
-        id: `gemini_${jobId}_${index}_${Date.now()}`,
+        id: `gemini_${Date.now()}`,
         type: "gemini",
-        args: [jobId, index],
+        args: [fullBodyPhoto, garmentImage],
         options,
         resolve,
         reject,
@@ -316,8 +316,8 @@ class WebWorkerAIService {
    * 执行Gemini请求的具体实现
    */
   private async executeGeminiRequest(
-    jobId: string,
-    index: number,
+    fullBodyPhoto: string,
+    garmentImage: string,
     options: AIRequestOptions,
     abortController: AbortController,
   ): Promise<string[]> {
@@ -326,7 +326,7 @@ class WebWorkerAIService {
 
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/gemini`,
-      { jobId, index },
+      { fullBodyPhoto, garmentImage },
       abortController,
     );
 

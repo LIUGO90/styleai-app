@@ -313,8 +313,8 @@ class AsyncAIRequestService {
    * 执行Gemini请求的具体实现
    */
   private async executeGeminiRequest(
-    jobId: string,
-    index: number,
+    fullBodyPhoto: string,
+    garmentImage: string,
     options: AIRequestOptions,
     abortController: AbortController,
   ): Promise<string[]> {
@@ -323,7 +323,7 @@ class AsyncAIRequestService {
 
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/gemini`,
-      { jobId, index },
+      { fullBodyPhoto, garmentImage },
       abortController,
     );
 

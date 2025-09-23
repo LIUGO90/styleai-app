@@ -6,7 +6,7 @@ const { withNativeWind } = require("nativewind/metro");
 const config = getDefaultConfig(__dirname);
 
 // Add Hermes compatibility fixes
-config.resolver.platforms = ["ios", "android", "native", "web"];
+config.resolver.platforms = ["ios", "native"];
 config.transformer.minifierConfig = {
   keep_fnames: true,
   mangle: {

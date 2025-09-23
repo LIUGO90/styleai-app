@@ -18,13 +18,30 @@ export default function BaseTwo() {
     // 记录接收到的路由参数
     console.log("BaseTwo received params:", { username });
 
-    const loadOnboardingData = async () => {};
+    const loadOnboardingData = async () => {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        setSelectedIndex(onboardingDataObj.gender ? 0 : 1);
+      } else {
+        setSelectedIndex(null);
+      }
+    };
     loadOnboardingData();
   }, []);
 
   const handleNext = async () => {
     console.log("handleNext", selectedIndex);
     if (selectedIndex !== null) {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        onboardingDataObj.gender = selectedIndex === 0 ? "Female" : "Male";
+        await AsyncStorage.setItem(
+          "onboardingData",
+          JSON.stringify(onboardingDataObj),
+        );
+      }
       router.push("/onboarding/BaseThree");
     }
   };

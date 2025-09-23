@@ -11,6 +11,8 @@ import {
 import { Image } from "expo-image";
 import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { OnboardingData } from "@/components/types";
 
 export default function YourRangeOne() {
   // 肤色选项数据- Fair
@@ -61,13 +63,36 @@ export default function YourRangeOne() {
 
   const router = useRouter();
   const [selectedSkinTone, setSelectedSkinTone] = useState<string | null>(null);
-
+  useEffect(() => {
+    const loadOnboardingData = async () => {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        if (onboardingDataObj.skinTone) {
+          setSelectedSkinTone(onboardingDataObj.skinTone);
+        }
+      } else {
+        setSelectedSkinTone(null);
+      }
+    };
+    loadOnboardingData();
+  }, []);
+  
   const handleSkip = async () => {
     router.replace("/");
   };
 
   const handleNext = async () => {
     if (selectedSkinTone) {
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+        onboardingDataObj.skinTone = selectedSkinTone;
+        await AsyncStorage.setItem(
+          "onboardingData",
+          JSON.stringify(onboardingDataObj),
+        );
+      }
       router.replace("/onboarding/YourRangeTwo");
     }
   };

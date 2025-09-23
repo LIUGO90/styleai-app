@@ -64,6 +64,10 @@ export const IMAGE_PATHS = {
       MESSAGES_4: require("../../assets/onboarding/zero/messages-4.png"),
       MESSAGES_5: require("../../assets/onboarding/zero/messages-5.png"),
     },
+    FINAL: {
+      FINAL_1: require("../../assets/onboarding/Final/1.jpg"),
+      FINAL_2: require("../../assets/onboarding/Final/2.jpg"),
+    },
   },
   SCROLL: {
     SCROLL_1: require("../../assets/onboarding/Scroll/1.png"),
@@ -115,7 +119,7 @@ export const getAvatar = (key: AvatarKey) => {
 };
 
 // 辅助函数：获取背景图片
-export const getBackground = (key: BackgroundKey) => {
+export const BACKGROUNDS = (key: BackgroundKey) => {
   return IMAGE_PATHS.BACKGROUNDS[key];
 };
 

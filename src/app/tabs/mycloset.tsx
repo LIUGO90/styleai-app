@@ -101,7 +101,11 @@ export default function LookbookOne() {
           My Closet
         </Text>
       </View>
-      <ScrollView className="p-5">
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        className="p-5"
+      >
         {/* 风格选择网格 */}
         <View className="flex-row flex-wrap justify-between ">
           {STYLE_OPTIONS.map((style) => {

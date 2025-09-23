@@ -2,7 +2,7 @@ import * as TaskManager from "expo-task-manager";
 import * as BackgroundFetch from "expo-background-fetch";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
-import { FileSystemUploadType } from "expo-file-system";
+import { uploadAsync, FileSystemUploadType } from "expo-file-system/legacy";
 
 // 任务类型定义
 export interface BackgroundTask {
@@ -451,7 +451,7 @@ export class BackTaskManager {
     try {
       const imageUri = selectedImage.split("/").pop() || "";
       console.log("imageUri", imageUri);
-      const response = await FileSystem.uploadAsync(
+       const response = await uploadAsync(
         `${process.env.EXPO_PUBLIC_API_URL}/api/apple/upload`,
         selectedImage,
         {
