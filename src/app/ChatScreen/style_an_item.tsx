@@ -9,6 +9,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { aiRequest, aiRequestKling, aisuggest } from '@/services/aiReuest';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { ChatSessionService, ChatSession } from '@/services/ChatSessionService';
+import { uploadImageWithFileSystem } from '@/services/FileUploadService';
+
+
+
+// 生成唯一ID的辅助函数
+const generateUniqueId = (prefix: string = '') => {
+  return `${prefix}${Date.now()}_${(Math.random() * 10000).toString()}`;
+};
 
 
 export const buttons: MessageButton[] = [
@@ -55,21 +63,21 @@ const initMessages: Message[] = [
     id: '1',
     text: `Style an Item`,
     sender: 'user',
-    senderName: '我',
+    senderName: 'Me',
     timestamp: new Date(Date.now() - 120000),
   },
   {
     id: '2',
     text: `Sure! Please upload the photo of your garment and tell me more the occasion`,
     sender: 'system',
-    senderName: 'AI助手',
+    senderName: 'AI Assistant',
     timestamp: new Date(Date.now() - 120000),
   },
   {
     id: '3',
     text: '',
     sender: 'system',
-    senderName: 'AI助手',
+    senderName: 'AI Assistant',
     timestamp: new Date(Date.now() - 60000),
     type: 'card',
     card: {
@@ -77,7 +85,7 @@ const initMessages: Message[] = [
       title: '',
       subtitle: '',
       description: 'What occasion would you wear this for？',
-      uploadImage: true, // 启用图片上传功能
+      uploadImage: true, // Enable image upload functionality
       buttons: buttons,
       commitButton: {
         id: 'commit_btn',
@@ -95,6 +103,7 @@ export default function StyleAnItemScreen() {
 
   const [selectedButtons, setSelectedButtons] = useState<string>("");
   const selectedImageRef = useRef<string>("");
+  const selectedIdRef = useRef<string>("");
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -119,8 +128,9 @@ export default function StyleAnItemScreen() {
       // 重置状态，避免会话切换时的混淆
       setMessages([]);
       selectedImageRef.current = '';
+      selectedIdRef.current = '3';
       setSelectedButtons('');
-      
+
       let session: ChatSession | null = null;
       if (sessionId) {
         // 如果路由参数中有sessionId，加载指定会话
@@ -145,18 +155,20 @@ export default function StyleAnItemScreen() {
       if (session.messages && session.messages.length > 0) {
         setMessages(session.messages);
         // 检查是否有上传的图片
-        const messageWithImage = session.messages.find(msg => 
+        const messageWithImage = session.messages.find(msg =>
           msg.card && msg.card.image && msg.card.image !== ''
         );
         if (messageWithImage && messageWithImage.card && messageWithImage.card.image) {
           selectedImageRef.current = messageWithImage.card.image;
+          selectedIdRef.current = messageWithImage.id;
+          setSelectedButtons(messageWithImage.card.selectedButton || '');
         }
       } else {
         // 如果是新会话，设置初始消息
-        setMessages(initMessages );
+        setMessages(initMessages);
       }
     } catch (error) {
-      console.error('加载会话失败:', error);
+      console.error('Failed to load session:', error);
     }
   };
 
@@ -165,10 +177,18 @@ export default function StyleAnItemScreen() {
       try {
         await ChatSessionService.updateSessionMessages(currentSession.id, messages);
       } catch (error) {
-        console.error('保存消息到会话失败:', error);
+        console.error('Failed to save messages to session:', error);
       }
     }
   };
+
+  const getMessage = (messageId: string) => {
+    return messages.find(msg => msg.id === messageId);
+  }
+
+  const hideMessage = (messageId: string) => {
+    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
+  }
 
   const updateMessage = (message: Message) => {
     setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
@@ -187,18 +207,18 @@ export default function StyleAnItemScreen() {
       id: Date.now().toString(),
       text,
       sender: 'user',
-      senderName: '用户',
+      senderName: 'User',
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, newMessage]);
 
-    // 模拟AI回复
+    // Simulate AI reply
     setTimeout(() => {
       const replies = [
-        '我明白了！默认头像功能确实很实用',
-        '是的，不同类型的头像有不同的颜色和样式',
-        '用户头像是蓝色的，AI头像是绿色的',
-        '系统头像则是橙色的，很容易区分',
+        'I understand! The default avatar feature is indeed very practical',
+        'Yes, different types of avatars have different colors and styles',
+        'User avatars are blue, AI avatars are green',
+        'System avatars are orange, easy to distinguish',
       ];
       const randomReply = replies[Math.floor(Math.random() * replies.length)];
 
@@ -206,7 +226,7 @@ export default function StyleAnItemScreen() {
         id: (Date.now() + 1).toString(),
         text: randomReply,
         sender: 'ai',
-        senderName: 'AI助手',
+        senderName: 'AI Assistant',
         timestamp: new Date(),
         showAvatars: true,
       };
@@ -215,9 +235,9 @@ export default function StyleAnItemScreen() {
   };
 
   const handleButtonPress = async (button: MessageButton, message: Message) => {
-    console.log('按钮点击:', button.action, button.data);
+    console.log('Button clicked:', button.action, button.data);
 
-    // 根据按钮动作处理不同的逻辑
+    // Handle different logic based on button action
     switch (button.action) {
       case 'style_an_item':
         console.log('Style an Item');
@@ -233,8 +253,22 @@ export default function StyleAnItemScreen() {
         // 可以添加其他页面的跳转
         router.push('/tabs/styling/generate_ootd');
         break;
+
+      case 'change_accessories':
+        // 生成新的配置
+        const message2 = initMessages[2];
+        message2.id = generateUniqueId('msg_');
+        addMessage(message2);
+        selectedIdRef.current = message2.id;
+
+        // 清空卡片状态信息
+        setSelectedButtons('');
+        selectedImageRef.current = ""
+        selectedIdRef.current = ""
+        break;
+
       case 'confirm_selection':
-        
+
         if (selectedImageRef.current === '') {
           Alert.alert('请上传一张图片' + selectedImageRef.current);
           return;
@@ -243,13 +277,71 @@ export default function StyleAnItemScreen() {
           Alert.alert('请选择一个场合');
           return;
         }
+        const messagetmp = getMessage(selectedIdRef.current) as Message;
+        if (messagetmp && messagetmp.card) {
+          messagetmp.card.image = selectedImageRef.current;
+        }
+        updateMessage(messagetmp);
+        // 隐藏hideMessage场景选择消息
+        hideMessage(selectedIdRef.current)
 
-        // await AsyncStorage.setItem('garmentImage', imageUrl)
-        const { jobId, message } = await aiRequest();
-        if (jobId === 'error') {
-          Alert.alert('AI请求失败');
+        addMessage({
+          id: generateUniqueId('msg'),
+          text: 'Style this dress for casual',
+          sender: 'user',
+          timestamp: new Date(),
+        });
+
+        // 进度消息 1
+        let progressMessage: Message = {
+          id: generateUniqueId('progress_'),
+          text: '',
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'progress',
+          progress: {
+            current: 1,
+            total: 10,
+            status: 'processing', // 'pending' | 'processing' | 'completed' | 'error'
+            message: 'Putting together outfit for you...'
+          }
+        };
+        addMessage(progressMessage);
+
+        const imageUrl = await uploadImageWithFileSystem(selectedImageRef.current);
+
+        if (imageUrl) {
+          console.log("Image upload successful, saved to local storage", imageUrl);
+        } else {
+          Alert.alert('Image upload failed');
           return;
         }
+        // 进度消息 2
+        progressMessage.progress!.current = 3;
+        dateleMessage(progressMessage.id)
+        addMessage({
+          id: generateUniqueId('msg_'),
+          text: '',
+          sender: 'user',
+          timestamp: new Date(),
+          images: [
+            {
+              id: generateUniqueId('img_'),
+              url: imageUrl,
+              alt: 'Garment Image',
+            }
+          ]
+        });
+        addMessage(progressMessage);
+
+        // await AsyncStorage.setItem('garmentImage', imageUrl)
+        const { jobId, message } = await aiRequest(imageUrl);
+        if (jobId === 'error') {
+          Alert.alert('AI request failed');
+          return;
+        }
+        dateleMessage(progressMessage.id)
+
         // const id = (Date.now() + 2).toString()
         // 处理确认选择逻辑
         const confirmMessage: Message = {
@@ -257,16 +349,18 @@ export default function StyleAnItemScreen() {
           // text: `Your selection has been confirmed! Generating outfit suggestions...`,
           text: message,
           sender: 'ai',
-          senderName: 'AI助手',
+          senderName: 'AI Assistant',
           timestamp: new Date(),
           showAvatars: true,
         };
-
         addMessage(confirmMessage);
+        progressMessage.progress!.current = 6;
+        addMessage(progressMessage);
+
 
         const resultKling = await aiRequestKling(jobId, 0);
         if (resultKling === 'error') {
-          Alert.alert('AI请求失败');
+          Alert.alert('AI request failed');
           return;
         }
 
@@ -274,7 +368,7 @@ export default function StyleAnItemScreen() {
           id: (Date.now() + 2).toString(),
           text: "",
           sender: 'ai',
-          senderName: 'AI助手',
+          senderName: 'AI Assistant',
           timestamp: new Date(),
           showAvatars: true,
           images: [
@@ -285,13 +379,15 @@ export default function StyleAnItemScreen() {
             }
           ]
         };
+        // 删除进度条消息
+        dateleMessage(progressMessage.id)
         addMessage(klingMessage);
 
         const twoklingMessage: Message = {
           id: (Date.now() + 3).toString(),
           text: "",
           sender: 'ai',
-          senderName: 'AI助手',
+          senderName: 'AI Assistant',
           timestamp: new Date(),
           showAvatars: true,
           buttons: [
@@ -313,7 +409,7 @@ export default function StyleAnItemScreen() {
 
         const aiResponse = await aisuggest(jobId2, 1);
         if (!aiResponse || aiResponse.jobId === 'error') {
-          Alert.alert('AI请求失败');
+          Alert.alert('AI request failed');
           return;
         }
 
@@ -322,7 +418,7 @@ export default function StyleAnItemScreen() {
           // text: `Your selection has been confirmed! Generating outfit suggestions...`,
           text: aiResponse.message,
           sender: 'ai',
-          senderName: 'AI助手',
+          senderName: 'AI Assistant',
           timestamp: new Date(),
           showAvatars: true,
 
@@ -331,14 +427,14 @@ export default function StyleAnItemScreen() {
 
         const resultKling2 = await aiRequestKling(jobId2, 1);
         if (resultKling2 === 'error') {
-          Alert.alert('AI请求失败');
+          Alert.alert('AI request failed');
           return;
         }
         const klingMessage2: Message = {
           id: (Date.now() + 3).toString(),
           text: "",
           sender: 'ai',
-          senderName: 'AI助手',
+          senderName: 'AI Assistant',
           timestamp: new Date(),
           showAvatars: true,
           images: [
@@ -351,25 +447,58 @@ export default function StyleAnItemScreen() {
         };
         addMessage(klingMessage2);
 
+
+
+        addMessage({
+          id: generateUniqueId('msg_'),
+          text: "Would you like to generate another look for this item? If you'd like me to tweak this outfit, just let me know.",
+          sender: 'ai',
+          timestamp: new Date(),
+          buttons: [
+            {
+              id: 'button1',
+              text: 'Yes, one more outfit',
+              action: 'generate_another_look'
+            },
+            {
+              id: 'button2',
+              text: 'change accessories',
+              action: 'change_accessories'
+            }
+          ],
+        });
+
+        break;
+
       case 'add_to_cart':
-        console.log('选择场合:', button.text);
+        console.log('Selected occasion:', button.text);
         setSelectedButtons(button.text);
+        const message0 = getMessage(selectedIdRef.current) as Message;
+        if (message0 && message0.card) {
+          message0.card.selectedButton = button.text;
+        }
+        updateMessage(message0);
         break;
       case 'random':
-        console.log('随机选择');
-        // 生成随机数字
+        console.log('Random selection');
+        // Generate random number
         const randomNumber = Math.floor(Math.random() * 5);
-        // 根据数字设置按钮文本
+        // Set button text based on number
         const buttonText = buttons[randomNumber].text;
         setSelectedButtons(buttonText);
 
+        const message1 = getMessage(selectedIdRef.current) as Message;
+        if (message1 && message1.card) {
+          message1.card.selectedButton = button.text;
+        }
+        updateMessage(message1);
         break;
     }
   }
 
   const handleImageUpload: ImageUploadCallback = {
     onImageSelect: (imageUri: string, messageId?: string) => {
-      console.log('选择的图片:', imageUri, '消息ID:', messageId);
+      console.log('Selected image:', imageUri, 'Message ID:', messageId);
       if (messageId) {
         selectedImageRef.current = imageUri;
         // 直接更新指定消息的卡片图片
@@ -408,8 +537,8 @@ export default function StyleAnItemScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View style={{ flex: 1 }}>
         <ChatHeader
-          title={currentSession?.title || "搭配检查"}
-          subtitle="检查您的搭配是否合适"
+          title={currentSession?.title || "Style an item"}
+          // subtitle="检查您的搭配是否合适"
           isOnline={true}
           showAvatar={true}
           onBack={() => router.back()}

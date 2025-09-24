@@ -6,6 +6,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { configureWebEnvironment } from "../../utils/web-config";
 import { setupWebPolyfills } from "../../utils/web-polyfill";
 import { tabStyles, getIconSize } from "../../utils/tab-styles";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export default function RootLayout() {
   // 配置 Web 环境
@@ -17,7 +18,7 @@ export default function RootLayout() {
   // 直接显示主应用 Tabs，让 index.tsx 处理重定向逻辑
   console.log("Showing main app tabs");
   return (
-    <>
+    <AuthGuard>
       <StatusBar style="auto" />
       <Tabs
         screenOptions={{
@@ -43,14 +44,14 @@ export default function RootLayout() {
         />
 
         <Tabs.Screen
-          name="second"
+          name="lookbook"
           options={{
-            title: "Second",
+            title: "lookbook",
             headerShown: false,
             popToTopOnBlur: true,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
-                name="numeric-2-box-outline"
+                name="book-open-outline"
                 size={getIconSize(size)} // 使用动态图标尺寸
                 color={color}
               />
@@ -59,14 +60,16 @@ export default function RootLayout() {
         />
 
         <Tabs.Screen
-          name="fourth"
+          name="mycloset"
           options={{
-            tabBarBadge: 2,
+            // tabBarBadge: 2,
             tabBarBadgeStyle: tabStyles.badgeStyle,
-            title: "Fourth",
+            title: "closet",
+            headerShown: true,
+            popToTopOnBlur: true,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
-                name="numeric-4-box-outline"
+                name="hanger"
                 size={getIconSize(size)} // 使用动态图标尺寸
                 color={color}
               />
@@ -103,7 +106,6 @@ export default function RootLayout() {
           }}
         />
       </Tabs>
-    </>
+    </AuthGuard>
   );
 }
-

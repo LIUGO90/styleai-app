@@ -1,9 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, Alert, Image, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { cn } from '../utils/cn';
-import { shadowStyles } from '../utils/shadow';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useRef, useState } from "react";
+import { View, Text, Pressable, Alert, Image, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { cn } from "../utils/cn";
+import { shadowStyles } from "../utils/shadow";
+import * as ImagePicker from "expo-image-picker";
 
 export interface ImageUploadProps {
   onImageSelect?: (imageUri: string, messageId?: string) => void;
@@ -47,18 +47,19 @@ export function ImageUpload({
       // 先检查权限状态
       const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
 
-      if (status !== 'granted') {
+      if (status !== "granted") {
         // 请求权限
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (permissionResult.granted === false) {
-          Alert.alert('权限错误', '需要相册权限才能选择图片');
+          Alert.alert("权限错误", "需要相册权限才能选择图片");
           return;
         }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: false,
         // aspect: [4, 3],
         // quality: 0.8,
@@ -70,8 +71,8 @@ export function ImageUpload({
         onImageSelect?.(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('选择图片失败:', error);
-      onImageError?.('选择图片失败');
+      console.error("选择图片失败:", error);
+      onImageError?.("选择图片失败");
     }
   };
 
@@ -81,12 +82,13 @@ export function ImageUpload({
       // 先检查权限状态
       const { status } = await ImagePicker.getCameraPermissionsAsync();
 
-      if (status !== 'granted') {
+      if (status !== "granted") {
         // 请求权限
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        const permissionResult =
+          await ImagePicker.requestCameraPermissionsAsync();
 
         if (permissionResult.granted === false) {
-          Alert.alert('权限错误', '需要相机权限才能拍照');
+          Alert.alert("权限错误", "需要相机权限才能拍照");
           return;
         }
       }
@@ -96,7 +98,7 @@ export function ImageUpload({
         // allowsEditing: true,
         // aspect: [4, 3],
         // quality: 0.8,
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsMultipleSelection: false,
         base64: false,
       });
@@ -105,78 +107,70 @@ export function ImageUpload({
         onImageSelect?.(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('拍照失败:', error);
-      onImageError?.('拍照失败');
+      console.error("拍照失败:", error);
+      onImageError?.("拍照失败");
     }
   };
 
   const handleImageUpload = () => {
     if (disabled) return;
 
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       // Web端直接触发文件选择
       fileInputRef.current?.click();
     } else {
       // 移动端显示选择对话框
-      Alert.alert(
-        '选择图片',
-        '请选择图片来源',
-        [
-          {
-            text: '取消',
-            style: 'cancel',
-          },
-          {
-            text: '从相册选择',
-            onPress: handlePickFromGallery,
-          },
-          {
-            text: '拍照',
-            onPress: handleTakePhoto,
-          },
-        ]
-      );
+      Alert.alert("Select Image", "Please select image source", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "From Photo Library",
+          onPress: handlePickFromGallery,
+        },
+        {
+          text: "Take Photo",
+          onPress: handleTakePhoto,
+        },
+      ]);
     }
   };
 
   const handleRemoveImage = () => {
-    Alert.alert(
-      '删除图片',
-      '确定要删除这张图片吗？',
-      [
-        {
-          text: '取消',
-          style: 'cancel',
+    Alert.alert("删除图片", "确定要删除这张图片吗？", [
+      {
+        text: "取消",
+        style: "cancel",
+      },
+      {
+        text: "删除",
+        style: "destructive",
+        onPress: () => {
+          onImageSelect?.("");
         },
-        {
-          text: '删除',
-          style: 'destructive',
-          onPress: () => {
-            onImageSelect?.('');
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   if (showPreview && selectedImage) {
     return (
       <View className={cn("mt-3", className)}>
         {/* Web端隐藏的文件输入 */}
-        {Platform.OS === 'web' && (
+        {Platform.OS === "web" && (
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleWebFileSelect}
-            style={{ display: 'none' }}
+            style={{ display: "none" }}
           />
         )}
         <View className="relative items-center justify-center bg-gray-50 rounded-xl">
           <Image
             source={{ uri: selectedImage }}
             style={{
-              width: '100%',
+              width: "100%",
               height: 200,
             }}
             resizeMode="contain"
@@ -190,18 +184,14 @@ export function ImageUpload({
                 "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20 transition-all duration-150",
                 deleteButtonPressed
                   ? "bg-red-500/90 scale-95"
-                  : "bg-black/70 hover:bg-black/80"
+                  : "bg-black/70 hover:bg-black/80",
               )}
               accessibilityRole="button"
               accessibilityLabel="删除图片"
               accessibilityHint="点击删除已上传的图片"
               style={shadowStyles.medium}
             >
-              <Ionicons
-                name="trash-outline"
-                size={14}
-                color="white"
-              />
+              <Ionicons name="trash-outline" size={14} color="white" />
             </Pressable>
           )}
         </View>
@@ -212,21 +202,23 @@ export function ImageUpload({
   return (
     <View className={cn("mt-3", className)}>
       {/* Web端隐藏的文件输入 */}
-      {Platform.OS === 'web' && (
+      {Platform.OS === "web" && (
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleWebFileSelect}
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
         />
       )}
-      <View className={cn(
-        "p-4 border-2 border-dashed rounded-xl",
-        disabled
-          ? "border-gray-200 bg-gray-100"
-          : "border-gray-300 bg-gray-50"
-      )}>
+      <View
+        className={cn(
+          "p-4 border-2 border-dashed rounded-xl",
+          disabled
+            ? "border-gray-200 bg-gray-100"
+            : "border-gray-300 bg-gray-50",
+        )}
+      >
         <Pressable
           onPress={handleImageUpload}
           disabled={disabled}
@@ -241,16 +233,20 @@ export function ImageUpload({
             size={32}
             color={disabled ? "#9CA3AF" : "#6B7280"}
           />
-          <Text className={cn(
-            "text-sm mt-2 font-medium",
-            disabled ? "text-gray-400" : "text-gray-600"
-          )}>
+          <Text
+            className={cn(
+              "text-sm mt-2 font-medium",
+              disabled ? "text-gray-400" : "text-gray-600",
+            )}
+          >
             {placeholder}
           </Text>
-          <Text className={cn(
-            "text-xs mt-1",
-            disabled ? "text-gray-300" : "text-gray-400"
-          )}>
+          <Text
+            className={cn(
+              "text-xs mt-1",
+              disabled ? "text-gray-300" : "text-gray-400",
+            )}
+          >
             支持 JPG、PNG 格式
           </Text>
         </Pressable>

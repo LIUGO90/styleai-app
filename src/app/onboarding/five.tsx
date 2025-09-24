@@ -1,40 +1,84 @@
-import React, { useEffect, useState } from 'react';
-import DotsContainer from '@/components/dotsContainer';
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image } from 'expo-image';
-import { ImagePerformanceMonitor } from '@/components/ImagePerformanceMonitor';
-import { OnboardingData } from '@/components/types';
-
-
-
-
-const STYLE_OPTIONS = [
-  { id: "Casual", name: "Casual", url: require("../../../assets/onboarding/Style/Casual.png"), },
-  { id: "Classy", name: "Classy", url: require("../../../assets/onboarding/Style/Classy.jpg"), },
-  { id: "Old Money", name: "Old Money", url: require("../../../assets/onboarding/Style/OldMoney.png"), },
-  { id: "Preppy", name: "Preppy", url: require("../../../assets/onboarding/Style/Preppy.png"), },
-  { id: "Coastal", name: "Coastal", url: require("../../../assets/onboarding/Style/Coastal.png"), },
-  { id: "Boho", name: "Boho", url: require("../../../assets/onboarding/Style/Boho.png"), },
-  { id: "Coquette", name: "Coquette", url: require("../../../assets/onboarding/Style/Coquette.png"), },
-  { id: "Edgy", name: "Edgy", url: require("../../../assets/onboarding/Style/Edgy.png"), },
-  { id: "Sporty", name: "Sporty", url: require("../../../assets/onboarding/Style/Sporty.png"), },
-  { id: "Streetstyle", name: "Streetstyle", url: require("../../../assets/onboarding/Style/Streetstyle.png"), },
-  { id: "Dopamine", name: "Dopamine", url: require("../../../assets/onboarding/Style/Dopamine.png"), },
-  { id: "Y2K", name: "Y2K", url: require("../../../assets/onboarding/Style/Y2K.png"), },
-];
+import React, { useEffect, useState } from "react";
+import DotsContainer from "@/components/dotsContainer";
+import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
+import { ImagePerformanceMonitor } from "@/components/ImagePerformanceMonitor";
+import { OnboardingData } from "@/components/types";
 
 export default function Five() {
+  const STYLE_OPTIONS = [
+    {
+      id: "Casual",
+      name: "Casual",
+      url: require("../../../assets/onboarding/Style/Casual.png"),
+    },
+    {
+      id: "Classy",
+      name: "Classy",
+      url: require("../../../assets/onboarding/Style/Classy.jpg"),
+    },
+    {
+      id: "Old Money",
+      name: "Old Money",
+      url: require("../../../assets/onboarding/Style/OldMoney.png"),
+    },
+    {
+      id: "Preppy",
+      name: "Preppy",
+      url: require("../../../assets/onboarding/Style/Preppy.png"),
+    },
+    {
+      id: "Coastal",
+      name: "Coastal",
+      url: require("../../../assets/onboarding/Style/Coastal.png"),
+    },
+    {
+      id: "Boho",
+      name: "Boho",
+      url: require("../../../assets/onboarding/Style/Boho.png"),
+    },
+    {
+      id: "Coquette",
+      name: "Coquette",
+      url: require("../../../assets/onboarding/Style/Coquette.png"),
+    },
+    {
+      id: "Edgy",
+      name: "Edgy",
+      url: require("../../../assets/onboarding/Style/Edgy.png"),
+    },
+    {
+      id: "Sporty",
+      name: "Sporty",
+      url: require("../../../assets/onboarding/Style/Sporty.png"),
+    },
+    {
+      id: "Streetstyle",
+      name: "Streetstyle",
+      url: require("../../../assets/onboarding/Style/Streetstyle.png"),
+    },
+    {
+      id: "Dopamine",
+      name: "Dopamine",
+      url: require("../../../assets/onboarding/Style/Dopamine.png"),
+    },
+    {
+      id: "Y2K",
+      name: "Y2K",
+      url: require("../../../assets/onboarding/Style/Y2K.png"),
+    },
+  ];
+
   const router = useRouter();
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
-
   useEffect(() => {
     const loadOnboardingData = async () => {
-      const onboardingData = await AsyncStorage.getItem('onboardingData');
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
         if (onboardingDataObj.selectedStyles.length !== 0) {
@@ -45,11 +89,10 @@ export default function Five() {
     loadOnboardingData();
   }, []);
 
-    
   const handleStyleToggle = (styleId: string) => {
-    setSelectedStyles(prev => {
+    setSelectedStyles((prev) => {
       if (prev.includes(styleId)) {
-        return prev.filter(id => id !== styleId);
+        return prev.filter((id) => id !== styleId);
       } else {
         return [...prev, styleId];
       }
@@ -57,27 +100,37 @@ export default function Five() {
   };
 
   const handleNext = async () => {
+    console.log("handleNext", selectedStyles);
     if (selectedStyles.length > 0) {
-      const onboardingData = await AsyncStorage.getItem('onboardingData');
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
         onboardingDataObj.selectedStyles = selectedStyles;
-        await AsyncStorage.setItem('onboardingData', JSON.stringify(onboardingDataObj));
+        console.log("finish onboarding");
+        await AsyncStorage.setItem(
+          "onboardingData",
+          JSON.stringify(onboardingDataObj),
+        );
       }
-      router.replace('/');
+      router.push("/onboarding/BaseSix");
     }
   };
 
   const handleImageError = (styleId: string) => {
-    setImageErrors(prev => new Set(prev).add(styleId));
+    setImageErrors((prev) => new Set(prev).add(styleId));
   };
 
-
   return (
-    <View className="flex-1 bg-white">
-      {/* 性能监控组件 - 开发模式下显示 */}
-      <ImagePerformanceMonitor visible={__DEV__} />
-      <View className="mt-11">
+    <View className="flex-1">
+      {/* 背景图片 */}
+      <Image
+        source={require("../../../assets/background.png")}
+        style={StyleSheet.absoluteFillObject}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+      />
+
+      <View className="mt-14">
         <DotsContainer activeIndex={5} indexNumber={6} />
       </View>
       <ScrollView>
@@ -89,7 +142,6 @@ export default function Five() {
             You can change it if it's not accurate
           </Text>
 
-
           {/* 风格选择网格 */}
           <View className="flex-row flex-wrap justify-between mb-8">
             {STYLE_OPTIONS.map((style) => {
@@ -98,17 +150,18 @@ export default function Five() {
                 <Pressable
                   key={style.id}
                   onPress={() => handleStyleToggle(style.id)}
-                  className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${isSelected
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white'
-                    }`}
+                  className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white"
+                  }`}
                 >
                   {/* 图片容器 */}
                   <View className="relative bg-gray-100 items-center justify-center">
                     <Image
                       source={style.url}
                       style={{
-                        width: '100%',
+                        width: "100%",
                         height: 280,
                         flex: 1,
                       }}
@@ -130,8 +183,11 @@ export default function Five() {
 
                   {/* 风格名称 */}
                   <View className="p-3">
-                    <Text className={`text-sm font-medium text-center ${isSelected ? 'text-blue-600' : 'text-gray-700'
-                      }`}>
+                    <Text
+                      className={`text-sm font-medium text-center ${
+                        isSelected ? "text-blue-600" : "text-gray-700"
+                      }`}
+                    >
                       {style.name}
                     </Text>
                   </View>
@@ -143,12 +199,17 @@ export default function Five() {
           {/* 选中的风格显示 */}
           {selectedStyles.length > 0 && (
             <View className="mb-6">
-              <Text className="text-sm text-gray-600 mb-2">Selected styles:</Text>
+              <Text className="text-sm text-gray-600 mb-2">
+                Selected styles:
+              </Text>
               <View className="flex-row flex-wrap">
                 {selectedStyles.map((styleId) => {
-                  const style = STYLE_OPTIONS.find(s => s.id === styleId);
+                  const style = STYLE_OPTIONS.find((s) => s.id === styleId);
                   return (
-                    <View key={styleId} className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2">
+                    <View
+                      key={styleId}
+                      className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2"
+                    >
                       <Text className="text-xs text-blue-600 font-medium">
                         {style?.name}
                       </Text>
@@ -164,12 +225,16 @@ export default function Five() {
             <View className="flex-row space-x-4">
               <Pressable
                 onPress={handleNext}
-                className={`flex-1 py-3 px-6 rounded-full ${selectedStyles.length > 0 ? 'bg-blue-500' : 'bg-gray-300'
-                  }`}
+                className={`flex-1 py-3 px-6 rounded-full ${
+                  selectedStyles.length > 0 ? "bg-blue-500" : "bg-gray-300"
+                }`}
                 disabled={selectedStyles.length === 0}
               >
-                <Text className={`text-center font-medium ${selectedStyles.length > 0 ? 'text-white' : 'text-gray-500'
-                  }`}>
+                <Text
+                  className={`text-center font-medium ${
+                    selectedStyles.length > 0 ? "text-white" : "text-gray-500"
+                  }`}
+                >
                   Continue
                 </Text>
               </Pressable>

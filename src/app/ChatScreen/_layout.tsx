@@ -164,7 +164,7 @@ export default function ChatScreenLayout() {
             <Drawer.Screen 
                 name="style_an_item" 
                 options={{ 
-                    drawerLabel: '搭配单品',
+                    drawerLabel: 'Style an item',
                     drawerIcon: ({ color, size }) => (
                         <MaterialCommunityIcons name="tshirt-crew" size={size} color={color} />
                     ),

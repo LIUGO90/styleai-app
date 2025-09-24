@@ -1,36 +1,44 @@
 import { View, Text, Alert, Dimensions, Pressable } from "react-native";
 import { Image } from "expo-image";
-import { ImageUploadCallback, Message, MessageCard, MessageImage } from "./types";
+import {
+  ImageUploadCallback,
+  Message,
+  MessageCard,
+  MessageImage,
+} from "./types";
 import { cn } from "@/utils/cn";
 import { Avatar } from "./Avatar";
 
-export function renderAvatar(avatar?: string, isUser: boolean = false, senderName?: string, senderType?: 'user' | 'ai' | 'system' | 'other') {
+export function renderAvatar(
+  avatar?: string,
+  isUser: boolean = false,
+  senderName?: string,
+  senderType?: "user" | "ai" | "system" | "other",
+) {
   // 根据发送者类型确定默认头像类型
-  let defaultAvatarType: 'user' | 'ai' | 'system' = 'user';
-  if (senderType === 'ai') {
-    defaultAvatarType = 'ai';
-  } else if (senderType === 'system') {
-    defaultAvatarType = 'system';
+  let defaultAvatarType: "user" | "ai" | "system" = "user";
+  if (senderType === "ai") {
+    defaultAvatarType = "ai";
+  } else if (senderType === "system") {
+    defaultAvatarType = "system";
   }
 
   return (
     <Avatar
       source={avatar}
-      name={senderName || (isUser ? '我' : '他')}
+      name={senderName || (isUser ? "Me" : "他")}
       size="small"
       defaultAvatar={defaultAvatarType}
-      className={cn(
-        isUser ? "ml-1" : "mr-1"
-      )}
+      className={cn(isUser ? "ml-1" : "mr-1")}
     />
   );
-};
+}
 
 // 渲染图片消息 - 使用 expo-image 优化
 export function renderMessageImages(images: MessageImage[], isUser: boolean) {
   if (!images || images.length === 0) return null;
 
-  const screenWidth = Dimensions.get('window').width;
+  const screenWidth = Dimensions.get("window").width;
   const maxImageWidth = screenWidth * 0.6;
   const maxImageHeight = 200;
 
@@ -60,7 +68,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
         <View className="mb-2 items-center justify-center bg-gray-50 rounded-xl">
           <View
             style={{
-              shadowColor: '#000',
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
               shadowRadius: 4,
@@ -85,7 +93,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
             <Text
               className={cn(
                 "text-xs mt-1 opacity-70",
-                isUser ? "text-blue-100" : "text-gray-500"
+                isUser ? "text-blue-100" : "text-gray-500",
               )}
             >
               {images[0].alt}
@@ -116,7 +124,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
                 <Text
                   className={cn(
                     "text-xs mt-1 opacity-70",
-                    isUser ? "text-blue-100" : "text-gray-500"
+                    isUser ? "text-blue-100" : "text-gray-500",
                   )}
                 >
                   {image.alt}
@@ -149,7 +157,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
                 <Text
                   className={cn(
                     "text-xs mt-1 opacity-70",
-                    isUser ? "text-blue-100" : "text-gray-500"
+                    isUser ? "text-blue-100" : "text-gray-500",
                   )}
                 >
                   {image.alt}
@@ -161,19 +169,23 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
       )}
     </View>
   );
-};
+}
 
 // 渲染消息卡片
-export function renderMessageCard(card: MessageCard, isUser: boolean, onButtonPress?: (button: any) => void) {
+export function renderMessageCard(
+  card: MessageCard,
+  isUser: boolean,
+  onButtonPress?: (button: any) => void,
+) {
   return (
     <View className="mt-2">
       <View
         className={cn(
           "bg-white rounded-xl p-4 border",
-          isUser ? "border-blue-200" : "border-gray-200"
+          isUser ? "border-blue-200" : "border-gray-200",
         )}
         style={{
-          shadowColor: '#000',
+          shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
@@ -187,9 +199,7 @@ export function renderMessageCard(card: MessageCard, isUser: boolean, onButtonPr
         )}
 
         {card.description && (
-          <Text className="text-gray-600 mb-3">
-            {card.description}
-          </Text>
+          <Text className="text-gray-600 mb-3">{card.description}</Text>
         )}
 
         {card.image && (
@@ -197,7 +207,7 @@ export function renderMessageCard(card: MessageCard, isUser: boolean, onButtonPr
             <Image
               source={card.image}
               style={{
-                width: '100%',
+                width: "100%",
                 height: 150,
                 borderRadius: 8,
               }}
@@ -218,15 +228,15 @@ export function renderMessageCard(card: MessageCard, isUser: boolean, onButtonPr
                 onPress={() => onButtonPress?.(button)}
                 className={cn(
                   "px-4 py-2 rounded-lg border",
-                  button.type === 'primary'
+                  button.type === "primary"
                     ? "bg-blue-500 border-blue-500"
-                    : "bg-white border-gray-300"
+                    : "bg-white border-gray-300",
                 )}
               >
                 <Text
                   className={cn(
                     "text-sm font-medium",
-                    button.type === 'primary' ? "text-white" : "text-gray-700"
+                    button.type === "primary" ? "text-white" : "text-gray-700",
                   )}
                 >
                   {button.text}
@@ -244,30 +254,24 @@ export function renderMessageCard(card: MessageCard, isUser: boolean, onButtonPr
 export default function OptimizedRenderMessage({
   item,
   onButtonPress,
-  onImageUpload
+  onImageUpload,
 }: {
   item: Message;
   onButtonPress?: (button: any) => void;
   onImageUpload?: ImageUploadCallback;
 }) {
-  const isUser = item.sender === 'user';
-  const isAi = item.sender === 'ai';
+  const isUser = item.sender === "user";
+  const isAi = item.sender === "ai";
 
   return (
     <View
-      className={cn(
-        "flex-row mb-4",
-        isUser ? "justify-end" : "justify-start"
-      )}
+      className={cn("flex-row mb-4", isUser ? "justify-end" : "justify-start")}
     >
-      {isAi && !item.showAvatars && renderAvatar(item.avatar, isUser, item.senderName, item.sender)}
+      {isAi &&
+        !item.showAvatars &&
+        renderAvatar(item.avatar, isUser, item.senderName, item.sender)}
 
-      <View
-        className={cn(
-          "max-w-[80%]",
-          isUser ? "items-end" : "items-start"
-        )}
-      >
+      <View className={cn("max-w-[80%]", isUser ? "items-end" : "items-start")}>
         {/* 文本消息 */}
         {item.text && (
           <View
@@ -275,10 +279,10 @@ export default function OptimizedRenderMessage({
               "px-4 py-3 rounded-2xl",
               isUser
                 ? "bg-blue-500 rounded-br-md"
-                : "bg-gray-100 rounded-bl-md"
+                : "bg-gray-100 rounded-bl-md",
             )}
             style={{
-              shadowColor: '#000',
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.1,
               shadowRadius: 2,
@@ -288,7 +292,7 @@ export default function OptimizedRenderMessage({
             <Text
               className={cn(
                 "text-base",
-                isUser ? "text-white" : "text-gray-800"
+                isUser ? "text-white" : "text-gray-800",
               )}
             >
               {item.text}
@@ -301,10 +305,11 @@ export default function OptimizedRenderMessage({
 
         {/* 卡片消息 */}
         {item.card && renderMessageCard(item.card, isUser, onButtonPress)}
-
       </View>
 
-      {isUser && !!item.showAvatars && renderAvatar(item.avatar, isUser, item.senderName, item.sender)}
+      {isUser &&
+        !!item.showAvatars &&
+        renderAvatar(item.avatar, isUser, item.senderName, item.sender)}
     </View>
   );
 }

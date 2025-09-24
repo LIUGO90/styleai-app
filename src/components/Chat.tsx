@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,17 +11,111 @@ import {
   Keyboard,
   Dimensions,
   Alert,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { cn } from '../utils/cn';
-import { Avatar } from './Avatar';
-import { shadowStyles } from '../utils/shadow';
-import { Message, MessageButton, MessageImage, MessageCard, ChatProps } from './types';
-import { ImageUpload } from './ImageUpload';
-import { uploadImageWithFileSystem } from '@/services/FileUploadService';
-import { Image } from 'expo-image';
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { cn } from "../utils/cn";
+import { Avatar } from "./Avatar";
+import { shadowStyles } from "../utils/shadow";
+import {
+  Message,
+  MessageButton,
+  MessageImage,
+  MessageCard,
+  ChatProps,
+} from "./types";
+import { ImageUpload } from "./ImageUpload";
+import { uploadImageWithFileSystem } from "@/services/FileUploadService";
+import { Image } from "expo-image";
+import { CircularProgress } from "./CircularProgress";
+import { getImageDimensions } from "../utils/imageDimensions";
 
+const imageHeight = 280;
+const imageWidth = Dimensions.get("window").width * 0.4;
+
+// 图片组件，支持异步获取尺寸
+export const ImageWithDimensions: React.FC<{
+  image: MessageImage;
+  defaultDimensions: { width: number; height: number };
+  isUser: boolean;
+}> = ({ image, defaultDimensions, isUser }) => {
+  const [dimensions, setDimensions] = useState(defaultDimensions);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // 如果图片没有指定尺寸，尝试获取真实尺寸
+    if (!image.width || !image.height) {
+      setLoading(true);
+      getImageDimensions(image.url)
+        .then((realDimensions) => {
+          console.log("获取到的真实尺寸:", realDimensions);
+
+          const aspectRatio = realDimensions.width / realDimensions.height;
+          let calculatedWidth = imageWidth;
+          let calculatedHeight = imageWidth / aspectRatio;
+
+          // 如果计算出的高度超过最大高度，则按高度缩放
+          if (calculatedHeight > imageHeight) {
+            calculatedHeight = imageHeight;
+            calculatedWidth = imageHeight * aspectRatio;
+          }
+
+          setDimensions({
+            width: calculatedWidth,
+            height: calculatedHeight,
+          });
+        })
+        .catch((error) => {
+          console.warn("获取图片尺寸失败，使用默认尺寸:", error);
+          // 保持默认尺寸
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [image.url, image.width, image.height]);
+
+  return (
+    <View className="mb-2">
+      <Image
+        source={typeof image.url === "string" ? { uri: image.url } : image.url}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          borderRadius: 12,
+          backgroundColor: "#f0f0f0",
+        }}
+        contentFit="cover"
+        onError={(error) => console.log("Image error:", error)}
+        onLoad={() => console.log("Image loaded:", image.id)}
+      />
+      {loading && (
+        <View className="absolute inset-0 items-center justify-center bg-black bg-opacity-20 rounded-xl">
+          <Text className="text-white text-xs">加载中...</Text>
+        </View>
+      )}
+      {image.alt && (
+        <Text
+          className={cn(
+            "text-xs mt-1 opacity-70",
+            isUser ? "text-blue-100" : "text-gray-500",
+          )}
+        >
+          {image.alt}
+        </Text>
+      )}
+    </View>
+  );
+};
+
+// 消息管理辅助函数
+const isMessageVisible = (message: Message): boolean => {
+  return !message.isHidden;
+};
+
+const filterVisibleMessages = (messages: Message[]): Message[] => {
+  return messages.filter(isMessageVisible);
+};
 
 export function Chat({
   messages = [],
@@ -33,12 +127,14 @@ export function Chat({
   sendButtonText = "发送",
   className,
   disabled = false,
-  clickHighlight = '',
+  clickHighlight = "",
 }: ChatProps) {
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [selectedButtons, setSelectedButtons] = useState("");
-  const [deleteButtonPressed, setDeleteButtonPressed] = useState<string | null>(null);
+  const [deleteButtonPressed, setDeleteButtonPressed] = useState<string | null>(
+    null,
+  );
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   console.log(clickHighlight);
@@ -55,7 +151,7 @@ export function Chat({
   const handleSend = () => {
     if (inputText.trim() && !disabled) {
       onSendMessage?.(inputText.trim());
-      setInputText('');
+      setInputText("");
       setIsTyping(false);
       onTyping?.(false);
       // 发送后收起键盘
@@ -63,17 +159,15 @@ export function Chat({
     }
   };
 
-
-
   // 处理输入变化
   const handleInputChange = (text: string) => {
     // 检查是否包含回车符
-    if (text.includes('\n')) {
+    if (text.includes("\n")) {
       // 移除回车符并发送消息
-      const cleanText = text.replace(/\n/g, '').trim();
+      const cleanText = text.replace(/\n/g, "").trim();
       if (cleanText && !disabled) {
         onSendMessage?.(cleanText);
-        setInputText('');
+        setInputText("");
         setIsTyping(false);
         onTyping?.(false);
         Keyboard.dismiss();
@@ -90,25 +184,27 @@ export function Chat({
   };
 
   // 渲染头像组件
-  const renderAvatar = (avatar?: string, isUser: boolean = false, senderName?: string, senderType?: 'user' | 'ai' | 'system' | 'other') => {
-
+  const renderAvatar = (
+    avatar?: string,
+    isUser: boolean = false,
+    senderName?: string,
+    senderType?: "user" | "ai" | "system" | "other",
+  ) => {
     // 根据发送者类型确定默认头像类型
-    let defaultAvatarType: 'user' | 'ai' | 'system' = 'user';
-    if (senderType === 'ai') {
-      defaultAvatarType = 'ai';
-    } else if (senderType === 'system') {
-      defaultAvatarType = 'system';
+    let defaultAvatarType: "user" | "ai" | "system" = "user";
+    if (senderType === "ai") {
+      defaultAvatarType = "ai";
+    } else if (senderType === "system") {
+      defaultAvatarType = "system";
     }
 
     return (
       <Avatar
         source={avatar}
-        name={senderName || (isUser ? '我' : '他')}
+        name={senderName || (isUser ? "Me" : "他")}
         size="small"
         defaultAvatar={defaultAvatarType}
-        className={cn(
-          isUser ? "ml-1" : "mr-1"
-        )}
+        className={cn(isUser ? "ml-1" : "mr-1")}
       />
     );
   };
@@ -125,10 +221,9 @@ export function Chat({
     return (
       <View className="flex-row flex-wrap gap-2 mt-2">
         {buttons.map((button) => {
-
           let isSelected = false;
           if (clickHighlight == button.text) {
-            isSelected = true
+            isSelected = true;
           }
 
           return (
@@ -137,10 +232,13 @@ export function Chat({
               onPress={() => clickButton(button, message)}
               className={cn(
                 "px-3 py-1.5 rounded-lg border flex-shrink-0 transition-all duration-200",
-                button.type === 'primary' && "bg-[#007AFF] border-[#007AFF]",
-                button.type === 'secondary' && (isSelected ? "bg-blue-500 border-blue-500" : "bg-white border-gray-300 hover:bg-gray-50"),
-                button.type === 'danger' && "bg-red-500 border-red-500",
-                !button.type && "bg-white border-gray-300"
+                button.type === "primary" && "bg-[#007AFF] border-[#007AFF]",
+                button.type === "secondary" &&
+                  (isSelected
+                    ? "bg-blue-500 border-blue-500"
+                    : "bg-white border-gray-300 hover:bg-gray-50"),
+                button.type === "danger" && "bg-red-500 border-red-500",
+                !button.type && "bg-white border-gray-300",
               )}
               accessibilityRole="button"
               accessibilityLabel={button.text}
@@ -150,15 +248,14 @@ export function Chat({
                 <Text
                   className={cn(
                     "text-sm font-medium",
-                    button.type === 'primary' && "text-white",
-                    button.type === 'secondary' && ("text-gray-700"),
-                    button.type === 'danger' && "text-white",
-                    !button.type && "text-gray-700"
+                    button.type === "primary" && "text-white",
+                    button.type === "secondary" && "text-gray-700",
+                    button.type === "danger" && "text-white",
+                    !button.type && "text-gray-700",
                   )}
                 >
                   {button.text}
                 </Text>
-
               </View>
             </Pressable>
           );
@@ -168,9 +265,11 @@ export function Chat({
   };
 
   // 渲染提交按钮
-  const renderCommitButtons = (commitButton: MessageButton, message: Message) => {
+  const renderCommitButtons = (
+    commitButton: MessageButton,
+    message: Message,
+  ) => {
     if (!commitButton) return null;
-
 
     return (
       <View className="mt-3 pt-3 border-gray-100">
@@ -178,10 +277,10 @@ export function Chat({
           onPress={() => onButtonPress?.(commitButton, message)}
           className={cn(
             "w-full py-2 rounded-lg border flex-row items-center justify-center transition-all duration-200",
-            commitButton.type === 'primary' && ("bg-[#007AFF] border-[#007AFF]"),
-            commitButton.type === 'secondary' && ("bg-white border-gray-300"),
-            commitButton.type === 'danger' && ("bg-red-500 border-red-500"),
-            !commitButton.type && ("bg-black border-gray-300"),
+            commitButton.type === "primary" && "bg-[#007AFF] border-[#007AFF]",
+            commitButton.type === "secondary" && "bg-white border-gray-300",
+            commitButton.type === "danger" && "bg-red-500 border-red-500",
+            !commitButton.type && "bg-black border-gray-300",
           )}
           accessibilityRole="button"
           accessibilityLabel={commitButton.text}
@@ -197,10 +296,10 @@ export function Chat({
           <Text
             className={cn(
               "text-sm font-semibold py-2",
-              commitButton.type === 'primary' && ("text-white"),
-              commitButton.type === 'secondary' && ("text-gray-700"),
-              commitButton.type === 'danger' && ("text-white"),
-              !commitButton.type && ("text-white")
+              commitButton.type === "primary" && "text-white",
+              commitButton.type === "secondary" && "text-gray-700",
+              commitButton.type === "danger" && "text-white",
+              !commitButton.type && "text-white",
             )}
           >
             {commitButton.text}
@@ -214,95 +313,142 @@ export function Chat({
   const renderMessageImages = (images: MessageImage[], isUser: boolean) => {
     if (!images || images.length === 0) return null;
 
-    const screenWidth = Dimensions.get('window').width;
-    const maxImageWidth = screenWidth * 0.6;
-    const maxImageHeight = 200;
+    console.log("Rendering images:", images);
 
     return (
-      <View className="mt-2">
-        {images.map((image) => (
-          <View key={image.id} className="mb-2">
-            <Image
-              source={{ uri: image.url }}
-              style={{
-                width: Math.min(image.width || maxImageWidth, maxImageWidth),
-                height: Math.min(image.height || maxImageHeight, maxImageHeight),
-                borderRadius: 12,
-              }}
-              resizeMode="contain"
+      <View className="mt-2 flex-row gap-2">
+        {images.map((image) => {
+          console.log("Image data:", image.url, "Type:", typeof image.url);
+
+          // 计算默认尺寸
+          const defaultDimensions = {
+            width: imageWidth,
+            height: imageHeight,
+          };
+
+          // 如果图片有指定的宽高，使用指定的值
+          let dimensions = defaultDimensions;
+          if (image.width && image.height) {
+            const aspectRatio = image.width / image.height;
+            let calculatedWidth = imageWidth;
+            let calculatedHeight = imageWidth / aspectRatio;
+
+            // 如果计算出的高度超过最大高度，则按高度缩放
+            if (calculatedHeight > imageHeight) {
+              calculatedHeight = imageHeight;
+              calculatedWidth = imageHeight * aspectRatio;
+            }
+
+            dimensions = {
+              width: calculatedWidth,
+              height: calculatedHeight,
+            };
+          }
+
+          return (
+            <ImageWithDimensions
+              key={image.id}
+              image={image}
+              defaultDimensions={dimensions}
+              isUser={isUser}
             />
-            {image.alt && (
-              <Text
-                className={cn(
-                  "text-xs mt-1 opacity-70",
-                  isUser ? "text-blue-100" : "text-gray-500"
-                )}
-              >
-                {image.alt}
-              </Text>
-            )}
-          </View>
-        ))}
+          );
+        })}
       </View>
     );
   };
 
+  // 渲染进度条消息
+  const renderMessageProgress = (progress: any, message: Message) => {
+    if (!progress) return null;
 
+    const percentage =
+      progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+    console.log("progress", progress);
+    return (
+      <View className="mt-2">
+        <CircularProgress
+          size={50}
+          strokeWidth={3}
+          progress={percentage}
+          status={progress.status}
+          message={progress.message}
+          showText={true}
+          className="p-3 bg-gray-50 rounded-lg"
+        />
+      </View>
+    );
+  };
+
+  /*
+  使用示例：
+  const progressMessage: Message = {
+    id: 'progress-1',
+    text: '',
+    sender: 'ai',
+    timestamp: new Date(),
+    type: 'progress',
+    progress: {
+      current: 3,
+      total: 10,
+      status: 'processing',
+      message: '正在生成您的搭配...'
+    }
+  };
+  */
 
   // 渲染卡片消息
   const renderMessageCard = (card: MessageCard, message: Message) => {
     const handleImageSelect = (imageUri: string) => {
-      console.log('handleImageSelect', imageUri, message.id);
-      if (imageUri) {
-        uploadImageWithFileSystem(imageUri).then((imageUrl) => {
-          onImageUpload?.onImageSelect?.(imageUrl, message.id);
-        });
-      }
+      console.log("handleImageSelect", imageUri, message.id);
+      onImageUpload?.onImageSelect?.(imageUri, message.id);
 
+      // 上传到服务器
+      // if (imageUri) {
+      //   uploadImageWithFileSystem(imageUri).then((imageUrl) => {
+      //     onImageUpload?.onImageSelect?.(imageUrl, message.id);
+      //   });
+      // }
     };
 
     const handleDeleteImage = () => {
-      Alert.alert(
-        '删除图片',
-        '确定要删除这张图片吗？删除后可以重新上传。',
-        [
-          {
-            text: '取消',
-            style: 'cancel',
+      Alert.alert("删除图片", "确定要删除这张图片吗？删除后可以重新上传。", [
+        {
+          text: "取消",
+          style: "cancel",
+        },
+        {
+          text: "删除",
+          style: "destructive",
+          onPress: () => {
+            onImageUpload?.onImageSelect?.("", message.id);
           },
-          {
-            text: '删除',
-            style: 'destructive',
-            onPress: () => {
-              onImageUpload?.onImageSelect?.('', message.id);
-            },
-          },
-        ]
-      );
+        },
+      ]);
     };
 
     const handleLongPress = () => {
-      Alert.alert(
-        '删除图片',
-        '长按删除按钮可以删除已上传的图片',
-        [{ text: '知道了', style: 'default' }]
-      );
+      Alert.alert("删除图片", "长按删除按钮可以删除已上传的图片", [
+        { text: "知道了", style: "default" },
+      ]);
     };
 
     return (
-      <View className={cn(
-        "bg-white rounded-xl overflow-hidden",
-        card.isShell === 'circle' && "rounded-full border border-gray-200",
-        card.isShell !== 'none' && "mt-2 border border-gray-200"
-      )}>
+      <View
+        className={cn(
+          "bg-white rounded-xl overflow-hidden w-full mb-3",
+          card.isShell === "circle" && "rounded-full border border-gray-200",
+          card.isShell !== "none" && "mt-2 border border-gray-200",
+        )}
+      >
         {/* 渲染图片 */}
         {card.image && (
           <View className="relative overflow-hidden bg-gray-50">
             <Image
               source={{ uri: card.image }}
               style={{
-                width: '100%',
-                height: 300,
+                width: "100%",
+                height: imageHeight,
               }}
               resizeMode="contain"
             />
@@ -316,18 +462,14 @@ export function Chat({
                   "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20 transition-all duration-150",
                   deleteButtonPressed === message.id
                     ? "bg-red-500/90 scale-95"
-                    : "bg-black/70 hover:bg-black/80"
+                    : "bg-black/70 hover:bg-black/80",
                 )}
                 accessibilityRole="button"
                 accessibilityLabel="删除图片"
                 accessibilityHint="点击删除已上传的图片，长按查看帮助"
                 style={shadowStyles.medium}
               >
-                <Ionicons
-                  name="trash-outline"
-                  size={14}
-                  color="white"
-                />
+                <Ionicons name="trash-outline" size={14} color="white" />
               </Pressable>
             )}
           </View>
@@ -341,15 +483,13 @@ export function Chat({
         )}
 
         <View className="p-3">
-          {card.title.length > 0 &&
+          {card.title.length > 0 && (
             <Text className="text-sm font-semibold text-black mb-1">
               {card.title}
             </Text>
-          }
+          )}
           {card.subtitle.length > 0 && (
-            <Text className="text-xs text-gray-500 mb-2">
-              {card.subtitle}
-            </Text>
+            <Text className="text-xs text-gray-500 mb-2">{card.subtitle}</Text>
           )}
           {card.description.length > 0 && (
             <Text className="text-sm text-gray-700 mb-3">
@@ -366,22 +506,20 @@ export function Chat({
 
   // 渲染消息气泡
   const renderMessage = ({ item }: { item: Message }) => {
-    const isUser = item.sender === 'user';
-    const isAi = item.sender === 'ai';
-
+    const isUser = item.sender === "user";
+    const isAi = item.sender === "ai";
     return (
       <View
         className={cn(
-          "flex-row mb-2 items-end",
-          isUser ? "justify-end" : "justify-start"
+          "flex-row mb-3 items-end",
+          isUser ? "justify-end" : "justify-start",
         )}
       >
-        {isAi && !!item.showAvatars && renderAvatar(item.avatar, false, item.senderName, item.sender)}
+        {isAi &&
+          !!item.showAvatars &&
+          renderAvatar(item.avatar, false, item.senderName, item.sender)}
 
-        <View className={cn(
-          "flex-1",
-          isUser ? "items-end" : "items-start"
-        )}>
+        <View className={cn("flex-1", isUser ? "items-end" : "items-start")}>
           {!isUser && !!item.showAvatars && item.senderName && (
             <Text className="text-sm text-gray-500 mb-1 ml-1">
               {item.senderName}
@@ -395,50 +533,58 @@ export function Chat({
                 "px-3 py-2 rounded-xl",
                 isUser
                   ? "bg-blue-500 rounded-br-md self-end"
-                  : item.sender === 'ai' ? "bg-gray-200 rounded-bl-md self-start" : "bg-white rounded-bl-md self-start"
+                  : item.sender === "ai"
+                    ? "bg-gray-200 rounded-bl-md self-start"
+                    : "bg-white rounded-bl-md self-start",
               )}
               style={{
-                maxWidth: '95%',
+                maxWidth: "95%",
                 minWidth: 50,
               }}
               accessibilityRole="text"
-              accessibilityLabel={`${isUser ? '我' : item.senderName || 'AI助手'}说：${item.text}`}
+              accessibilityLabel={`${isUser ? "Me" : item.senderName || "AI助手"}说：${item.text}`}
             >
               <Text
                 className={cn(
                   "text-base leading-5",
-                  isUser ? "text-white" : "text-black"
+                  isUser ? "text-white" : "text-black",
                 )}
               >
                 {item.text}
               </Text>
-              {!!item.showAvatars &&
+              {!!item.showAvatars && (
                 <Text
                   className={cn(
                     "text-xs mt-1 opacity-70",
-                    isUser ? "text-blue-100" : "text-gray-500"
+                    isUser ? "text-blue-100" : "text-gray-500",
                   )}
                 >
                   {item.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </Text>
-              }
+              )}
             </View>
           )}
 
           {/* 渲染图片内容 */}
-          {item.images && item.images.length > 0 && renderMessageImages(item.images, isUser)}
+          {item.images &&
+            item.images.length > 0 &&
+            renderMessageImages(item.images, isUser)}
 
           {/* 渲染卡片内容 */}
           {item.card && renderMessageCard(item.card, item)}
+
+          {/* 渲染进度条内容 */}
+          {item.progress && renderMessageProgress(item.progress, item)}
 
           {/* 渲染消息按钮 */}
           {!isUser && item.buttons && renderMessageButtons(item.buttons, item)}
         </View>
 
-        {isUser && renderAvatar(item.avatar, true, item.senderName, item.sender)}
+        {isUser &&
+          renderAvatar(item.avatar, true, item.senderName, item.sender)}
       </View>
     );
   };
@@ -451,20 +597,18 @@ export function Chat({
           ref={inputRef}
           value={inputText}
           onChangeText={handleInputChange}
-
           placeholder={placeholder}
           placeholderTextColor="#9CA3AF"
           multiline
           maxLength={500}
           editable={!disabled}
-
           className={cn(
             "bg-gray-100 rounded-xl px-3 py-2 text-base",
             "min-h-[40px] max-h-[100px]",
-            disabled && "opacity-50"
+            disabled && "opacity-50",
           )}
           style={{
-            textAlignVertical: 'center',
+            textAlignVertical: "center",
           }}
           accessibilityRole="text"
           accessibilityLabel="消息输入框"
@@ -478,39 +622,41 @@ export function Chat({
         disabled={!inputText.trim() || disabled}
         className={cn(
           "bg-[#007AFF] rounded-full w-10 h-10 items-center justify-center",
-          (!inputText.trim() || disabled) && "opacity-50"
+          (!inputText.trim() || disabled) && "opacity-50",
         )}
         accessibilityRole="button"
         accessibilityLabel="发送消息"
         accessibilityState={{ disabled: !inputText.trim() || disabled }}
       >
-        <Ionicons
-          name="send"
-          size={16}
-          color="white"
-        />
+        <Ionicons name="send" size={16} color="white" />
       </Pressable>
     </View>
   );
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       className={cn("flex-1", className)}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       style={{ flex: 1 }}
       accessibilityRole="none"
     >
       {/* 消息列表 */}
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={filterVisibleMessages(messages)}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         className="flex-1 px-3 pt-2"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 4,
+        }}
+        onContentSizeChange={() => {
+          // 当内容大小变化时自动滚动到底部
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }, 100);
         }}
         accessibilityRole="list"
         accessibilityLabel="聊天消息列表"
@@ -560,7 +706,7 @@ export function ChatHeader({
   showDrawerButton = false,
 }: ChatHeaderProps) {
   return (
-    <View className="flex-row items-center bg-white border-b border-gray-200 px-3 py-2">
+    <View className="flex-row items-center bg-transparent border-b border-gray-200 px-3 py-2">
       {onBack && (
         <Pressable
           onPress={onBack}
@@ -587,7 +733,7 @@ export function ChatHeader({
         )}
 
         <View className="flex-1">
-          <Text className="text-base font-semibold text-black">{title}</Text>
+          <Text className="text-xl font-semibold text-black">{title}</Text>
           {subtitle && (
             <Text className="text-xs text-gray-500">{subtitle}</Text>
           )}

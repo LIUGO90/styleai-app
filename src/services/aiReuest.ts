@@ -1,57 +1,85 @@
+import { webWorkerAIService } from "./WebWorkerAIService";
 
-import { OnboardingData } from '@/components/types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetch } from 'expo/fetch'
 interface AiRequestResponse {
-    jobId: string;
-    message: string;
+  jobId: string;
+  message: string;
 }
 
-export const aiRequest = async (): Promise<AiRequestResponse> => {
-    const garmentImage = await AsyncStorage.getItem('garmentImage');
-    const onboardingData = await AsyncStorage.getItem('onboardingData');
-    if (!onboardingData) {
-        return { jobId: "error", message: "error" };
-    }
-    const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
-    if (!onboardingDataObj.fullBodyPhoto) {
-        return { jobId: "error", message: "error" };
-    }
-    const body = {
-        garmentImage: garmentImage,
-        onboardingData:{
-        ...onboardingDataObj
-        }
-    }
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/openai`, {
-        method: 'POST',
-        body: JSON.stringify({ body }),
+// 使用Web Worker模拟处理AI请求，避免UI阻塞
+export const aiRequest = async (
+  garmentImage: string,
+): Promise<AiRequestResponse> => {
+  try {
+    return await webWorkerAIService.aiRequest(garmentImage, {
+      onProgress: (progress) => {
+        console.log(`AI Request Progress: ${progress}%`);
+      },
+      onStatusChange: (status) => {
+        console.log(`AI Request Status: ${status}`);
+      },
     });
-    const result = await response.json();
-    console.log(result)
-    console.log(result.jobId)
-    console.log(result.message)
-    return { jobId: result.jobId, message: result.message };
-}
+  } catch (error) {
+    console.error("AI request failed:", error);
+    return { jobId: "error", message: "error" };
+  }
+};
 
-export const aisuggest = async (jobId: string,index: number): Promise<AiRequestResponse> => {
-
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/suggest`, {
-        method: 'POST',
-        body: JSON.stringify({ jobId:jobId, index: index }),
+// 使用Web Worker模拟处理建议请求
+export const aisuggest = async (
+  jobId: string,
+  index: number,
+): Promise<AiRequestResponse> => {
+  try {
+    return await webWorkerAIService.aiSuggest(jobId, index, {
+      onProgress: (progress) => {
+        console.log(`AI Suggest Progress: ${progress}%`);
+      },
+      onStatusChange: (status) => {
+        console.log(`AI Suggest Status: ${status}`);
+      },
     });
-    const result = await response.json();
-    return { jobId: result.jobId, message: result.message };
-}
+  } catch (error) {
+    console.error("AI suggest request failed:", error);
+    return { jobId: "error", message: "error" };
+  }
+};
 
-
-
-export const aiRequestKling = async (jobId: string, index: number): Promise<string> => {
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/kling`, {
-        method: 'POST',
-        body: JSON.stringify({ jobId:jobId, index: index }),
+// 使用Web Worker模拟处理Kling请求
+export const aiRequestKling = async (
+  jobId: string,
+  index: number,
+): Promise<string> => {
+  try {
+    return await webWorkerAIService.aiRequestKling(jobId, index, {
+      onProgress: (progress) => {
+        console.log(`Kling Request Progress: ${progress}%`);
+      },
+      onStatusChange: (status) => {
+        console.log(`Kling Request Status: ${status}`);
+      },
     });
-    const result = await response.json();
-    console.log(result.data)
-    return result.data;
-}
+  } catch (error) {
+    console.error("Kling request failed:", error);
+    return "error";
+  }
+};
+
+// 使用Web Worker模拟处理Gemini请求
+export const aiRequestGemini = async (
+  fullBodyPhoto: string,
+  garmentImage: string,
+): Promise<string[]> => {
+  try {
+    return await webWorkerAIService.aiRequestGemini(fullBodyPhoto, garmentImage, {
+      onProgress: (progress) => {
+        console.log(`Gemini Request Progress: ${progress}%`);
+      },
+      onStatusChange: (status) => {
+        console.log(`Gemini Request Status: ${status}`);
+      },
+    });
+  } catch (error) {
+    console.error("Gemini request failed:", error);
+    return [];
+  }
+};

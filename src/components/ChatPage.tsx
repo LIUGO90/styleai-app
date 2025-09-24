@@ -26,7 +26,7 @@
 //   const router = useRouter();
 //   const navigation = useNavigation();
 //   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
-  
+
 //   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
 //   const [messages, setMessages] = useState<Message[]>(initialMessages);
 
@@ -45,7 +45,7 @@
 //   const loadCurrentSession = async () => {
 //     try {
 //       let session: ChatSession | null = null;
-      
+
 //       if (sessionId) {
 //         // 如果路由参数中有sessionId，加载指定会话
 //         session = await ChatSessionService.getSession(sessionId);
@@ -53,19 +53,19 @@
 //           await ChatSessionService.setCurrentSession(session.id);
 //         }
 //       }
-      
+
 //       if (!session) {
 //         // 如果没有指定会话或会话不存在，获取当前会话
 //         session = await ChatSessionService.getCurrentSession();
 //       }
-      
+
 //       if (!session) {
 //         // 如果仍然没有会话，创建一个新的
 //         session = await ChatSessionService.createSession(sessionType);
 //       }
-      
+
 //       setCurrentSession(session);
-      
+
 //       // 如果会话中有消息，加载会话消息
 //       if (session.messages && session.messages.length > 0) {
 //         setMessages(session.messages);
