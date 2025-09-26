@@ -94,12 +94,12 @@ export default function ChatScreenLayout() {
     // 清空所有会话
     const handleClearAllSessions = () => {
         Alert.alert(
-            '清空所有会话',
-            '确定要清空所有聊天记录吗？此操作无法撤销。',
+            'Clear all sessions',
+            'Are you sure you want to clear all chat records? This action cannot be undone.',
             [
-                { text: '取消', style: 'cancel' },
+                { text: 'Cancel', style: 'cancel' },
                 {
-                    text: '清空',
+                    text: 'Clear',
                     style: 'destructive',
                     onPress: async () => {
                         await ChatSessionService.clearAllSessions();
@@ -140,9 +140,9 @@ export default function ChatScreenLayout() {
                 swipeEdgeWidth: 0,
             }}
             drawerContent={(props) => (
-                <View style={styles.drawerContainer}>
+                <View className="flex-1 bg-white mt-12">
                     <View style={styles.drawerHeader}>
-                        <Text style={styles.drawerTitle}>聊天助手</Text>
+                        <Text style={styles.drawerTitle}>Chat Assistant</Text>
                         <Pressable
                             style={styles.clearButton}
                             onPress={handleClearAllSessions}

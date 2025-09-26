@@ -40,12 +40,15 @@ export const ImageWithDimensions: React.FC<{
   isUser: boolean;
 }> = ({ image, defaultDimensions, isUser }) => {
   const [dimensions, setDimensions] = useState(defaultDimensions);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     // 如果图片没有指定尺寸，尝试获取真实尺寸
     if (!image.width || !image.height) {
       setLoading(true);
+      setError(false);
+
       getImageDimensions(image.url)
         .then((realDimensions) => {
           console.log("获取到的真实尺寸:", realDimensions);
@@ -67,33 +70,82 @@ export const ImageWithDimensions: React.FC<{
         })
         .catch((error) => {
           console.warn("获取图片尺寸失败，使用默认尺寸:", error);
+          setError(true);
           // 保持默认尺寸
         })
         .finally(() => {
           setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
   }, [image.url, image.width, image.height]);
 
   return (
     <View className="mb-2">
-      <Image
-        source={typeof image.url === "string" ? { uri: image.url } : image.url}
-        style={{
-          width: dimensions.width,
-          height: dimensions.height,
-          borderRadius: 12,
-          backgroundColor: "#f0f0f0",
-        }}
-        contentFit="cover"
-        onError={(error) => console.log("Image error:", error)}
-        onLoad={() => console.log("Image loaded:", image.id)}
-      />
-      {loading && (
-        <View className="absolute inset-0 items-center justify-center bg-black bg-opacity-20 rounded-xl">
-          <Text className="text-white text-xs">加载中...</Text>
-        </View>
-      )}
+      <View style={{ position: 'relative' }}>
+        <Image
+          source={typeof image.url === "string" ? { uri: image.url } : image.url}
+          style={{
+            width: dimensions.width,
+            height: dimensions.height,
+            borderRadius: 12,
+            backgroundColor: "#f0f0f0",
+          }}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
+          placeholder="https://via.placeholder.com/150x150?text=Loading..."
+          placeholderContentFit="cover"
+          onError={(error) => {
+            console.log("Image error:", error);
+            setError(true);
+            setLoading(false);
+          }}
+          onLoad={() => {
+            console.log("Image loaded:", image.id);
+            setLoading(false);
+            setError(false);
+          }}
+        />
+
+        {loading && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              borderRadius: 12,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text className="text-white text-xs">加载中...</Text>
+          </View>
+        )}
+
+        {error && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#f0f0f0',
+              borderRadius: 12,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text className="text-gray-500 text-xs">图片加载失败</Text>
+          </View>
+        )}
+      </View>
+
       {image.alt && (
         <Text
           className={cn(
@@ -234,9 +286,9 @@ export function Chat({
                 "px-3 py-1.5 rounded-lg border flex-shrink-0 transition-all duration-200",
                 button.type === "primary" && "bg-[#007AFF] border-[#007AFF]",
                 button.type === "secondary" &&
-                  (isSelected
-                    ? "bg-blue-500 border-blue-500"
-                    : "bg-white border-gray-300 hover:bg-gray-50"),
+                (isSelected
+                  ? "bg-blue-500 border-blue-500"
+                  : "bg-white border-gray-300 hover:bg-gray-50"),
                 button.type === "danger" && "bg-red-500 border-red-500",
                 !button.type && "bg-white border-gray-300",
               )}
@@ -678,7 +730,7 @@ export function Chat({
       />
 
       {/* 输入区域 */}
-      {renderInputArea()}
+      {messages.length > 4 && renderInputArea()}
     </KeyboardAvoidingView>
   );
 }
@@ -719,6 +771,20 @@ export function ChatHeader({
         </Pressable>
       )}
 
+      {showDrawerButton && (
+        <Pressable
+          className="mx-2"
+          onPress={onMore}
+          accessibilityRole="button"
+          accessibilityLabel="打开菜单"
+          accessibilityHint="打开侧边菜单"
+        >
+          <Ionicons name="menu" size={22} color="#007AFF" />
+        </Pressable>
+      )}
+
+
+
       <View className="flex-1 flex-row items-center">
         {showAvatar && (
           <Avatar
@@ -740,16 +806,6 @@ export function ChatHeader({
         </View>
       </View>
 
-      {showDrawerButton && (
-        <Pressable
-          onPress={onMore}
-          accessibilityRole="button"
-          accessibilityLabel="打开菜单"
-          accessibilityHint="打开侧边菜单"
-        >
-          <Ionicons name="menu" size={22} color="#007AFF" />
-        </Pressable>
-      )}
 
       {!showDrawerButton && onMore && (
         <Pressable

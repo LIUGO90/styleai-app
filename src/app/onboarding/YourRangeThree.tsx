@@ -63,7 +63,7 @@ export default function YourRangeThree() {
   const handleSkip = async () => {
     router.replace("/");
   };
-
+  
   const handleNext = async () => {
     if (selectedBodyStructure) {
       // router.dismissAll();
@@ -77,7 +77,7 @@ export default function YourRangeThree() {
           JSON.stringify(onboardingDataObj),
         );
       }
-      router.push("/onboarding/five");
+      router.replace("/");
     }
   };
 

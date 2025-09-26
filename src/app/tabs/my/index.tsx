@@ -113,7 +113,7 @@ export default function MyProfile() {
       title: "Style Preference",
       icon: "heart" as const,
       color: "#ef4444",
-      onPress: () => router.replace("/onboarding/BaseOne"),
+      onPress: () => router.replace("/onboarding/YourRangeOne"),
     },
 
   ];

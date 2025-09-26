@@ -46,7 +46,7 @@ export default function RootLayout() {
         <Tabs.Screen
           name="lookbook"
           options={{
-            title: "lookbook",
+            title: "Lookbook",
             headerShown: false,
             popToTopOnBlur: true,
             tabBarIcon: ({ color, size }) => (
@@ -64,7 +64,7 @@ export default function RootLayout() {
           options={{
             // tabBarBadge: 2,
             tabBarBadgeStyle: tabStyles.badgeStyle,
-            title: "closet",
+            title: "Closet",
             headerShown: true,
             popToTopOnBlur: true,
             tabBarIcon: ({ color, size }) => (

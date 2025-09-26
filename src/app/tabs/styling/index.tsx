@@ -171,15 +171,15 @@ How can I help to make your outfit shine today? `,
               >
                 <Text className="text-black text-center font-medium">Style an Item</Text>
               </TouchableOpacity>
-{/* 
               <TouchableOpacity
                 className="flex-1 bg-white  backdrop-blur-sm rounded-xl py-3 px-4 mx-2"
                 onPress={() => handleButtonPress({ id: "card_btn2", text: "Outfit Check", type: "secondary", action: "outfit_check" }, {} as Message)}
                 activeOpacity={1}
-              >
+                >
                 <Text className="text-black text-center font-medium">Outfit Check</Text>
               </TouchableOpacity>
-
+                {/* 
+                
               <TouchableOpacity
                 className="flex-1 bg-white backdrop-blur-sm rounded-xl py-3 px-4 mx-2"
                 onPress={() => handleButtonPress({ id: "card_btn3", text: "Generate OOTD", type: "secondary", action: "generate_ootd" }, {} as Message)}
@@ -195,7 +195,7 @@ How can I help to make your outfit shine today? `,
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-2xl font-bold text-black">My Lookbook</Text>
           <TouchableOpacity
-            onPress={() => router.push("/tabs/lookbook")}
+            onPress={() => router.replace("/tabs/lookbook")}
           >
             <Text className="text-gray-500 text-base">More</Text>
           </TouchableOpacity>

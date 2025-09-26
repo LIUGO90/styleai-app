@@ -540,8 +540,8 @@ export default function StyleAnItemScreen() {
           title={currentSession?.title || "Style an item"}
           // subtitle="检查您的搭配是否合适"
           isOnline={true}
-          showAvatar={true}
-          onBack={() => router.back()}
+          showAvatar={false}
+          // onBack={() => router.back()}
           onMore={handleDrawerOpen}
           showDrawerButton={true}
         />

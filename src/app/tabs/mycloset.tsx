@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TouchableOpacity, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import { useLocalSearchParams } from "expo-router";
 export default function LookbookOne() {
   const [selectedStyles, setSelectedStyles] = useState<string>("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
   // 接收传递的参数
   // const params = useLocalSearchParams();
@@ -88,20 +89,34 @@ export default function LookbookOne() {
   ];
 
   const handleStyleToggle = (styleId: string) => {
-    // setSelectedStyles(styleId);
-    // setModalVisible(true)
+    const selectedStyle = STYLE_OPTIONS.find(style => style.id === styleId);
+    if (selectedStyle) {
+      setSelectedItem(selectedStyle);
+      setModalVisible(true);
+    }
   };
 
-  const handleNext = async () => {};
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedItem(null);
+  };
+
+  const handleNext = async () => { };
 
   return (
     <View className="flex-1 bg-white px-5">
-      <View className="flex-1 p-5 ">
+      {/* <View className="flex-1 p-5 ">
         <Text className="text-base font-bold text-start  text-black">
           My Closet
         </Text>
-      </View>
-      <ScrollView 
+      </View> */}
+      <Pressable
+        onPress={() => handleStyleToggle("white_shirt")}
+        className="bg-gray-200 rounded-full w-full h-12 items-center justify-center shadow-lg my-5"
+      >
+        <Text className="">+ Add to Closet</Text>
+      </Pressable>
+      <ScrollView
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         className="p-5"
@@ -114,9 +129,8 @@ export default function LookbookOne() {
               <Pressable
                 key={style.id}
                 onPress={() => handleStyleToggle(style.id)}
-                className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${
-                  isSelected ? "border-red-500" : "border-gray-200"
-                }`}
+                className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${isSelected ? "border-red-500" : "border-gray-200"
+                  }`}
               >
                 {/* 图片容器 */}
                 <View className="relative bg-gray-100 items-center justify-center ">
@@ -148,6 +162,69 @@ export default function LookbookOne() {
           })}
         </View>
       </ScrollView>
+
+      {/* 底部弹窗 */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/50 justify-end"
+          activeOpacity={1}
+          onPress={closeModal}
+        >
+          <View
+            className="bg-white border-t-2 border-gray-200 rounded-t-3xl max-h-[80%] min-h-[300]"
+          >
+            {/* 下拉指示器 */}
+            <View className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-2" />
+
+            {/* 弹窗内容 */}
+            <View className="mt-5 items-center">
+              {selectedItem && (
+                <Image
+                  source={selectedItem.url}
+                  style={{
+                    width: 200,
+                    height: 280,
+                    borderRadius: 10,
+                    marginBottom: 15,
+                  }}
+                  contentFit="cover"
+                />
+              )}
+            </View>
+
+            {/* 弹窗底部按钮 */}
+            <View className="flex-col gap-2 justify-center items-center mb-10 ">
+              <Pressable
+                onPress={() => {
+                  console.log('Style item:', selectedItem?.id);
+                  closeModal();
+                }}
+                className="bg-black py-3 my-1 w-[50%] rounded-xl items-center justify-center"
+              >
+                <Text className="font-semibold text-lg text-white">
+                  Style this item
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  console.log('Delete item:', selectedItem?.id);
+                  closeModal();
+                }}
+                className="bg-red-50 border border-red-200 py-3 my-1 w-[50%] rounded-xl items-center justify-center"
+              >
+                <Text className="font-semibold text-lg" style={{ color: '#dc2626' }}>
+                  Delete this item
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
