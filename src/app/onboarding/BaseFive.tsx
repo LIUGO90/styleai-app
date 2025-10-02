@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
-import { getImageDimensions } from "@/utils/imageDimensions";
 import DotsContainer from "@/components/dotsContainer";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -17,29 +16,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { uploadImageWithFileSystem, getUploadStatus, isImageUploading } from "@/services/FileUploadService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BaseFive() {
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [imageDimensions, setImageDimensions] = useState<number>(0.8);
-
+  const { user } = useAuth();
   // 防抖相关状态
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProcessingRef = useRef<boolean>(false);
 
   const { isUpdate } = useLocalSearchParams();
-
-  // 获取图片尺寸的函数
-  const getImageSize = async (imageUri: string) => {
-    try {
-      const dimensions = await getImageDimensions(imageUri);
-      setImageDimensions(dimensions.width/dimensions.height);
-      console.log('Image dimensions:', dimensions);
-    } catch (error) {
-      console.error('Failed to get image dimensions:', error);
-    }
-  };
 
   // 清理防抖定时器
   useEffect(() => {
@@ -55,6 +44,7 @@ export default function BaseFive() {
     // 记录接收到的路由参数
     const loadOnboardingData = async () => {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
+      console.log("loadOnboardingData", onboardingData);
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
         setSelectedImage(onboardingDataObj.fullBodyPhoto);
@@ -120,7 +110,7 @@ export default function BaseFive() {
 
         console.log("Starting to upload image to server...");
         // Upload image to server
-        const imageUrl = await uploadImageWithFileSystem(selectedImage);
+        const imageUrl = await uploadImageWithFileSystem(user?.id || '', selectedImage);
 
         if (imageUrl) {
           console.log("Image upload successful, saving to local storage", imageUrl);
@@ -132,15 +122,14 @@ export default function BaseFive() {
             "onboardingData",
             JSON.stringify(onboardingDataObj),
           );
-
-
           console.log("Data saved successfully, preparing to navigate");
+
           if (isUpdate) {
             router.replace("/");
           } else {
-            // router.push("/onboarding/BaseSix");
-            router.push("/onboarding/YourRange");
+            router.push("/onboarding/five");
           }
+
         } else {
           console.log("Image upload failed or returned empty URL");
           setIsUploading(false);
@@ -208,8 +197,6 @@ export default function BaseFive() {
         const imageUri = result.assets[0].uri;
         setSelectedImage(imageUri);
         setIsUploading(false);
-        // Get image dimensions
-        getImageSize(imageUri);
       }
     } catch (error) {
       console.error("Photo capture failed:", error);
@@ -254,8 +241,6 @@ export default function BaseFive() {
         const imageUri = result.assets[0].uri;
         setSelectedImage(imageUri);
         setIsUploading(false);
-        // 获取图片尺寸
-        getImageSize(imageUri);
       }
     } catch (error) {
       console.error("Photo selection failed:", error);
@@ -278,8 +263,10 @@ export default function BaseFive() {
       {/* 内容层 */}
       <View className="flex-1 ">
         {/* 顶部部分 */}
-        <View className="mt-14">
-          <DotsContainer activeIndex={5} indexNumber={6} />
+        <View className={`mt-14 ${isUpdate ? "p-8" : ""}`}>
+          {!isUpdate && (
+            <DotsContainer activeIndex={5} indexNumber={6} />
+          )}
         </View>
         <View className="flex-1 px-5 ">
           <Text className="text-2xl font-bold text-start mb-2 text-black">
@@ -294,11 +281,12 @@ export default function BaseFive() {
               <Image
                 source={{ uri: selectedImage }}
                 style={{
-                  width: Dimensions.get('window').height * 0.5*imageDimensions,
+                  width: Dimensions.get('window').height * 0.5 * imageDimensions,
                   height: Dimensions.get('window').height * 0.5,
                   borderRadius: 16,
                 }}
                 resizeMode="contain"
+                cachePolicy="memory-disk"
               />
             )}
           </View>
@@ -307,7 +295,7 @@ export default function BaseFive() {
         <View className="p-5 my-8">
           <View className="flex-col">
 
-            <Pressable
+            {!isUploading && (<Pressable
               onPress={handleImageUpload}
               className={` my-2 py-5 px-6 rounded-full bg-black `}
               disabled={false}
@@ -315,10 +303,10 @@ export default function BaseFive() {
               <Text className={`text-center font-medium text-white`}>
                 Take/Upload a Selfie
               </Text>
-            </Pressable>
+            </Pressable>)}
 
 
-            {selectedImage && (
+            {selectedImage && !isUploading && (
               <Pressable
                 onPress={handleNext}
                 className={`my-2 py-5 px-6 rounded-full bg-black`}
@@ -328,6 +316,20 @@ export default function BaseFive() {
                   Continue
                 </Text>
               </Pressable>
+            )}
+
+            {isUploading && (
+              <View className="my-2 py-5 px-6 rounded-full bg-gray-400 flex-row items-center justify-center">
+                <MaterialCommunityIcons
+                  name="loading"
+                  size={20}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+                <Text className="text-center font-medium text-white">
+                  Uploading...
+                </Text>
+              </View>
             )}
             {/* <Pressable
               onPress={handleSkip}

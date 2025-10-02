@@ -17,6 +17,7 @@ interface ChatSessionListProps {
   onSessionSelect: (session: ChatSession) => void;
   onNewSession: () => void;
   onDeleteSession: (sessionId: string) => void;
+  onCloseDrawer?: () => void;
 }
 
 export function ChatSessionList({
@@ -25,12 +26,13 @@ export function ChatSessionList({
   onSessionSelect,
   onNewSession,
   onDeleteSession,
+  onCloseDrawer,
 }: ChatSessionListProps) {
   const renderSessionItem = ({ item }: { item: ChatSession }) => {
     const isCurrentSession = item.id === currentSessionId;
     const isLastMessageEmpty =
       !item.lastMessage || item.lastMessage.trim() === "";
-
+    // console.log("renderSessionItem", item.title);
     return (
       <Pressable
         style={[
@@ -39,10 +41,10 @@ export function ChatSessionList({
         ]}
         onPress={() => onSessionSelect(item)}
         onLongPress={() => {
-          Alert.alert("删除会话", "确定要删除这个会话吗？删除后无法恢复。", [
-            { text: "取消", style: "cancel" },
+          Alert.alert("Delete Session", "Are you sure you want to delete this session? This action cannot be undone.", [
+            { text: "Cancel", style: "cancel" },
             {
-              text: "删除",
+              text: "Delete",
               style: "destructive",
               onPress: () => onDeleteSession(item.id),
             },
@@ -83,7 +85,7 @@ export function ChatSessionList({
             ]}
             numberOfLines={2}
           >
-            {isLastMessageEmpty ? "暂无消息" : item.lastMessage}
+            {isLastMessageEmpty ? "No messages yet" : item.lastMessage}
           </Text>
         </View>
       </Pressable>
@@ -92,9 +94,12 @@ export function ChatSessionList({
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>聊天记录</Text>
-      <Pressable style={styles.newSessionButton} onPress={onNewSession}>
-        <Ionicons name="add" size={24} color="#007AFF" />
+      <Text style={styles.headerTitle}>Chat History</Text>
+      <Pressable 
+        style={styles.newSessionButton} 
+        onPress={onCloseDrawer}
+      >
+        <Ionicons name="arrow-forward" size={24} color="black" />
       </Pressable>
     </View>
   );
@@ -102,8 +107,8 @@ export function ChatSessionList({
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
-      <Text style={styles.emptyText}>暂无聊天记录</Text>
-      <Text style={styles.emptySubtext}>开始新的对话吧</Text>
+      <Text style={styles.emptyText}>No chat history</Text>
+      <Text style={styles.emptySubtext}>start a new chat</Text>
     </View>
   );
 
@@ -172,7 +177,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sessionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     color: "#333",
     marginBottom: 2,

@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text } from "react-native";
 import { cn } from "../utils/cn";
-
+import { Image } from "expo-image";
 interface AvatarProps {
   source?: string;
   name?: string;
@@ -77,6 +77,7 @@ export function Avatar({
             source={{ uri: source }}
             className="w-full h-full"
             resizeMode="cover"
+            cachePolicy="memory-disk"  
           />
         ) : (
           <View

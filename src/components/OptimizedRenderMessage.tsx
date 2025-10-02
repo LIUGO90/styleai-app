@@ -44,6 +44,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
 
   // 计算并排显示的图片尺寸
   const imageCount = images.length;
+  console.log("imageCount", imageCount);
   const gap = 2; // 图片间距
   let imageWidth, imageHeight;
 
@@ -62,8 +63,19 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
   }
 
   return (
-    <View className="mt-2">
-      {imageCount === 1 ? (
+    <View className="mt-2 flex-row gap-2 justify-start">
+
+      {images.map((image) => (
+        <View key={image.id}
+        style={{ width: imageWidth, height: imageHeight }}>
+        <Image
+          source={image.url}
+            style={{ width: imageWidth, height: imageHeight}}
+            contentFit="contain"
+          />
+        </View>
+      ))}
+      {/* {imageCount === 1 ? (
         // 单张图片
         <View className="mb-2 items-center justify-center bg-gray-50 rounded-xl">
           <View
@@ -86,7 +98,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
               transition={200}
               cachePolicy="memory-disk"
               placeholder="https://via.placeholder.com/150x150?text=Loading..."
-              placeholderContentFit="cover"
+              // placeholderContentFit="cover"
             />
           </View>
           {images[0].alt && (
@@ -113,7 +125,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
                     height: imageHeight,
                     borderRadius: 12,
                   }}
-                  contentFit="cover"
+                  contentFit="contain"
                   transition={200}
                   cachePolicy="memory-disk"
                   placeholder="https://via.placeholder.com/150x150?text=Loading..."
@@ -166,89 +178,11 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
             </View>
           ))}
         </View>
-      )}
+      )} */}
     </View>
   );
 }
 
-// 渲染消息卡片
-export function renderMessageCard(
-  card: MessageCard,
-  isUser: boolean,
-  onButtonPress?: (button: any) => void,
-) {
-  return (
-    <View className="mt-2">
-      <View
-        className={cn(
-          "bg-white rounded-xl p-4 border",
-          isUser ? "border-blue-200" : "border-gray-200",
-        )}
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-      >
-        {card.title && (
-          <Text className="text-lg font-semibold mb-2 text-gray-800">
-            {card.title}
-          </Text>
-        )}
-
-        {card.description && (
-          <Text className="text-gray-600 mb-3">{card.description}</Text>
-        )}
-
-        {card.image && (
-          <View className="mb-3">
-            <Image
-              source={card.image}
-              style={{
-                width: "100%",
-                height: 150,
-                borderRadius: 8,
-              }}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-              placeholder="https://via.placeholder.com/300x150?text=Loading..."
-              placeholderContentFit="cover"
-            />
-          </View>
-        )}
-
-        {card.buttons && card.buttons.length > 0 && (
-          <View className="flex-row flex-wrap gap-2">
-            {card.buttons.map((button, index) => (
-              <Pressable
-                key={index}
-                onPress={() => onButtonPress?.(button)}
-                className={cn(
-                  "px-4 py-2 rounded-lg border",
-                  button.type === "primary"
-                    ? "bg-blue-500 border-blue-500"
-                    : "bg-white border-gray-300",
-                )}
-              >
-                <Text
-                  className={cn(
-                    "text-sm font-medium",
-                    button.type === "primary" ? "text-white" : "text-gray-700",
-                  )}
-                >
-                  {button.text}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
 
 // 主渲染函数
 export default function OptimizedRenderMessage({
@@ -303,8 +237,6 @@ export default function OptimizedRenderMessage({
         {/* 图片消息 */}
         {item.images && renderMessageImages(item.images, isUser)}
 
-        {/* 卡片消息 */}
-        {item.card && renderMessageCard(item.card, isUser, onButtonPress)}
       </View>
 
       {isUser &&

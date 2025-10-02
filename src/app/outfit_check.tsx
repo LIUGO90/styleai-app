@@ -1,0 +1,325 @@
+import React, { useEffect, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Chat, ChatHeader, createProgressMessage } from "@/components/Chat";
+import {
+  Message,
+  MessageButton,
+  ImageUploadCallback,
+} from "@/components/types";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+import { Alert } from "react-native";
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadImageForGeminiAnalyze, uploadImageWithFileSystem } from "@/services/FileUploadService";
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { chatRequest } from "@/services/aiReuest";
+
+// 生成唯一ID的辅助函数
+const generateUniqueId = (prefix: string = "") => {
+  return `${prefix}${Date.now()}_${(Math.random() * 10000).toString()}`;
+};
+
+const initMessages: Message[] = [
+  {
+    id: "1",
+    text: "Outfit Check",
+    sender: "user",
+    senderName: "AI助手",
+    timestamp: new Date(Date.now() - 60000),
+    showAvatars: true,
+  },
+  {
+    id: "2",
+    text: "Sure!  Send me photo of your outfit today.",
+    sender: "system",
+    timestamp: new Date(Date.now() - 60000),
+    showAvatars: false,
+  },
+  {
+    id: "3",
+    text: "",
+    sender: "ai",
+    senderName: "AI助手",
+    timestamp: new Date(Date.now() - 30000),
+    showAvatars: false,
+    card: {
+      id: "card1",
+      title: "",
+      subtitle: "",
+      description: "",
+      uploadImage: true, // 启用图片上传功能
+    },
+  },
+];
+export default function OutfitCheckScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
+  const [canInput, setCanInput] = useState<boolean>(false);
+
+  // 加载当前会话
+  useEffect(() => {
+    loadCurrentSession();
+  }, [sessionId]);
+
+  // 当消息更新时，保存到会话
+  useEffect(() => {
+    if (currentSession && messages.length > 0) {
+      // 避免在会话切换时立即保存
+      const timer = setTimeout(() => {
+        saveMessagesToSession();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, currentSession]);
+
+  const loadCurrentSession = async () => {
+    try {
+      console.log('loadCurrentSession', sessionId);
+      // 重置状态，避免会话切换时的混淆
+      setMessages([]);
+
+      let session: ChatSession | null = null;
+      if (sessionId) {
+        // 如果路由参数中有sessionId，加载指定会话
+        session = await ChatSessionService.getSession(sessionId);
+      }
+      console.log('session in loadCurrentSession', session);
+      if (session) {
+        console.log('session setCurrentSession', session.id);
+        await ChatSessionService.setCurrentSession(session.id);
+      } 
+      
+      console.log('session init', session);
+
+      setCurrentSession(session);
+
+      // 如果会话中有消息，加载会话消息
+      if (session && session.messages && session.messages.length > 0) {
+        // console.log('session.messages', session.messages);
+        setMessages(session.messages);
+        if (session.messages.length > 4) {
+          setCanInput(true);
+        }
+      } else {
+        // 如果是新会话，设置初始消息
+        console.log('initMessages', initMessages);
+        setMessages(initMessages);
+      }
+      console.log('messages', messages);
+    } catch (error) {
+      console.error('Failed to load session:', error);
+    }
+  };
+
+  const saveMessagesToSession = async () => {
+    // console.log('saveMessagesToSession', currentSession);
+    if (currentSession) {
+      try {
+        await ChatSessionService.updateSessionMessages(currentSession.id, messages);
+        // 触发会话列表刷新
+        triggerSessionListRefresh();
+      } catch (error) {
+        console.error('Failed to save messages to session:', error);
+      }
+    }
+  };
+  // 触发会话列表刷新（通过 AsyncStorage 标志）
+  const triggerSessionListRefresh = () => {
+    AsyncStorage.setItem('sessionListRefresh', Date.now().toString());
+  };
+
+  const getMessage = (messageId: string) => {
+    return messages.find(msg => msg.id === messageId);
+  }
+
+  const hideMessage = (messageId: string) => {
+    console.log('hideMessage', messageId);
+    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
+  }
+
+  const updateMessage = (message: Message) => {
+    console.log('updateMessage', message);
+    setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
+  }
+
+  const addMessage = (message: Message) => {
+    // console.log('addMessage', message);
+    setMessages(prev => [...prev, message]);
+  }
+
+  const dateleMessage = (messageId: string) => {
+    console.log('dateleMessage', messageId);
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+  }
+
+  const handleSendMessage = async (text: string, imageUri?: string) => {
+    const usermessageId = generateUniqueId('user_');
+    let newMessage: Message = {
+      id: usermessageId,
+      text,
+      images: [],
+      sender: "user",
+      senderName: "用户",
+      timestamp: new Date(),
+    };
+    if (imageUri && imageUri.length > 0) {
+      newMessage.images = [
+        {
+          id: generateUniqueId('img_'),
+          url: imageUri,
+          alt: 'Garment Image',
+        },
+      ];
+    }
+    setMessages((prev) => [...prev, newMessage]);
+    let progressMessage = createProgressMessage(1, "Analyzing your message...");
+    addMessage(progressMessage);
+    let image: string = '';
+    if (imageUri && imageUri.length > 0) {
+      image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+      newMessage.images = [{
+        id: generateUniqueId('img_'),
+        url: image,
+        alt: 'Garment Image',
+      },]
+    }
+
+    progressMessage.progress = {
+      current: 5,
+      total: 10,
+      status: 'processing',
+      message: 'Analyzing your message...',
+    };
+    updateMessage(progressMessage);
+    const { message, images } = await chatRequest(user?.id || '', '', text, [image], currentSession?.id || '');
+    dateleMessage(progressMessage.id);
+    addMessage({
+      id: Date.now().toString(),
+      text: message,
+      sender: 'ai',
+      senderName: 'AI Assistant',
+      timestamp: new Date(),
+      images: images.map(image => ({
+        id: generateUniqueId('img_'),
+        url: image,
+        alt: 'Garment Image',
+      })),
+    });
+
+  };
+
+
+
+  const handleImageUpload: ImageUploadCallback = {
+    onImageSelect: (imageUri: string, messageId?: string) => {
+      console.log("选择的图片:", imageUri, "消息ID:", messageId);
+      if (messageId) {
+        // 直接更新指定消息的卡片图片
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === messageId && msg.card) {
+            return {
+              ...msg,
+              card: {
+                isDeleted: true,
+                ...msg.card,
+                image: imageUri || undefined // 如果 imageUri 为空字符串，则删除图片
+              }
+            };
+          }
+          return msg;
+        }));
+      }
+
+      let progressMessage = createProgressMessage(5, "Analyzing your outfit...");
+      addMessage(progressMessage);
+
+      uploadImageForGeminiAnalyze(user?.id || '', imageUri).then(({ message, image, uploadedImage }) => {
+        dateleMessage('3')
+        dateleMessage(progressMessage.id);
+        addMessage({
+          id: generateUniqueId('msg_'),
+          text: "",
+          sender: 'user',
+          images: [
+            ...(uploadedImage ? [{
+              id: generateUniqueId('img_'),
+              url: uploadedImage,
+              alt: 'Garment Image',
+            }] : []),
+          ],
+          timestamp: new Date(),
+        });
+        addMessage({
+          id: generateUniqueId('msg_'),
+          text: "",
+          sender: 'ai',
+          images: [
+            ...(image ? [{
+              id: generateUniqueId('img_'),
+              url: image,
+              alt: 'Garment Image',
+            }] : []),
+          ],
+          timestamp: new Date(),
+        });
+        addMessage({
+          id: generateUniqueId('msg_'),
+          text: message,
+          sender: 'ai',
+          timestamp: new Date(),
+        });
+      });
+
+      setCanInput(true);
+
+    },
+    onImageUpload: async (imageUri: string) => {
+      // 模拟图片上传到服务器
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve("https://example.com/uploaded/" + Date.now() + ".jpg");
+        }, 2000);
+      });
+    },
+    onImageError: (error: string) => {
+      Alert.alert("上传失败", error);
+    },
+  };
+
+  const handleDrawerOpen = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <ChatHeader
+        title={currentSession?.title || "Outfit Check"}
+        // subtitle="AI智能搭配分析"
+        isOnline={true}
+        showAvatar={false}
+        onBack={() => {
+          router.replace({
+            pathname: "/tabs/",
+          });
+        }}
+        // onMore={handleDrawerOpen}
+        showDrawerButton={false}
+      />
+
+      <Chat
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        onImageUpload={handleImageUpload}
+        placeholder="Describe your outfit needs..."
+        showAvatars={false}
+        canInput={canInput}
+      />
+    </SafeAreaView>
+  );
+}

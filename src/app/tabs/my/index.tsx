@@ -1,55 +1,126 @@
 import React from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
+import { Image } from "expo-image";
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useImagePicker } from "@/hooks/useImagePicker";
+
 
 export default function MyProfile() {
   const router = useRouter();
   const { user, signOut, session, clearAllUserData } = useAuth();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const [userAvatar, setUserAvatar] = React.useState<string>("");
+  const [name, setName] = React.useState<string>("");
+  const [email, setEmail] = React.useState<string>("");
 
-  // 调试：打印用户信息
+
+
+  // // 调试：打印用户信息
+  // React.useEffect(() => {
+
+
+  //   console.log("User Profile - Current user data:", {
+  //     user: user,
+  //     userMetadata: user?.user_metadata,
+  //     email: user?.email,
+  //     id: user?.id,
+  //     created_at: user?.created_at,
+  //   });
+  // }, [user]);
+
+  // 加载本地保存的头像
   React.useEffect(() => {
-    console.log("User Profile - Current user data:", {
-      user: user,
-      userMetadata: user?.user_metadata,
-      email: user?.email,
-      id: user?.id,
-      created_at: user?.created_at,
-    });
-  }, [user]);
-  const name = AsyncStorage.getItem("name") || "";
-  const email = user?.user_metadata?.email || user?.email || "No email";
-  // 从认证用户数据获取信息
-  const userData = {
-    name:
-      name ||
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
-      email?.split("@")[0] ||
-      "User",
-    email: user?.user_metadata?.email || user?.email || "No email",
-    avatar:
-      user?.user_metadata?.avatar_url ||
-      user?.user_metadata?.picture ||
-      "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U",
-    memberSince: user?.created_at
-      ? new Date(user.created_at).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      })
-      : "Recently",
-    provider:
-      user?.user_metadata?.provider || user?.app_metadata?.provider || "Email",
-    userId: user?.id || "Unknown",
-    isVerified: user?.email_confirmed_at ? true : false,
-    stylePreferences: ["Casual", "Classy", "Boho"],
-    outfitsCreated: 24,
-    itemsInWardrobe: 156,
-    favoriteColors: ["Navy Blue", "Emerald Green", "Coral"],
+    const loadLocalAvatar = async () => {
+      const name = await AsyncStorage.getItem("name") || "";
+      console.log("name", name);
+      const email = user?.user_metadata?.email || user?.email || "";
+      setName(name);
+      setEmail(email);
+      try {
+        const savedAvatar = await AsyncStorage.getItem('userAvatar');
+        if (savedAvatar) {
+          console.log('Loaded avatar from local storage');
+          setUserAvatar(savedAvatar);
+        } else {
+          let avatar = userAvatar || user?.user_metadata?.picture || user?.user_metadata?.avatar_url || "";
+          if (avatar.length === 0 || avatar === null || avatar === undefined) {
+            createAvatar();
+        }
+      }
+      } catch (error) {
+        console.error('Error loading local avatar:', error);
+      }
+    };
+    loadLocalAvatar();
+  }, []);
+
+  const createAvatar = async () => {
+    const avatar = `https://api.dicebear.com/7.x/lorelei/svg?seed=${user?.id || email || 'default'}1&backgroundColor=ffd5dc,ffd6e7,d4e4ff,ffe4e6,e0f2fe`;
+    setUserAvatar(avatar);
   };
+  // 头像处理和保存到本地
+  const processAndUploadAvatar = async (imageUri: string) => {
+    try {
+      console.log('1. Starting avatar processing, imageUri:', imageUri);
+      setUploading(true);
+
+      // 1. 裁剪和调整图片大小为 200x200，转换为 JPEG
+      console.log('2. Resizing to 200x200 and converting image...');
+      const manipResult = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          { resize: { width: 80, height: 80 } }, // 固定尺寸 200x200
+        ],
+        {
+          compress: 0.8,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: false
+        }
+      );
+      console.log('3. Image processed to 200x200:', manipResult.uri);
+
+      // 2. 读取文件为 base64
+      console.log('4. Reading file as base64...');
+      const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
+        encoding: 'base64',
+      });
+      console.log('5. File read successfully, size:', (base64.length / 1024).toFixed(2), 'KB');
+
+      // 3. 保存到本地 AsyncStorage
+      console.log('6. Saving to local storage...');
+      const avatarData = `data:image/jpeg;base64,${base64}`;
+      await AsyncStorage.setItem('userAvatar', avatarData);
+      console.log('7. Saved to local storage');
+
+      // 4. 更新本地状态
+      console.log('8. Updating local state...');
+      setUserAvatar(avatarData);
+
+      console.log('9. Success! Avatar saved locally');
+      Alert.alert("✅ Success", "Avatar updated successfully!");
+
+    } catch (error: any) {
+      console.error('❌ Error saving avatar:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      Alert.alert("Error", `Failed to save avatar:\n${errorMessage}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 使用图片选择 hook
+  const { showImagePickerOptions } = useImagePicker({
+    onImageSelected: processAndUploadAvatar,
+  });
+
+
+
 
   const clearAllData = async () => {
     Alert.alert(
@@ -65,6 +136,10 @@ export default function MyProfile() {
           style: "destructive",
           onPress: async () => {
             try {
+              // 清除头像
+              await AsyncStorage.removeItem('userAvatar');
+              setUserAvatar("");
+
               await clearAllUserData();
               Alert.alert(
                 "Success",
@@ -96,8 +171,8 @@ export default function MyProfile() {
       color: "#3b82f6",
       onPress: () => {
         router.replace({
-        pathname: '/onboarding/BaseFive',
-        params: { isUpdate: "true" }
+          pathname: '/onboarding/BaseFive',
+          params: { isUpdate: "true" }
         });
       },
     },
@@ -121,12 +196,21 @@ export default function MyProfile() {
   const refreshUserInfo = async () => {
     setRefreshing(true);
     try {
-      // 这里可以添加刷新用户信息的逻辑
       console.log("Refreshing user information...");
-      // 模拟刷新延迟
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // 从本地存储重新加载头像
+      const savedAvatar = await AsyncStorage.getItem('userAvatar');
+      if (savedAvatar) {
+        console.log('Reloaded avatar from local storage');
+        setUserAvatar(savedAvatar);
+      }
+
+      console.log("User info refreshed successfully");
+      Alert.alert("✅ Success", "Profile refreshed successfully!");
+
     } catch (error) {
       console.error("Error refreshing user info:", error);
+      Alert.alert("Error", "Failed to refresh profile");
     } finally {
       setRefreshing(false);
     }
@@ -143,6 +227,10 @@ export default function MyProfile() {
         style: "destructive",
         onPress: async () => {
           try {
+            // 清除头像
+            await AsyncStorage.removeItem('userAvatar');
+            setUserAvatar("");
+
             await signOut();
             // 清除引导数据
             Alert.alert(
@@ -175,14 +263,7 @@ export default function MyProfile() {
                 <MaterialCommunityIcons
                   name={refreshing ? "loading" : "refresh"}
                   size={24}
-                  color={refreshing ? "#9ca3af" : "#6b7280"}
-                />
-              </Pressable>
-              <Pressable className="p-2">
-                <MaterialCommunityIcons
-                  name="bell-outline"
-                  size={24}
-                  color="#6b7280"
+                  color={refreshing ? "#9ca3af" : "#007AFF"}
                 />
               </Pressable>
             </View>
@@ -190,16 +271,37 @@ export default function MyProfile() {
 
           {/* User Info Card */}
           <View className="flex-row items-center">
-            <Image
-              source={{ uri: userData.avatar }}
-              className="w-16 h-16 rounded-full mr-4"
-            />
+            <TouchableOpacity
+              onPress={showImagePickerOptions}
+              disabled={uploading}
+              className="relative mr-4 rounded-full"
+            >
+              <Image
+                source={{ uri: userAvatar }}
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                }}
+                cachePolicy="memory-disk"
+                contentFit="cover"
+              />
+              {uploading ? (
+                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                  <ActivityIndicator color="white" />
+                </View>
+              ) : (
+                <View className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1.5">
+                  <MaterialCommunityIcons name="camera" size={10} color="white" />
+                </View>
+              )}
+            </TouchableOpacity>
             <View className="flex-1">
               <Text className="text-black text-xl font-bold mb-1">
-                {userData.name}
+                {name}
               </Text>
               <Text className="text-black text-sm mb-1">
-                {userData.email}
+                {email}
               </Text>
               {/* <Text className="text-black text-xs">
                 Member since {userData.memberSince}

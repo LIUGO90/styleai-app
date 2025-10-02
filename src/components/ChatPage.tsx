@@ -165,7 +165,7 @@
 //   };
 
 //   return (
-//     <SafeAreaView className="flex-1 bg-white">
+//     <SafeAreaView  edges={["top"]}  className="flex-1 bg-white">
 //       <View style={{ flex: 1 }}>
 //         <ChatHeader
 //           title={currentSession?.title || defaultTitle}

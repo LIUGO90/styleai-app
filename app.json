@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "StyleAI",
+    "name": "styla",
     "slug": "expo-starter",
     "scheme": "expo-starter",
     "version": "1.0.0",
@@ -14,10 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.styleai.app",
+      "appleTeamId": "D2F9RZT54S",
       "supportsTablet": true,
+      "deploymentTarget": "16.0",
       "infoPlist": {
         "NSCameraUsageDescription": "此应用需要访问相机来拍摄照片",
-        "NSPhotoLibraryUsageDescription": "此应用需要访问相册来选择照片"
+        "NSPhotoLibraryUsageDescription": "此应用需要访问相册来选择照片",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

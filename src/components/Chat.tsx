@@ -11,12 +11,16 @@ import {
   Keyboard,
   Dimensions,
   Alert,
+  Modal,
+  StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { cn } from "../utils/cn";
 import { Avatar } from "./Avatar";
 import { shadowStyles } from "../utils/shadow";
+import { useKeyboard } from "../hooks/useKeyboard";
 import {
   Message,
   MessageButton,
@@ -28,67 +32,194 @@ import { ImageUpload } from "./ImageUpload";
 import { uploadImageWithFileSystem } from "@/services/FileUploadService";
 import { Image } from "expo-image";
 import { CircularProgress } from "./CircularProgress";
-import { getImageDimensions } from "../utils/imageDimensions";
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+import { useImagePicker } from "@/hooks/useImagePicker";
 
-const imageHeight = 280;
+const imageHeight = Math.max(180, Dimensions.get("window").height * 0.2);
 const imageWidth = Dimensions.get("window").width * 0.4;
+const screenWidth = Dimensions.get("window").width;
+const screenHeight = Dimensions.get("window").height;
+
+
+// 生成唯一ID的辅助函数
+export const generateUniqueId = (prefix: string = "") => {
+  return `${prefix}${Date.now()}_${(Math.random() * 10000).toString()}`;
+};
+
+export const createProgressMessage = (current: number, message?: string): Message => {
+  return {
+    id: generateUniqueId('progress_'),
+    text: '',
+    sender: 'ai',
+    timestamp: new Date(),
+    type: 'progress',
+    progress: {
+      current: current,
+      total: 10,
+      status: 'processing', // 'pending' | 'processing' | 'completed' | 'error'
+      message: message || 'Putting together outfit for you...'
+    }
+  };
+}
+
+// 图片放大组件
+const ZoomableImage: React.FC<{
+  imageUrl: string;
+  visible: boolean;
+  onClose: () => void;
+}> = ({ imageUrl, visible, onClose }) => {
+  const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedScale = useSharedValue(1);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
+  const resetValues = () => {
+    scale.value = withSpring(1);
+    translateX.value = withSpring(0);
+    translateY.value = withSpring(0);
+    savedScale.value = 1;
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
+  };
+
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      savedScale.value = scale.value;
+    })
+    .onUpdate((event: any) => {
+      scale.value = Math.max(0.5, Math.min(savedScale.value * event.scale, 3));
+    })
+    .onEnd(() => {
+      if (scale.value < 1) {
+        scale.value = withSpring(1);
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+        savedScale.value = 1;
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      } else {
+        savedScale.value = scale.value;
+      }
+    });
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
+    .onUpdate((event: any) => {
+      if (scale.value > 1) {
+        const maxTranslateX = (screenWidth * (scale.value - 1)) / 2;
+        const maxTranslateY = (screenHeight * (scale.value - 1)) / 2;
+
+        translateX.value = Math.max(
+          -maxTranslateX,
+          Math.min(maxTranslateX, savedTranslateX.value + event.translationX)
+        );
+        translateY.value = Math.max(
+          -maxTranslateY,
+          Math.min(maxTranslateY, savedTranslateY.value + event.translationY)
+        );
+      }
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+
+  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  const handleClose = () => {
+    resetValues();
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
+      onRequestClose={handleClose}
+    >
+      <StatusBar backgroundColor="rgba(0,0,0,0.9)" barStyle="light-content" />
+      <View className="flex-1 bg-black/90 justify-center items-center">
+        {/* 关闭按钮 */}
+        <Pressable
+          onPress={handleClose}
+          className="absolute top-16 right-4 z-10 bg-black/50 rounded-full w-16 h-16 items-center justify-center"
+          accessibilityRole="button"
+          accessibilityLabel="Close image"
+        >
+          <Ionicons name="close" size={28} color="white" />
+        </Pressable>
+
+        {/* 手势处理容器 */}
+        <GestureDetector gesture={composedGesture}>
+          <Animated.View style={animatedStyle}>
+            <Image
+              source={{ uri: imageUrl }}
+              style={{
+                width: screenWidth,
+                height: screenHeight * 0.8,
+              }}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+            />
+          </Animated.View>
+        </GestureDetector>
+
+        {/* 背景点击关闭 */}
+        <Pressable
+          onPress={handleClose}
+          className="absolute inset-0 -z-10"
+          accessibilityRole="button"
+          accessibilityLabel="Close image by tapping background"
+        />
+      </View>
+    </Modal>
+  );
+};
 
 // 图片组件，支持异步获取尺寸
 export const ImageWithDimensions: React.FC<{
   image: MessageImage;
-  defaultDimensions: { width: number; height: number };
   isUser: boolean;
-}> = ({ image, defaultDimensions, isUser }) => {
-  const [dimensions, setDimensions] = useState(defaultDimensions);
+}> = ({ image, isUser }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  useEffect(() => {
-    // 如果图片没有指定尺寸，尝试获取真实尺寸
-    if (!image.width || !image.height) {
-      setLoading(true);
-      setError(false);
-
-      getImageDimensions(image.url)
-        .then((realDimensions) => {
-          console.log("获取到的真实尺寸:", realDimensions);
-
-          const aspectRatio = realDimensions.width / realDimensions.height;
-          let calculatedWidth = imageWidth;
-          let calculatedHeight = imageWidth / aspectRatio;
-
-          // 如果计算出的高度超过最大高度，则按高度缩放
-          if (calculatedHeight > imageHeight) {
-            calculatedHeight = imageHeight;
-            calculatedWidth = imageHeight * aspectRatio;
-          }
-
-          setDimensions({
-            width: calculatedWidth,
-            height: calculatedHeight,
-          });
-        })
-        .catch((error) => {
-          console.warn("获取图片尺寸失败，使用默认尺寸:", error);
-          setError(true);
-          // 保持默认尺寸
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, [image.url, image.width, image.height]);
+  const [showZoomModal, setShowZoomModal] = useState(false);
 
   return (
-    <View className="mb-2">
-      <View style={{ position: 'relative' }}>
+    <View className={`mb-2 `}
+    >
+      <Pressable
+        onPress={() => setShowZoomModal(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Tap to zoom image"
+        accessibilityHint="Double tap to view full size image"
+      >
         <Image
           source={typeof image.url === "string" ? { uri: image.url } : image.url}
           style={{
-            width: dimensions.width,
-            height: dimensions.height,
+            height: imageHeight,
+            width: imageHeight >= 180 ? "auto" : 200,
             borderRadius: 12,
             backgroundColor: "#f0f0f0",
           }}
@@ -108,44 +239,44 @@ export const ImageWithDimensions: React.FC<{
             setError(false);
           }}
         />
+      </Pressable>
 
-        {loading && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text className="text-white text-xs">加载中...</Text>
-          </View>
-        )}
+      {loading && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            borderRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Text className="text-white text-xs">Loading...</Text>
+        </View>
+      )}
 
-        {error && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: '#f0f0f0',
-              borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text className="text-gray-500 text-xs">图片加载失败</Text>
-          </View>
-        )}
-      </View>
-
+      {error && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#f0f0f0',
+            borderRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Text className="text-gray-500 text-xs">Image failed to load</Text>
+        </View>
+      )}
+{/* 
       {image.alt && (
         <Text
           className={cn(
@@ -155,7 +286,14 @@ export const ImageWithDimensions: React.FC<{
         >
           {image.alt}
         </Text>
-      )}
+      )} */}
+
+      {/* 图片放大模态 */}
+      <ZoomableImage
+        imageUrl={typeof image.url === "string" ? image.url : image.url.uri}
+        visible={showZoomModal}
+        onClose={() => setShowZoomModal(false)}
+      />
     </View>
   );
 };
@@ -175,20 +313,25 @@ export function Chat({
   onTyping,
   onButtonPress,
   onImageUpload,
-  placeholder = "输入消息...",
-  sendButtonText = "发送",
+  placeholder = "Type a message...",
+  sendButtonText = "Send",
   className,
   disabled = false,
   clickHighlight = "",
+  canInput = false,
 }: ChatProps) {
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [selectedButtons, setSelectedButtons] = useState("");
+  const [selectedImage, setSelectedImage] = useState("");
   const [deleteButtonPressed, setDeleteButtonPressed] = useState<string | null>(
     null,
   );
+  const [showCardImageZoom, setShowCardImageZoom] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const { keyboardHeight, isKeyboardVisible } = useKeyboard();
+
   console.log(clickHighlight);
   // 自动滚动到底部
   useEffect(() => {
@@ -199,11 +342,21 @@ export function Chat({
     }
   }, [messages]);
 
+  // 键盘显示时自动滚动到底部
+  useEffect(() => {
+    if (isKeyboardVisible && messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+  }, [isKeyboardVisible, messages]);
+
   // 处理发送消息
   const handleSend = () => {
-    if (inputText.trim() && !disabled) {
-      onSendMessage?.(inputText.trim());
+    if ((inputText.trim() || selectedImage.trim()) && !disabled) {
+      onSendMessage?.(inputText.trim(), selectedImage);
       setInputText("");
+      setSelectedImage("");
       setIsTyping(false);
       onTyping?.(false);
       // 发送后收起键盘
@@ -213,20 +366,6 @@ export function Chat({
 
   // 处理输入变化
   const handleInputChange = (text: string) => {
-    // 检查是否包含回车符
-    if (text.includes("\n")) {
-      // 移除回车符并发送消息
-      const cleanText = text.replace(/\n/g, "").trim();
-      if (cleanText && !disabled) {
-        onSendMessage?.(cleanText);
-        setInputText("");
-        setIsTyping(false);
-        onTyping?.(false);
-        Keyboard.dismiss();
-        return;
-      }
-    }
-
     setInputText(text);
     const typing = text.length > 0;
     if (typing !== isTyping) {
@@ -236,6 +375,21 @@ export function Chat({
   };
 
   // 渲染头像组件
+  // 支持用户、AI 和系统头像
+  // 使用方法：
+  // 1. 在 Message 对象中设置 avatar 字段（图片 URL）
+  // 2. 设置 showAvatars: true 来显示头像
+  // 3. 可选：设置 senderName 来显示发送者名称
+  // 示例：
+  // const message: Message = {
+  //   id: '1',
+  //   text: 'Hello!',
+  //   sender: 'user',
+  //   timestamp: new Date(),
+  //   showAvatars: true,
+  //   avatar: 'https://example.com/user-avatar.jpg',
+  //   senderName: 'John Doe'
+  // }
   const renderAvatar = (
     avatar?: string,
     isUser: boolean = false,
@@ -253,10 +407,10 @@ export function Chat({
     return (
       <Avatar
         source={avatar}
-        name={senderName || (isUser ? "Me" : "他")}
+        name={senderName || (isUser ? "Me" : "AI")}
         size="small"
         defaultAvatar={defaultAvatarType}
-        className={cn(isUser ? "ml-1" : "mr-1")}
+        className={cn(isUser ? "ml-1" : "mr-1", "mt-2")}
       />
     );
   };
@@ -294,7 +448,7 @@ export function Chat({
               )}
               accessibilityRole="button"
               accessibilityLabel={button.text}
-              accessibilityHint={`点击${button.text}`}
+              accessibilityHint={`Tap ${button.text}`}
             >
               <View className="flex-row items-center p-2">
                 <Text
@@ -336,7 +490,7 @@ export function Chat({
           )}
           accessibilityRole="button"
           accessibilityLabel={commitButton.text}
-          accessibilityHint={`点击${commitButton.text}提交`}
+          accessibilityHint={`Tap ${commitButton.text} to submit`}
           accessibilityState={{ disabled: false }}
         >
           {/* <Ionicons
@@ -366,44 +520,25 @@ export function Chat({
     if (!images || images.length === 0) return null;
 
     console.log("Rendering images:", images);
-
+    console.log("imageHeight", imageHeight);
     return (
-      <View className="mt-2 flex-row gap-2">
+      <View
+        className={cn(
+          "mt-2 flex-row gap-2",
+          isUser ? "flex-end" : "flex-start"
+        )}
+      >
+
         {images.map((image) => {
           console.log("Image data:", image.url, "Type:", typeof image.url);
-
-          // 计算默认尺寸
-          const defaultDimensions = {
-            width: imageWidth,
-            height: imageHeight,
-          };
-
-          // 如果图片有指定的宽高，使用指定的值
-          let dimensions = defaultDimensions;
-          if (image.width && image.height) {
-            const aspectRatio = image.width / image.height;
-            let calculatedWidth = imageWidth;
-            let calculatedHeight = imageWidth / aspectRatio;
-
-            // 如果计算出的高度超过最大高度，则按高度缩放
-            if (calculatedHeight > imageHeight) {
-              calculatedHeight = imageHeight;
-              calculatedWidth = imageHeight * aspectRatio;
-            }
-
-            dimensions = {
-              width: calculatedWidth,
-              height: calculatedHeight,
-            };
-          }
-
           return (
-            <ImageWithDimensions
-              key={image.id}
-              image={image}
-              defaultDimensions={dimensions}
-              isUser={isUser}
-            />
+            <View className={` ${imageHeight > 180 ? "w-[180px]" : "w-[100px]"}`}>
+              <ImageWithDimensions
+                key={image.id}
+                image={image}
+                isUser={isUser}
+              />
+            </View>
           );
         })}
       </View>
@@ -450,7 +585,8 @@ export function Chat({
   */
 
   // 渲染卡片消息
-  const renderMessageCard = (card: MessageCard, message: Message) => {
+  const renderMessageCard = (card: MessageCard, message: Message, showCardImageZoom: boolean, setShowCardImageZoom: (show: boolean) => void) => {
+
     const handleImageSelect = (imageUri: string) => {
       console.log("handleImageSelect", imageUri, message.id);
       onImageUpload?.onImageSelect?.(imageUri, message.id);
@@ -464,13 +600,13 @@ export function Chat({
     };
 
     const handleDeleteImage = () => {
-      Alert.alert("删除图片", "确定要删除这张图片吗？删除后可以重新上传。", [
+      Alert.alert("Delete Image", "Are you sure you want to delete this image? You can upload a new one after deletion.", [
         {
-          text: "取消",
+          text: "Cancel",
           style: "cancel",
         },
         {
-          text: "删除",
+          text: "Delete",
           style: "destructive",
           onPress: () => {
             onImageUpload?.onImageSelect?.("", message.id);
@@ -480,8 +616,8 @@ export function Chat({
     };
 
     const handleLongPress = () => {
-      Alert.alert("删除图片", "长按删除按钮可以删除已上传的图片", [
-        { text: "知道了", style: "default" },
+      Alert.alert("Delete Image", "Long press the delete button to remove uploaded images", [
+        { text: "Got it", style: "default" },
       ]);
     };
 
@@ -496,15 +632,23 @@ export function Chat({
         {/* 渲染图片 */}
         {card.image && (
           <View className="relative overflow-hidden bg-gray-50">
-            <Image
-              source={{ uri: card.image }}
-              style={{
-                width: "100%",
-                height: imageHeight,
-              }}
-              resizeMode="contain"
-            />
-            {card.uploadImage && (
+            <Pressable
+              onPress={() => setShowCardImageZoom(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Tap to zoom image"
+              accessibilityHint="Tap to view full size image"
+            >
+              <Image
+                source={{ uri: card.image }}
+                style={{
+                  width: "100%",
+                  height: imageHeight,
+                }}
+                resizeMode="contain"
+                cachePolicy="memory-disk"
+              />
+            </Pressable>
+            {card.uploadImage && !card.isDeleted && (
               <Pressable
                 onPress={handleDeleteImage}
                 // onLongPress={handleLongPress}
@@ -517,8 +661,8 @@ export function Chat({
                     : "bg-black/70 hover:bg-black/80",
                 )}
                 accessibilityRole="button"
-                accessibilityLabel="删除图片"
-                accessibilityHint="点击删除已上传的图片，长按查看帮助"
+                accessibilityLabel="Delete image"
+                accessibilityHint="Tap to delete uploaded image, long press for help"
                 style={shadowStyles.medium}
               >
                 <Ionicons name="trash-outline" size={14} color="white" />
@@ -530,7 +674,7 @@ export function Chat({
         {card.uploadImage && !card.image && (
           <ImageUpload
             onImageSelect={handleImageSelect}
-            placeholder="上传搭配图片"
+            placeholder="Upload Styling Picture"
           />
         )}
 
@@ -552,6 +696,15 @@ export function Chat({
           {card.buttons && renderMessageButtons(card.buttons, message)}
           {card.commitButton && renderCommitButtons(card.commitButton, message)}
         </View>
+
+        {/* 卡片图片放大模态 */}
+        {card.image && (
+          <ZoomableImage
+            imageUrl={card.image}
+            visible={showCardImageZoom}
+            onClose={() => setShowCardImageZoom(false)}
+          />
+        )}
       </View>
     );
   };
@@ -560,10 +713,11 @@ export function Chat({
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.sender === "user";
     const isAi = item.sender === "ai";
+    // console.log('item in renderMessage', item);
     return (
       <View
         className={cn(
-          "flex-row mb-3 items-end",
+          "flex-row mb-3 items-start",
           isUser ? "justify-end" : "justify-start",
         )}
       >
@@ -572,8 +726,14 @@ export function Chat({
           renderAvatar(item.avatar, false, item.senderName, item.sender)}
 
         <View className={cn("flex-1", isUser ? "items-end" : "items-start")}>
+          {/* 显示发送者名称 */}
           {!isUser && !!item.showAvatars && item.senderName && (
             <Text className="text-sm text-gray-500 mb-1 ml-1">
+              {item.senderName}
+            </Text>
+          )}
+          {isUser && !!item.showAvatars && item.senderName && (
+            <Text className="text-sm text-gray-500 mb-1 mr-1">
               {item.senderName}
             </Text>
           )}
@@ -582,7 +742,7 @@ export function Chat({
           {item.text.length > 0 && (
             <View
               className={cn(
-                "px-3 py-2 rounded-xl",
+                "px-2 rounded-xl",
                 isUser
                   ? "bg-blue-500 rounded-br-md self-end"
                   : item.sender === "ai"
@@ -594,11 +754,12 @@ export function Chat({
                 minWidth: 50,
               }}
               accessibilityRole="text"
-              accessibilityLabel={`${isUser ? "Me" : item.senderName || "AI助手"}说：${item.text}`}
+              accessibilityLabel={`${isUser ? "Me" : item.senderName || "AI Assistant"} said: ${item.text}`}
             >
               <Text
                 className={cn(
-                  "text-base leading-5",
+                  "p-2 my-2",
+                  "text-lg leading-5",
                   isUser ? "text-white" : "text-black",
                 )}
               >
@@ -621,12 +782,13 @@ export function Chat({
           )}
 
           {/* 渲染图片内容 */}
-          {item.images &&
-            item.images.length > 0 &&
-            renderMessageImages(item.images, isUser)}
+          {item.images && item.images.length > 0 &&
+            <>
+              {renderMessageImages(item.images, isUser)}
+            </>}
 
           {/* 渲染卡片内容 */}
-          {item.card && renderMessageCard(item.card, item)}
+          {item.card && renderMessageCard(item.card, item, showCardImageZoom, setShowCardImageZoom)}
 
           {/* 渲染进度条内容 */}
           {item.progress && renderMessageProgress(item.progress, item)}
@@ -635,62 +797,104 @@ export function Chat({
           {!isUser && item.buttons && renderMessageButtons(item.buttons, item)}
         </View>
 
+        {/* 渲染用户头像 */}
         {isUser &&
-          renderAvatar(item.avatar, true, item.senderName, item.sender)}
+          !!item.showAvatars &&
+          renderAvatar(item.avatar, true, item.senderName, item.sender)
+        }
       </View>
     );
   };
-
+  // 使用图片选择 hook
+  const { showImagePickerOptions } = useImagePicker({
+    onImageSelected: (imageUri: string) => {
+      setSelectedImage(imageUri);
+    },
+  })
   // 渲染输入区域
   const renderInputArea = () => (
-    <View className="flex-row items-end bg-white border-t border-gray-200 px-3 py-2">
-      <View className="flex-1 mr-2">
-        <TextInput
-          ref={inputRef}
-          value={inputText}
-          onChangeText={handleInputChange}
-          placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
-          multiline
-          maxLength={500}
-          editable={!disabled}
-          className={cn(
-            "bg-gray-100 rounded-xl px-3 py-2 text-base",
-            "min-h-[40px] max-h-[100px]",
-            disabled && "opacity-50",
-          )}
-          style={{
-            textAlignVertical: "center",
-          }}
-          accessibilityRole="text"
-          accessibilityLabel="消息输入框"
-          accessibilityHint="输入您要发送的消息，按回车键发送"
-          accessibilityState={{ disabled }}
-        />
-      </View>
-
-      <Pressable
-        onPress={handleSend}
-        disabled={!inputText.trim() || disabled}
-        className={cn(
-          "bg-[#007AFF] rounded-full w-10 h-10 items-center justify-center",
-          (!inputText.trim() || disabled) && "opacity-50",
-        )}
-        accessibilityRole="button"
-        accessibilityLabel="发送消息"
-        accessibilityState={{ disabled: !inputText.trim() || disabled }}
+    <View className="flex-col items-center justify-between rounded-2xl w-full  bg-white border-gray-300 mb-4">
+      {selectedImage && (
+        <View className="w-full flex-row items-start justify-start mb-3 px-2">
+          <View className="relative w-[25%]">
+            <Image
+              source={{ uri: selectedImage }}
+              style={{
+                height: 180,
+                width: "100%",
+                borderRadius: 16,
+                borderWidth: 2,
+                borderColor: "#D1D5DB",
+              }}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              onPress={() => setSelectedImage("")}
+              className="absolute top-2 right-2 bg-black/50 rounded-full p-1"
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="close" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      <View
+        className="flex-row items-center justify-between rounded-full w-[95%] bg-white border-gray-300 px-2 py-2 border-2 mx-2"
       >
-        <Ionicons name="send" size={16} color="white" />
-      </Pressable>
+        <TouchableOpacity
+          className="bg-gray-200 rounded-xl p-2 flex-row items-center justify-center"
+          onPress={showImagePickerOptions}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="camera" size={24} color="gray-500" />
+        </TouchableOpacity>
+
+        <View className="flex-1 mx-2 rounded-xl border border-gray-200 max-w-[95%]">
+          <TextInput
+            ref={inputRef}
+            value={inputText}
+            onChangeText={handleInputChange}
+            placeholder={placeholder}
+            placeholderTextColor="#9CA3AF"
+            multiline
+            // maxLength={windowWidth}
+            editable={!disabled}
+            className={cn(
+              "bg-gray-100 rounded-xl p-2 text-lg",
+              "min-h-[45px] max-h-[100px] ",
+              disabled && "opacity-50",
+            )}
+            style={{
+              textAlignVertical: "center",
+            }}
+            accessibilityRole="text"
+            accessibilityLabel="add styling message..."
+            accessibilityHint="Type your message and press send to submit"
+            accessibilityState={{ disabled }}
+          />
+        </View>
+
+        <Pressable
+          onPress={handleSend}
+          disabled={(!inputText.trim() && !selectedImage.trim()) || disabled}
+          className={cn(
+            "bg-[#007AFF] rounded-full w-12 h-12 items-center justify-center",
+            ((!inputText.trim() && !selectedImage.trim()) || disabled) && "opacity-50",
+          )}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{ disabled: (!inputText.trim() && !selectedImage.trim()) || disabled }}
+        >
+          <Ionicons name="airplane" size={26} color="white" />
+        </Pressable>
+      </View>
     </View>
   );
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={"padding"}
       className={cn("flex-1", className)}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      style={{ flex: 1 }}
       accessibilityRole="none"
     >
       {/* 消息列表 */}
@@ -699,7 +903,7 @@ export function Chat({
         data={filterVisibleMessages(messages)}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
-        className="flex-1 px-3 pt-2"
+        className="flex-1 p-3 mb-10"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 4,
@@ -711,26 +915,26 @@ export function Chat({
           }, 100);
         }}
         accessibilityRole="list"
-        accessibilityLabel="聊天消息列表"
+        accessibilityLabel="Chat messages list"
         ListEmptyComponent={
           <View
             className="flex-1 items-center justify-center py-16"
             accessibilityRole="text"
-            accessibilityLabel="开始聊天吧！发送第一条消息开始对话"
+            accessibilityLabel="Start chatting! Send your first message to begin"
           >
             <Ionicons name="chatbubbles-outline" size={48} color="#9CA3AF" />
             <Text className="text-gray-500 text-base mt-3 text-center">
-              开始聊天吧！
+              Start chatting!
             </Text>
             <Text className="text-gray-400 text-sm mt-1 text-center">
-              发送第一条消息开始对话
+              Send your first message to begin
             </Text>
           </View>
         }
       />
 
       {/* 输入区域 */}
-      {messages.length > 4 && renderInputArea()}
+      {canInput && renderInputArea()}
     </KeyboardAvoidingView>
   );
 }
@@ -754,38 +958,38 @@ export function ChatHeader({
   isOnline = false,
   onBack,
   onMore,
-  showAvatar = true,
+  showAvatar,
   showDrawerButton = false,
 }: ChatHeaderProps) {
   return (
-    <View className="flex-row items-center bg-transparent border-b border-gray-200 px-3 py-2">
+    <View className="flex-row items-center bg-transparent border-b border-gray-200 px-4 py-2">
       {onBack && (
         <Pressable
           onPress={onBack}
           className="mr-2"
           accessibilityRole="button"
-          accessibilityLabel="返回"
-          accessibilityHint="返回上一页"
+          accessibilityLabel="Go back"
+          accessibilityHint="Return to previous page"
         >
-          <Ionicons name="arrow-back" size={22} color="#007AFF" />
+          <Ionicons name="arrow-back" size={28} color="black" />
         </Pressable>
       )}
 
       {showDrawerButton && (
         <Pressable
-          className="mx-2"
+          className="mx-1"
           onPress={onMore}
           accessibilityRole="button"
-          accessibilityLabel="打开菜单"
-          accessibilityHint="打开侧边菜单"
+          accessibilityLabel="Open menu"
+          accessibilityHint="Open side menu"
         >
-          <Ionicons name="menu" size={22} color="#007AFF" />
+          <Ionicons name="menu" size={28} color="black" />
         </Pressable>
       )}
 
 
 
-      <View className="flex-1 flex-row items-center">
+      <View className="flex-1 flex-row items-center mx-4">
         {showAvatar && (
           <Avatar
             source={avatar}
@@ -811,8 +1015,8 @@ export function ChatHeader({
         <Pressable
           onPress={onMore}
           accessibilityRole="button"
-          accessibilityLabel="更多选项"
-          accessibilityHint="查看更多选项"
+          accessibilityLabel="More options"
+          accessibilityHint="View more options"
         >
           <Ionicons name="ellipsis-vertical" size={22} color="#007AFF" />
         </Pressable>

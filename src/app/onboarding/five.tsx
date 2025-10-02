@@ -7,8 +7,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { ImagePerformanceMonitor } from "@/components/ImagePerformanceMonitor";
 import { OnboardingData } from "@/components/types";
+import { aiRequestLookbook } from "@/services/aiReuest";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function Five() {
+  const { user } = useAuth();
   const STYLE_OPTIONS = [
     {
       id: "Casual",
@@ -75,7 +79,7 @@ export default function Five() {
   const router = useRouter();
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   useEffect(() => {
     const loadOnboardingData = async () => {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
@@ -87,7 +91,7 @@ export default function Five() {
       }
     };
     loadOnboardingData();
-  }, []);
+  });
 
   const handleStyleToggle = (styleId: string) => {
     setSelectedStyles((prev) => {
@@ -102,18 +106,29 @@ export default function Five() {
   const handleNext = async () => {
     console.log("handleNext", selectedStyles);
     if (selectedStyles.length > 0) {
+      setIsUploading(true);
       const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
-        onboardingDataObj.selectedStyles = selectedStyles;
-        console.log("finish onboarding");
+
+        let imagesUrl: string[] = [];
+        // for (let i = 0; i < 2; i++) {
+        try {
+          const resultLookbook = await aiRequestLookbook(user?.id || '', onboardingDataObj.fullBodyPhoto, selectedStyles.slice(0, 2), 1);
+          console.log("resultLookbook", resultLookbook);
+          imagesUrl.push(...resultLookbook);
+        } catch (error) {
+          // console.error(`Error generating ${i} lookbook:`, error);
+        }
         await AsyncStorage.setItem(
-          "onboardingData",
-          JSON.stringify(onboardingDataObj),
+          "newlook",
+          JSON.stringify(imagesUrl),
         );
+        setIsUploading(false);
+        router.push("/onboarding/BaseSix");
       }
-      router.push("/onboarding/BaseSix");
     }
+
   };
 
   const handleImageError = (styleId: string) => {
@@ -150,11 +165,10 @@ export default function Five() {
                 <Pressable
                   key={style.id}
                   onPress={() => handleStyleToggle(style.id)}
-                  className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${
-                    isSelected
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 bg-white"
-                  }`}
+                  className={`w-[48%] max-w-[200px] mb-4 rounded-xl border-2 overflow-hidden ${isSelected
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 bg-white"
+                    }`}
                 >
                   {/* 图片容器 */}
                   <View className="relative bg-gray-100 items-center justify-center">
@@ -162,6 +176,7 @@ export default function Five() {
                       source={style.url}
                       style={{
                         width: "100%",
+                        maxWidth: 200,
                         height: 280,
                         flex: 1,
                       }}
@@ -184,9 +199,8 @@ export default function Five() {
                   {/* 风格名称 */}
                   <View className="p-3">
                     <Text
-                      className={`text-sm font-medium text-center ${
-                        isSelected ? "text-blue-600" : "text-gray-700"
-                      }`}
+                      className={`text-sm font-medium text-center ${isSelected ? "text-blue-600" : "text-gray-700"
+                        }`}
                     >
                       {style.name}
                     </Text>
@@ -198,8 +212,8 @@ export default function Five() {
 
           {/* 选中的风格显示 */}
           {selectedStyles.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-sm text-gray-600 mb-2">
+            <View className="">
+              <Text className="text-sm text-gray-600 ">
                 Selected styles:
               </Text>
               <View className="flex-row flex-wrap">
@@ -220,28 +234,38 @@ export default function Five() {
             </View>
           )}
 
-          {/* 底部按钮 */}
-          <View className="p-5 mb-20">
-            <View className="flex-row space-x-4">
-              <Pressable
-                onPress={handleNext}
-                className={`flex-1 py-3 px-6 rounded-full ${
-                  selectedStyles.length > 0 ? "bg-blue-500" : "bg-gray-300"
-                }`}
-                disabled={selectedStyles.length === 0}
-              >
-                <Text
-                  className={`text-center font-medium ${
-                    selectedStyles.length > 0 ? "text-white" : "text-gray-500"
-                  }`}
-                >
-                  Continue
-                </Text>
-              </Pressable>
-            </View>
-          </View>
         </View>
       </ScrollView>
+      {/* 底部按钮 */}
+      <View className="p-5 md-6">
+        <View className="flex-col">
+          {selectedStyles.length > 1 && !isUploading && (
+            <Pressable
+              onPress={handleNext}
+              className={`my-2 py-5 px-6 rounded-full bg-black`}
+              disabled={false}
+            >
+              <Text className={`text-center font-medium text-white`}>
+                Continue
+              </Text>
+            </Pressable>
+          )}
+
+          {selectedStyles.length > 0 && isUploading && (
+            <View className="my-2 py-5 px-6 rounded-full bg-gray-400 flex-row items-center justify-center">
+              <MaterialCommunityIcons
+                name="loading"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text className="text-center font-medium text-white">
+                Uploading...
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
     </View>
   );
 }

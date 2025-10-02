@@ -5,12 +5,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import DottomPicker from "./DottomPicker";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { aiRequestGemini, aiRequestLookbook } from "@/services/aiReuest";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { OnboardingData } from "@/components/types";
+import { LookbookService } from "@/services/LookbookService";
+import { Alert } from "react-native";
 
 export default function LookbookOne() {
   const [selectedStyles, setSelectedStyles] = useState<string>("");
   const [modalVisible, setModalVisible] = useState(false);
-
+  const { user } = useAuth();
   // 接收传递的参数
   // const params = useLocalSearchParams();
 
@@ -94,11 +100,79 @@ export default function LookbookOne() {
     setModalVisible(true);
   };
 
-  const handleNext = async () => {};
+  const handleNext = async () => {
+    try {
+      const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
+      const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+      const imageUrl = onboardingDataObj.fullBodyPhoto;
+
+      if (!imageUrl) {
+        Alert.alert("Error", "Please complete onboarding first");
+        return;
+      }
+
+      // 显示加载状态
+      Alert.alert("Generating", "Creating your personalized lookbook...");
+
+      setSelectedStyles("");
+      setModalVisible(false);
+      let imagesUrl: string[] = [];
+      for (let i = 0; i < 4; i++) {
+        try {
+          const resultLookbook = await aiRequestLookbook(user?.id || '', imageUrl, [selectedStyles], 1);
+          console.log("resultLookbook", resultLookbook);
+          imagesUrl.push(resultLookbook[0]);
+        } catch (error) {
+          console.error(`Error generating ${i} lookbook:`, error);
+        }
+      }
+
+      if (imagesUrl && imagesUrl.length > 0) {
+        // 获取或创建默认相册集合
+        const defaultCollection = await LookbookService.getOrCreateDefaultCollection(user?.id || '');
+        console.log("defaultCollection", defaultCollection);
+        // 保存生成的图片到相册
+        await LookbookService.addLookbookItem(
+          defaultCollection.id,
+          selectedStyles,
+          imagesUrl,
+          user?.id || '',
+          `${selectedStyles} Lookbook`,
+          `Generated ${imagesUrl.length} outfit images in ${selectedStyles} style`
+        );
+
+        Alert.alert(
+          "Success!",
+          `Your ${selectedStyles} lookbook has been generated and saved to your collection!`,
+          [
+            {
+              text: "View Collection",
+              onPress: () => {
+                // 这里可以导航到相册页面
+                router.push("/tabs/lookbook/gallery");
+              }
+            },
+            {
+              text: "OK",
+              onPress: () => {
+                setModalVisible(false);
+                setSelectedStyles("");
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Error", "Failed to generate lookbook images");
+      }
+    } catch (error) {
+      console.error("Error generating lookbook:", error);
+      Alert.alert("Error", "Failed to generate lookbook. Please try again.");
+    }
+  };
 
   return (
     <View className="flex-1 bg-white px-5">
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
@@ -116,9 +190,8 @@ export default function LookbookOne() {
               <Pressable
                 key={style.id}
                 onPress={() => handleStyleToggle(style.id)}
-                className={`w-[48%] mb-4 rounded-xl border-2 overflow-hidden ${
-                  isSelected ? "border-red-500" : "border-gray-200"
-                }`}
+                className={`w-[48%] max-w-[200px] mb-4 rounded-xl border-2 overflow-hidden ${isSelected ? "border-red-500" : "border-gray-200"
+                  }`}
               >
                 {/* 图片容器 */}
                 <View className="relative bg-gray-100 items-center justify-center ">
@@ -206,7 +279,10 @@ export default function LookbookOne() {
                   >
                     <Image
                       source={image.url}
-                      style={StyleSheet.absoluteFillObject}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                      }}
                       contentFit="cover"
                       cachePolicy="memory-disk"
                     />
@@ -218,9 +294,8 @@ export default function LookbookOne() {
           <View className="flex-row space-x-4 mt-5">
             <Pressable
               onPress={handleNext}
-              className={`flex-1 py-3 px-6 rounded-full ${
-                selectedStyles.length > 0 ? "bg-black" : "bg-gray-300"
-              }`}
+              className={`flex-1 py-3 px-6 rounded-full ${selectedStyles.length > 0 ? "bg-black" : "bg-gray-300"
+                }`}
               disabled={selectedStyles.length === 0}
             >
               <Text

@@ -89,7 +89,7 @@ export default function BaseThree() {
       <View className="mt-14">
         <DotsContainer activeIndex={3} indexNumber={6} />
       </View>
-      <ScrollView>
+      {/* <ScrollView> */}
         <View className="flex-1 justify-center px-5 py-2">
           <Text className="text-2xl font-bold text-start mb-8 text-gray-800">
             What’d you like StyleMe to focus on?
@@ -153,7 +153,7 @@ export default function BaseThree() {
             </Pressable>
           </View>
         </View>
-      </ScrollView>
+      {/* </ScrollView> */}
     </View>
   );
 }

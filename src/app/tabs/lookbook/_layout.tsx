@@ -18,16 +18,33 @@ export default function Layout() {
         options={{
           title: "MAGIC LOOKBOOK",
           headerShown: true,
-          headerBackVisible: true,
+          headerBackVisible: false,
           headerLeft: () => (
             <Pressable
-              onPress={() => router.dismissTo("/")}
-              className="flex-row items-center"
+              onPress={() => router.push("/tabs/lookbook/gallery")}
+              className="flex-row items-center ml-4"
             >
-              <Ionicons name="arrow-back" size={28} color="#000000" />
+              <Ionicons name="book-outline" size={30} color="#000000" />
               {/* <Text className="ml-2 text-black font-medium text-xl">Back</Text> */}
             </Pressable>
           ),
+        }}
+      />
+      <Stack.Screen
+        name="gallery"
+        options={{
+          title: "MAGIC LOOKBOOK RESULT",
+          headerShown: true,
+          headerBackVisible: true,
+          // headerLeft: () => (
+          //   <Pressable
+          //     onPress={() => router.dismissTo("/")}
+          //     className="flex-row items-center"
+          //   >
+          //     <Ionicons name="arrow-back" size={28} color="#000000" />
+          //     {/* <Text className="ml-2 text-black font-medium text-xl">Back</Text> */}
+          //   </Pressable>
+          // ),
         }}
       />
     </Stack>

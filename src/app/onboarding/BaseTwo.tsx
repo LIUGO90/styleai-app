@@ -75,7 +75,7 @@ export default function BaseTwo() {
         <View className="mt-14">
           <DotsContainer activeIndex={2} indexNumber={6} />
         </View>
-        <ScrollView>
+        {/* <ScrollView> */}
           <View className="flex-1 justify-center px-5 py-10">
             <Text className="text-2xl font-bold text-start mb-8 text-gray-800">
               Nice to meet you, {username || "there"}.{"\n"}
@@ -135,7 +135,7 @@ export default function BaseTwo() {
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        {/* </ScrollView> */}
       </View>
     </View>
   );

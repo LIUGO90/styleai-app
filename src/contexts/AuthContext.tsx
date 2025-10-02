@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       //   // 从Apple credential中提取用户信息
       const userInfo = {
         id: appleCredential.user || "apple_user_" + Date.now(),
-        email: appleCredential.email || "user@example.com",
+        email: appleCredential.email || "",
         user_metadata: {
           full_name: appleCredential.fullName
             ? `${appleCredential.fullName.givenName || ""} ${appleCredential.fullName.familyName || ""}`.trim()

@@ -108,6 +108,7 @@ export default function Login() {
             </Text>
           </View>
 
+        </ScrollView>
           {/* 底部按钮 */}
           <View className="mb-10 mt-4">
             <View className="flex-col justify-between items-center gap-2">
@@ -119,7 +120,6 @@ export default function Login() {
               </View>
             </View>
           </View>
-        </ScrollView>
       </SafeAreaView>
     </GuestGuard>
   );

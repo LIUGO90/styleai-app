@@ -1,19 +1,8 @@
 // 图片路径配置
 export const IMAGE_PATHS = {
-  // 测试图片
-  TEST_IMAGES: {
-    TEST01: require("../../assets/test/test01.jpg"),
-    TEST02: require("../../assets/test/test02.png"),
-    TEST03: require("../../assets/test/test03.png"),
-    TEST04: require("../../assets/test/test04.png"),
-    TEST05: require("../../assets/test/test05.png"),
-  },
 
-  // 用户头像
-  AVATARS: {
-    DEFAULT_USER: require("../../assets/icon.png"),
-    DEFAULT_AI: require("../../assets/icon.png"),
-  },
+
+
 
   // 背景图片
   BACKGROUNDS: {
@@ -21,10 +10,10 @@ export const IMAGE_PATHS = {
     SPLASH: require("../../assets/splash-icon.png"),
   },
 
-  // 等待动画
-  ANIMATIONS: {
-    WAIT: require("../../assets/wait.gif"),
-  },
+  // // 等待动画
+  // ANIMATIONS: {
+  //   WAIT: require("../../assets/wait.gif"),
+  // },
 
   // 引导页面图片
   ONBOARDING: {
@@ -78,10 +67,10 @@ export const IMAGE_PATHS = {
 
 // 图片路径类型
 export type ImagePathKey = keyof typeof IMAGE_PATHS;
-export type TestImageKey = keyof typeof IMAGE_PATHS.TEST_IMAGES;
-export type AvatarKey = keyof typeof IMAGE_PATHS.AVATARS;
+
+
 export type BackgroundKey = keyof typeof IMAGE_PATHS.BACKGROUNDS;
-export type AnimationKey = keyof typeof IMAGE_PATHS.ANIMATIONS;
+// export type AnimationKey = keyof typeof IMAGE_PATHS.ANIMATIONS;
 
 // 辅助函数：获取图片路径
 export const getImagePath = (category: ImagePathKey, key: string) => {
@@ -89,41 +78,13 @@ export const getImagePath = (category: ImagePathKey, key: string) => {
   return categoryPaths[key];
 };
 
-// 辅助函数：获取测试图片
-export const getTestImage = (key: TestImageKey) => {
-  return IMAGE_PATHS.TEST_IMAGES[key];
-};
-// 辅助函数：获取测试图片高度
-export const getTestImageHeight = (key: TestImageKey) => {
-  return IMAGE_PATHS.TEST_IMAGES[key].height;
-};
-
-// 辅助函数：获取测试图片宽度
-export const getTestImageWidth = (key: TestImageKey) => {
-  return IMAGE_PATHS.TEST_IMAGES[key].width;
-};
-
-// 辅助函数：获取测试图片尺寸信息
-export const getTestImageDimensions = (key: TestImageKey) => {
-  const image = IMAGE_PATHS.TEST_IMAGES[key];
-  return {
-    width: image.width,
-    height: image.height,
-    aspectRatio: image.width / image.height,
-  };
-};
-
-// 辅助函数：获取头像
-export const getAvatar = (key: AvatarKey) => {
-  return IMAGE_PATHS.AVATARS[key];
-};
 
 // 辅助函数：获取背景图片
 export const BACKGROUNDS = (key: BackgroundKey) => {
   return IMAGE_PATHS.BACKGROUNDS[key];
 };
 
-// 辅助函数：获取动画
-export const getAnimation = (key: AnimationKey) => {
-  return IMAGE_PATHS.ANIMATIONS[key];
-};
+// // 辅助函数：获取动画
+// export const getAnimation = (key: AnimationKey) => {
+//   return IMAGE_PATHS.ANIMATIONS[key];
+// };

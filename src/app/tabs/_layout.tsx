@@ -30,12 +30,12 @@ export default function RootLayout() {
         backBehavior="order"
       >
         <Tabs.Screen
-          name="styling"
+          name="home"
           options={{
-            title: "Styling",
+            title: "Home",
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
-                name="palette-outline"
+                name="home-outline"
                 size={getIconSize(size)}
                 color={color}
               />
@@ -84,7 +84,7 @@ export default function RootLayout() {
             title: "My",
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
-                name="home-outline"
+                name="account-outline"
                 size={getIconSize(size)} // 使用动态图标尺寸
                 color={color}
               />
@@ -99,12 +99,6 @@ export default function RootLayout() {
           }}
         />
 
-        <Tabs.Screen
-          name="onboarding"
-          options={{
-            href: null,
-          }}
-        />
       </Tabs>
     </AuthGuard>
   );

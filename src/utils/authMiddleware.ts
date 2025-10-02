@@ -5,7 +5,7 @@ import { useEffect } from "react";
 // 路由保护配置
 export const ROUTE_CONFIG = {
   // 需要认证的路由
-  PROTECTED_ROUTES: ["/tabs", "/ChatScreen", "/styling"],
+  PROTECTED_ROUTES: ["/tabs", "/ChatScreen", ],
   // 游客路由（已登录用户不能访问）
   GUEST_ROUTES: ["/Login", "/signup", "/forgot-password"],
   // 公开路由（任何人都可以访问）

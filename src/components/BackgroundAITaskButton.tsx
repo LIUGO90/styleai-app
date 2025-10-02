@@ -91,11 +91,10 @@ export const BackgroundAITaskButton: React.FC<BackgroundAITaskButtonProps> = ({
       <Pressable
         onPress={handleSubmit}
         disabled={disabled || isActive}
-        className={`p-4 rounded-lg ${
-          disabled || isActive
+        className={`p-4 rounded-lg ${disabled || isActive
             ? "bg-gray-300"
             : "bg-blue-500 active:bg-blue-600"
-        } ${className}`}
+          } ${className}`}
       >
         {children}
       </Pressable>
@@ -107,9 +106,8 @@ export const BackgroundAITaskButton: React.FC<BackgroundAITaskButtonProps> = ({
             <CircularProgress
               progress={taskState.progress}
               size={60}
-              strokeWidth={4}
-              color="#3B82F6"
-            />
+              strokeWidth={4} 
+              status={"processing"} />
             <Text className="mt-3 text-gray-700 font-medium text-center">
               {getStatusText()}
             </Text>

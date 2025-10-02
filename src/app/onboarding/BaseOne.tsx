@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,7 +27,7 @@ export default function BaseOne() {
       // 获取用户名
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-      const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single();
         setName(profile?.name || "");
       }
 
@@ -38,10 +39,10 @@ export default function BaseOne() {
           userId: user?.id || "",
           stylePreferences: [],
           fullBodyPhoto: "",
-          skinTone: "",
-          bodyType: "",
-          bodyStructure: "",
-          faceShape: "",
+          skinTone: "fair",
+          bodyType: "Hourglass",
+          bodyStructure: "Petite",
+          faceShape: "oval",
           selectedStyles: [],
           gender: ""
         };
@@ -56,7 +57,7 @@ export default function BaseOne() {
     try {
       // 获取当前用户
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user) {
         // 保存到Supabase用户资料表
         const { error: supabaseError } = await supabase
@@ -95,10 +96,10 @@ export default function BaseOne() {
       }
       console.log("BaseOne onboardingData", onboardingData);
       await AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
-      
+
       // 同时保存单独的用户名
       await AsyncStorage.setItem("userName", userName);
-      
+
       return true;
     } catch (error) {
       console.error('Error saving user name:', error);
@@ -110,11 +111,11 @@ export default function BaseOne() {
     console.log("handleNext", name);
     if (name.trim() !== "") {
       setIsLoading(true);
-      
+
       try {
         // 保存用户名到Supabase和本地存储
         const success = await saveUserName(name.trim());
-        
+
         if (success) {
           console.log("User name saved successfully");
           // 导航到下一页
@@ -168,7 +169,12 @@ export default function BaseOne() {
         <View className="mt-14">
           <DotsContainer activeIndex={1} indexNumber={6} />
         </View>
-        <ScrollView>
+        <KeyboardAvoidingView
+          behavior="padding"
+          className="flex-1"
+          // keyboardVerticalOffset={58}
+          accessibilityRole="none"
+        >
           <View className="flex-1 justify-center px-5 py-10">
             <Text className="text-2xl font-bold text-start mb-8 text-gray-800">
               Hi, I’m Styla. Your personal stylist.
@@ -190,22 +196,20 @@ export default function BaseOne() {
             <View className="flex-row space-x-4">
               <Pressable
                 onPress={handleNext}
-                className={`flex-1 py-5 px-6 rounded-full ${
-                  name.trim() !== "" && !isLoading ? "bg-black" : "bg-gray-300"
-                }`}
+                className={`flex-1 py-5 px-6 rounded-full ${name.trim() !== "" && !isLoading ? "bg-black" : "bg-gray-300"
+                  }`}
                 disabled={name.trim() === "" || isLoading}
               >
                 <Text
-                  className={`text-center font-medium ${
-                    name.trim() !== "" && !isLoading ? "text-white" : "text-gray-500"
-                  }`}
+                  className={`text-center font-medium ${name.trim() !== "" && !isLoading ? "text-white" : "text-gray-500"
+                    }`}
                 >
                   {isLoading ? "Saving..." : "Continue"}
                 </Text>
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </View>
   );

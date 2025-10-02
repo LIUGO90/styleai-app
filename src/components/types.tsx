@@ -38,6 +38,7 @@ export interface MessageCard {
   isShell?: "circle" | "none";
   uploadImage?: boolean; // 是否显示图片上传功能
   commitButton?: MessageButton;
+  isDeleted?: boolean;
 }
 
 // 图片上传回调类型
@@ -50,7 +51,7 @@ export interface ImageUploadCallback {
 // 聊天组件属性
 export interface ChatProps {
   messages?: Message[];
-  onSendMessage?: (message: string) => void;
+  onSendMessage?: (message: string,imageUri?: string) => void;
   onTyping?: (isTyping: boolean) => void;
   onButtonPress?: (button: MessageButton, message: Message) => void;
   onImageUpload?: ImageUploadCallback;
@@ -66,6 +67,7 @@ export interface ChatProps {
   allowMessageEdit?: boolean;
   allowMessageDelete?: boolean;
   clickHighlight?: string;
+  canInput?: boolean;
 }
 
 // 消息类型定义
@@ -91,6 +93,12 @@ export interface Message {
   isHidden?: boolean;
 }
 
+export interface PendingUpload {
+  imageUri: string;
+  messageId: string;
+  timestamp: string;
+}
+
 export interface OnboardingData {
   gender: any;
   userId: string;
@@ -102,4 +110,5 @@ export interface OnboardingData {
   bodyStructure: string;
   faceShape: string;
   selectedStyles: string[];
+  pendingUpload?: PendingUpload; // 待上传的图片信息
 }
