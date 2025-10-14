@@ -41,7 +41,7 @@ export const BackgroundAITaskButton: React.FC<BackgroundAITaskButtonProps> = ({
         jobId,
         index,
       );
-      console.log("Task submitted with ID:", requestId);
+
     } catch (error: any) {
       const errorMessage = error.message || "Failed to submit task";
       onError?.(errorMessage);

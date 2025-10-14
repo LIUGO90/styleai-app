@@ -11,26 +11,29 @@ export const analyzeRequest = async (
 ): Promise<AiRequestResponse> => {
   return await webWorkerAIService.analyzeRequest(imageUrl, {
     onProgress: (progress) => {
-      console.log(`Chat Request Progress: ${progress}%`);
+
     },
     onStatusChange: (status) => {
-      console.log(`Chat Request Status: ${status}`);
+
     },
   });
 };
 export const chatRequest = async (
   userId:string,
-  jobId: string,
+  bodyShape: string,
+  bodySize: string,
+  skinTone: string,
+  stylePreferences: string,
   message: string,
   imageUrl: string[],
   sessionId: string,
 ): Promise<AiRequestResponse> => {
-  return await webWorkerAIService.chatRequest(userId,jobId, message, imageUrl, sessionId,{
+  return await webWorkerAIService.chatRequest(userId,bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId,{
     onProgress: (progress) => {
-      console.log(`Chat Request Progress: ${progress}%`);
+
     },
     onStatusChange: (status) => {
-      console.log(`Chat Request Status: ${status}`);
+
     },
   });
 };
@@ -43,10 +46,10 @@ export const aiRequest = async (
   try {
     return await webWorkerAIService.aiRequest(garmentImage, occasion, {
       onProgress: (progress) => {
-        console.log(`AI Request Progress: ${progress}%`);
+
       },
       onStatusChange: (status) => {
-        console.log(`AI Request Status: ${status}`);
+
       },
     });
   } catch (error) {
@@ -63,10 +66,10 @@ export const aisuggest = async (
   try {
     return await webWorkerAIService.aiSuggest(jobId, index, {
       onProgress: (progress) => {
-        console.log(`AI Suggest Progress: ${progress}%`);
+
       },
       onStatusChange: (status) => {
-        console.log(`AI Suggest Status: ${status}`);
+
       },
     });
   } catch (error) {
@@ -83,10 +86,10 @@ export const aiRequestKling = async (
   try {
     return await webWorkerAIService.aiRequestKling(jobId, index, {
       onProgress: (progress) => {
-        console.log(`Kling Request Progress: ${progress}%`);
+
       },
       onStatusChange: (status) => {
-        console.log(`Kling Request Status: ${status}`);
+
       },
     });
   } catch (error) {
@@ -104,10 +107,10 @@ export const aiRequestGemini = async (
   try {
     return await webWorkerAIService.aiRequestGemini(userId, jobId, index, {
       onProgress: (progress) => {
-        console.log(`Gemini Request Progress: ${progress}%`);
+
       },
       onStatusChange: (status) => {
-        console.log(`Gemini Request Status: ${status}`);
+
       },
     });
   } catch (error) {
@@ -125,14 +128,29 @@ export const aiRequestLookbook = async (
   try {
     return await webWorkerAIService.aiRequestLookbook(userId, imageUrl, styleOptions, numImages, {
       onProgress: (progress) => {
-        console.log(`Lookbook Request Progress: ${progress}%`);
+
       },
       onStatusChange: (status) => {
-        console.log(`Gemini Request Status: ${status}`);
+
       },
     });
   } catch (error) {
     console.error("Gemini request failed:", error);
     return [];
   }
+};
+
+export const aiRequestForYou = async (
+  userId: string,
+  imageUrl: string[],
+  prompt: string,
+): Promise<string[]> => {
+  return await webWorkerAIService.aiRequestForYou(userId, imageUrl, prompt, {
+    onProgress: (progress) => {
+
+    },
+    onStatusChange: (status) => {
+
+    },
+  });
 };

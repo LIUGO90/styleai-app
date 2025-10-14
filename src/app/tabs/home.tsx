@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chat, ChatHeader } from "@/components/Chat";
 import { Message, MessageButton } from "@/components/types";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { Image } from "expo-image";
-import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { BACKGROUNDS } from "@/config/imagePaths";
@@ -14,24 +14,45 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useImagePicker } from "@/hooks/useImagePicker";
 
-
+const STYLE_OPTIONS = [
+  {
+    id: "Old Money",
+    name: "Old Money",
+    url: require("../../../assets/onboarding/Style/OldMoney.png"),
+  },
+  {
+    id: "BurgundyFall",
+    name: "BurgundyFall",
+    url: require("../../../assets/onboarding/Style/Preppy.png"),
+  },
+  {
+    id: "Y2K",
+    name: "Y2K",
+    url: require("../../../assets/onboarding/Style/Y2K.png"),
+  },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [imagesUrl, setImagesUrl] = useState<string[]>([]);
+  const [imagesUrl, setImagesUrl] = useState<{ id: string, name: string, url: string }[]>([]);
   const navigation = useNavigation();
-
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
 
+  useEffect(() => {
+    const loadOnboardingData = async () => {
+      setImagesUrl(STYLE_OPTIONS);
+    };
+    loadOnboardingData();
+  }, []);
   // 使用图片选择 hook
   const { showImagePickerOptions } = useImagePicker({
     onImageSelected: async (imageUri: string) => {
       if (imageUri) {
         const session = await ChatSessionService.createSession("free_chat");
         if (session) {
-        router.push({
-          pathname: "/free_chat",
+          router.push({
+            pathname: "/free_chat",
             params: { sessionId: session.id, imageUri }
           });
         }
@@ -41,25 +62,13 @@ export default function HomeScreen() {
     },
   });
 
-  useEffect(() => {
-    const loadOnboardingData = async () => {
-      const imagesUrl = await AsyncStorage.getItem("newlook");
-      console.log("imagesUrl", imagesUrl);
-      if (imagesUrl) {
-        console.log("imagesUrl", JSON.parse(imagesUrl) as string[]);
-        setImagesUrl(JSON.parse(imagesUrl) as string[]);
-      }
-    };
-    loadOnboardingData();
-  }, []);
-
   const handleDrawerOpen = () => {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
   // 处理输入变化
   const handleInputChange = (text: string) => {
-    // console.log('handleInputChange', text);
+
     inputText.current = text;
   };
 
@@ -67,7 +76,7 @@ export default function HomeScreen() {
   const handleSendMessage = async () => {
     const trimmedText = inputText.current.trim();
     if (trimmedText) {
-      console.log('Sending message:', trimmedText);
+
       // 先清空输入框
       inputText.current = "";
       inputRef.current?.clear();
@@ -76,7 +85,7 @@ export default function HomeScreen() {
       // 然后跳转
       if (session) {
         router.push({
-        pathname: "/free_chat",
+          pathname: "/free_chat",
           params: { sessionId: session.id, message: trimmedText }
         });
       }
@@ -86,7 +95,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-white" >
+    <View className="flex-1 bg-white">
       {/* 背景图片 */}
       <Image
         source={BACKGROUNDS("MAIN")}
@@ -94,18 +103,29 @@ export default function HomeScreen() {
         contentFit="cover"
         cachePolicy="memory-disk"
       />
-      <ChatHeader
-        title="Styla"
-        // subtitle="在线"
-        isOnline={true}
-        showAvatar={false}
-        // onBack={() => console.log('返回')}
-        onMore={handleDrawerOpen}
-        showDrawerButton={true}
-      />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View className="flex-1 items-start justify-center px-6">
-          <MaskedView
+
+      <SafeAreaView edges={["top"]} className="flex-1">
+        {/* Header - 固定在顶部 */}
+        <ChatHeader
+          title="Styla"
+          isOnline={true}
+          showAvatar={false}
+          onMore={handleDrawerOpen}
+          showDrawerButton={true}
+        />
+
+        {/* 可滚动内容 */}
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ 
+            paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
+          }}
+        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View className="flex items-start justify-center px-2">
+          {/* <MaskedView
             style={{ height: 110, flexDirection: 'row' }}
             maskElement={
               <Text style={styles.gradientText}>
@@ -119,7 +139,7 @@ export default function HomeScreen() {
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
             />
-          </MaskedView>
+          </MaskedView> */}
 
           <View className="flex-col justify-center items-center bg-gray-100 backdrop-blur-sm rounded-2xl w-full p-4">
             <KeyboardAvoidingView
@@ -197,47 +217,63 @@ export default function HomeScreen() {
             </View>
           </View>
 
-        </View>
-      </TouchableWithoutFeedback>
-      <View className="bg-white rounded-t-3xl p-6 border border-gray-200" >
-        <View className="flex-row justify-between items-center mb-3">
-          <Text className="text-2xl font-bold text-black">My Lookbook</Text>
-          <TouchableOpacity
-            onPress={() => router.replace("/tabs/lookbook")}
-          >
-            <Text className="text-gray-500 text-base">More</Text>
-          </TouchableOpacity>
-        </View>
+            {/* For You 部分 - 显示所有风格图片 */}
+            <View className="bg-white rounded-t-3xl p-6 border border-gray-200 mt-4 mb-2">
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-2xl font-bold text-black">All Styles</Text>
+                <Text className="text-gray-500 text-sm">{imagesUrl.length} styles</Text>
+              </View>
 
-        {/* 图片展示区域 */}
-        <View className="flex-row space-x-3 mb-2 justify-center">
-          <TouchableOpacity className=" mx-2">
-            <View className="bg-gray-200 max-w-[200px] w-48 rounded-2xl aspect-[3/4] overflow-hidden">
-              <Image
-                source={imagesUrl[0]}
-                style={{ width: '100%', height: "120%" }}
-                contentFit="cover"
-                placeholder="Loading..."
-                cachePolicy="memory-disk"
-              />
+              {/* 显示所有图片 */}
+              <View className="flex-row flex-wrap justify-between">
+                {imagesUrl.map((image, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
+                    style={{ aspectRatio: 712 / 1247 }}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      const imageData = {
+                        id: image.id,
+                        name: image.name,
+                        url: image.url
+                      };
+                      router.push({
+                        pathname: "/foryou",
+                        params: { 
+                          image: JSON.stringify(imageData)
+                        }
+                      });
+                    }}
+                  >
+                    <Image
+                      key={`style-image-${index}-${image.id}`}
+                      source={image.url}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      placeholder="Loading..."
+                      cachePolicy="memory-disk"
+                      priority="high"
+                      recyclingKey={`home-style-${index}`}
+                    />
+                    {/* 图片名称标签 */}
+                    <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
+                      <Text className="text-white text-sm font-semibold text-center">
+                        {image.name}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* 额外的底部空间指示器 */}
+              <View className="h-4" />
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity className=" mx-2">
-            <View className="bg-gray-200 max-w-[200px] w-48 rounded-2xl aspect-[3/4] overflow-hidden">
-              <Image
-                source={imagesUrl[1]}
-                style={{ width: '100%', height: "120%" }}
-                contentFit="cover"
-                placeholder="Loading..."
-                cachePolicy="memory-disk"
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-    </SafeAreaView>
+          </View>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 

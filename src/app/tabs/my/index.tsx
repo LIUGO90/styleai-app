@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -8,6 +8,7 @@ import { Image } from "expo-image";
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useImagePicker } from "@/hooks/useImagePicker";
+import { supabase } from "@/utils/supabase";
 
 
 export default function MyProfile() {
@@ -19,63 +20,52 @@ export default function MyProfile() {
   const [name, setName] = React.useState<string>("");
   const [email, setEmail] = React.useState<string>("");
 
+  // Load saved avatar, name, and email
+  const loadUserData = async () => {
+    try {
+      // console.log("🎈user", user);
+      const storedName = await AsyncStorage.getItem("userName");
+      const storedEmail = await AsyncStorage.getItem("userEmail");
+      // console.log("🎈storedName", storedName);
+      // console.log("🎈storedEmail", storedEmail);
+      setName(storedName || "");
+      setEmail(storedEmail || "");
 
-
-  // // 调试：打印用户信息
-  // React.useEffect(() => {
-
-
-  //   console.log("User Profile - Current user data:", {
-  //     user: user,
-  //     userMetadata: user?.user_metadata,
-  //     email: user?.email,
-  //     id: user?.id,
-  //     created_at: user?.created_at,
-  //   });
-  // }, [user]);
-
-  // 加载本地保存的头像
-  React.useEffect(() => {
-    const loadLocalAvatar = async () => {
-      const name = await AsyncStorage.getItem("name") || "";
-      console.log("name", name);
-      const email = user?.user_metadata?.email || user?.email || "";
-      setName(name);
-      setEmail(email);
-      try {
-        const savedAvatar = await AsyncStorage.getItem('userAvatar');
-        if (savedAvatar) {
-          console.log('Loaded avatar from local storage');
-          setUserAvatar(savedAvatar);
-        } else {
-          let avatar = userAvatar || user?.user_metadata?.picture || user?.user_metadata?.avatar_url || "";
-          if (avatar.length === 0 || avatar === null || avatar === undefined) {
-            createAvatar();
+      // Load avatar
+      const savedAvatar = await AsyncStorage.getItem('userAvatar');
+      if (savedAvatar) {
+        setUserAvatar(savedAvatar);
+      } else {
+        let avatar = userAvatar || user?.user_metadata?.picture || user?.user_metadata?.avatar_url || "";
+        if (avatar.length === 0 || avatar === null || avatar === undefined) {
+          createAvatar();
         }
       }
-      } catch (error) {
-        console.error('Error loading local avatar:', error);
-      }
-    };
-    loadLocalAvatar();
-  }, []);
+    } catch (error) {
+      console.error('❌ Error loading user data:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadUserData();
+  }, [user]);
 
   const createAvatar = async () => {
     const avatar = `https://api.dicebear.com/7.x/lorelei/svg?seed=${user?.id || email || 'default'}1&backgroundColor=ffd5dc,ffd6e7,d4e4ff,ffe4e6,e0f2fe`;
     setUserAvatar(avatar);
   };
-  // 头像处理和保存到本地
+  // Avatar processing and local saving
   const processAndUploadAvatar = async (imageUri: string) => {
     try {
-      console.log('1. Starting avatar processing, imageUri:', imageUri);
+
       setUploading(true);
 
-      // 1. 裁剪和调整图片大小为 200x200，转换为 JPEG
-      console.log('2. Resizing to 200x200 and converting image...');
+      // 1. Crop and resize image to 200x200, convert to JPEG
+
       const manipResult = await ImageManipulator.manipulateAsync(
         imageUri,
         [
-          { resize: { width: 80, height: 80 } }, // 固定尺寸 200x200
+          { resize: { width: 80, height: 80 } }, // Fixed size 200x200
         ],
         {
           compress: 0.8,
@@ -83,26 +73,23 @@ export default function MyProfile() {
           base64: false
         }
       );
-      console.log('3. Image processed to 200x200:', manipResult.uri);
 
-      // 2. 读取文件为 base64
-      console.log('4. Reading file as base64...');
+      // 2. Read file as base64
+
       const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
         encoding: 'base64',
       });
-      console.log('5. File read successfully, size:', (base64.length / 1024).toFixed(2), 'KB');
 
-      // 3. 保存到本地 AsyncStorage
-      console.log('6. Saving to local storage...');
+      // 3. Save to local AsyncStorage
+
       const avatarData = `data:image/jpeg;base64,${base64}`;
       await AsyncStorage.setItem('userAvatar', avatarData);
-      console.log('7. Saved to local storage');
 
-      // 4. 更新本地状态
-      console.log('8. Updating local state...');
+      // 4. Update local state
+
       setUserAvatar(avatarData);
 
-      console.log('9. Success! Avatar saved locally');
+
       Alert.alert("✅ Success", "Avatar updated successfully!");
 
     } catch (error: any) {
@@ -114,7 +101,7 @@ export default function MyProfile() {
     }
   };
 
-  // 使用图片选择 hook
+  // Use image picker hook
   const { showImagePickerOptions } = useImagePicker({
     onImageSelected: processAndUploadAvatar,
   });
@@ -136,7 +123,7 @@ export default function MyProfile() {
           style: "destructive",
           onPress: async () => {
             try {
-              // 清除头像
+              // Clear avatar
               await AsyncStorage.removeItem('userAvatar');
               setUserAvatar("");
 
@@ -148,7 +135,7 @@ export default function MyProfile() {
                   {
                     text: "OK",
                     onPress: () => {
-                      console.log("App should restart now");
+
                     },
                   },
                 ],
@@ -181,7 +168,7 @@ export default function MyProfile() {
     //   title: "Physical Profile",
     //   icon: "hanger" as const,
     //   color: "#10b981",
-    //   onPress: () => console.log("My Wardrobe"),
+    //   onPress: () => ,
     // },
     {
       id: "Style Preference",
@@ -190,22 +177,35 @@ export default function MyProfile() {
       color: "#ef4444",
       onPress: () => router.replace("/onboarding/YourRangeOne"),
     },
+    {
+      id: "Subscription",
+      title: "Subscription",
+      icon: "heart" as const,
+      color: "#ef4444",
+      onPress: () => router.replace("/tabs/my/subscription"),
+    },
+    {
+      id: "subscription-demo'",
+      title: "subscription-demo'",
+      icon: "heart" as const,
+      color: "#ef4444",
+      onPress: () => router.replace("/subscription-demo"),
+    },
 
   ];
 
   const refreshUserInfo = async () => {
     setRefreshing(true);
     try {
-      console.log("Refreshing user information...");
 
-      // 从本地存储重新加载头像
+      // Reload avatar from local storage
       const savedAvatar = await AsyncStorage.getItem('userAvatar');
       if (savedAvatar) {
-        console.log('Reloaded avatar from local storage');
+
         setUserAvatar(savedAvatar);
       }
 
-      console.log("User info refreshed successfully");
+
       Alert.alert("✅ Success", "Profile refreshed successfully!");
 
     } catch (error) {
@@ -227,12 +227,12 @@ export default function MyProfile() {
         style: "destructive",
         onPress: async () => {
           try {
-            // 清除头像
+            // Clear avatar
             await AsyncStorage.removeItem('userAvatar');
             setUserAvatar("");
 
             await signOut();
-            // 清除引导数据
+            // Clear onboarding data
             Alert.alert(
               "Success",
               "Signed out successfully. The app will restart.",
@@ -245,6 +245,64 @@ export default function MyProfile() {
         },
       },
     ]);
+  };
+
+  const revokeAppleAuthorization = async () => {
+    // Check if user signed in with Apple
+    const isAppleUser = session?.access_token === "apple_dev_token" ||
+      user?.user_metadata?.provider === "apple" ||
+      user?.app_metadata?.provider === "apple";
+
+    if (!isAppleUser) {
+      Alert.alert("Notice", "This feature is only available for users who signed in with Apple");
+      return;
+    }
+
+    Alert.alert(
+      "⚠️ Revoke Apple Authorization",
+      // "This will disconnect your Apple Sign-In and clear local data.\n\nTo completely revoke authorization, you also need to:\n1. Open iPhone Settings\n2. Tap your Apple ID\n3. Select Password & Security\n4. Tap Apps Using Apple ID\n5. Select this app and stop using Apple ID\n\nContinue?",
+      "This will disconnect your Apple Sign-In and clear local data.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Revoke Authorization",
+          style: "destructive",
+          onPress: async () => {
+            try {
+
+              // 1. Clear all local data
+              await AsyncStorage.removeItem('userAvatar');
+              await AsyncStorage.removeItem("onboardingData");
+              await AsyncStorage.removeItem("name");
+              await AsyncStorage.removeItem("userEmail");
+              setUserAvatar("");
+
+              // 2. Clear all user data and sign out
+              await clearAllUserData();
+
+              Alert.alert(
+                "✅ Authorization Disconnected",
+                "Apple Sign-In has been disconnected.\n\nPlease remember to revoke authorization in iPhone Settings so Apple will provide your information again on next sign-in.",
+                [
+                  {
+                    text: "Got it",
+                    onPress: () => {
+
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error("❌ Error revoking authorization:", error);
+              Alert.alert("Error", "Failed to revoke authorization. Please try again.");
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -368,7 +426,7 @@ export default function MyProfile() {
         </View>
 
         {/* Logout Button */}
-        <View style={{ marginHorizontal: 20, marginBottom: 32 }}>
+        <View style={{ marginHorizontal: 20, marginBottom: 16 }}>
           <Pressable
             onPress={logout}
             style={{
@@ -386,6 +444,32 @@ export default function MyProfile() {
             <Text className="text-red-600 font-medium ml-2">Log Out</Text>
           </Pressable>
         </View>
+
+        {/* Revoke Apple Authorization Button - Only for Apple Users */}
+        {(session?.access_token === "apple_dev_token" ||
+          user?.user_metadata?.provider === "apple" ||
+          user?.app_metadata?.provider === "apple") && (
+            <View style={{ marginHorizontal: 20, marginBottom: 32 }}>
+              <Pressable
+                onPress={revokeAppleAuthorization}
+                style={{
+                  backgroundColor: "#1e1b4b",
+                  borderWidth: 1,
+                  borderColor: "#4338ca",
+                  borderRadius: 16,
+                  padding: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <MaterialCommunityIcons name="shield-lock-open" size={20} color="#a5b4fc" />
+                <Text style={{ color: "#a5b4fc", fontWeight: "600", marginLeft: 8 }}>
+                  Revoke Apple Authorization
+                </Text>
+              </Pressable>
+            </View>
+          )}
       </ScrollView>
     </View>
   );

@@ -38,7 +38,7 @@ export default function FreeChatScreen() {
         if (currentSession && messages.length > 0) {
             // 避免在会话切换时立即保存
             const timer = setTimeout(() => {
-                // console.log('saveMessagesToSession', messages);
+
                 saveMessagesToSession();
             }, 100);
             return () => clearTimeout(timer);
@@ -48,7 +48,7 @@ export default function FreeChatScreen() {
 
     const loadCurrentSession = async () => {
         try {
-            console.log('loadCurrentSession', sessionId);
+
             // 重置状态，避免会话切换时的混淆
             setMessages([]);
 
@@ -62,10 +62,10 @@ export default function FreeChatScreen() {
 
             // 如果会话中有消息，加载会话消息
             if (session && session.messages && session.messages.length > 0) {
-                console.log('session.messages', session.messages);
+
                 setMessages(session.messages);
             } else {
-                console.log('FreeChatScreen - New session, setting initial message');
+
                 // 如果是新会话，设置初始消息
 
                 const id = generateUniqueId('msg_');
@@ -121,14 +121,14 @@ export default function FreeChatScreen() {
                     Alert.alert('No message or image provided');
                 }
             }
-            console.log('messages', messages);
+
         } catch (error) {
             console.error('Failed to load session:', error);
         }
     };
 
     const saveMessagesToSession = async () => {
-        // console.log('saveMessagesToSession', currentSession);
+
         if (currentSession) {
             try {
                 await ChatSessionService.updateSessionMessages(currentSession.id, messages);
@@ -149,22 +149,22 @@ export default function FreeChatScreen() {
     }
 
     const hideMessage = (messageId: string) => {
-        console.log('hideMessage', messageId);
+
         setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
     }
 
     const updateMessage = (message: Message) => {
-        console.log('updateMessage', message);
+
         setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
     }
 
     const addMessage = (message: Message) => {
-        // console.log('addMessage', message);
+
         setMessages(prev => [...prev, message]);
     }
 
     const dateleMessage = (messageId: string) => {
-        console.log('dateleMessage', messageId);
+
         setMessages(prev => prev.filter(msg => msg.id !== messageId));
     }
 

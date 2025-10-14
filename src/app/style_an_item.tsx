@@ -152,7 +152,7 @@ export default function StyleAnItemScreen() {
 
   const loadCurrentSession = async () => {
     try {
-      console.log('loadCurrentSession', sessionId);
+
       // 重置状态，避免会话切换时的混淆
       setMessages([]);
       selectedImageRef.current = '';
@@ -164,17 +164,16 @@ export default function StyleAnItemScreen() {
         // 如果路由参数中有sessionId，加载指定会话
         session = await ChatSessionService.getSession(sessionId);
       }
-      console.log('session in loadCurrentSession', session);
+
       if (session) {
         await ChatSessionService.setCurrentSession(session.id);
       }
-      console.log('session int', session);
 
       setCurrentSession(session);
 
       // 如果会话中有消息，加载会话消息
       if (session && session.messages && session.messages.length > 0) {
-        // console.log('session.messages', session.messages);
+
         setMessages(session.messages);
         if (session.messages.length > 3) {
           const messageZero = session.messages.find(msg => msg.id === '0');
@@ -194,28 +193,30 @@ export default function StyleAnItemScreen() {
         }
       } else {
         // 如果是新会话，设置初始消息
-        console.log('initMessages', initMessages);
-        console.log('imageUrl', imageUrl);
+
         if (imageUrl) {
           selectedImageRef.current = imageUrl;
           selectedIdRef.current = '3';
           const messagesTmp = deepClone(initMessages);
-          console.log('messagesTmp', messagesTmp);
-          messagesTmp[3].card.image = selectedImageRef.current;
+
+          // 修复：initMessages只有3个元素（索引0-2），应该访问索引2
+          if (messagesTmp[2] && messagesTmp[2].card) {
+            messagesTmp[2].card.image = selectedImageRef.current;
+          }
           setMessages(messagesTmp);
-          console.log('messages imageUrl', messagesTmp);
+
         } else {
           setMessages(initMessages);
         }
       }
-      console.log('messages', messages);
+
     } catch (error) {
       console.error('Failed to load session:', error);
     }
   };
 
   const saveMessagesToSession = async () => {
-    // console.log('saveMessagesToSession', currentSession);
+
     if (currentSession) {
       try {
         await ChatSessionService.updateSessionMessages(currentSession.id, messages);
@@ -237,22 +238,22 @@ export default function StyleAnItemScreen() {
   }
 
   const hideMessage = (messageId: string) => {
-    console.log('hideMessage', messageId);
+
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
   }
 
   const updateMessage = (message: Message) => {
-    console.log('updateMessage', message);
+
     setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
   }
 
   const addMessage = (message: Message) => {
-    console.log('addMessage', message);
+
     setMessages(prev => [...prev, message]);
   }
 
   const dateleMessage = (messageId: string) => {
-    console.log('dateleMessage', messageId);
+
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
   }
 
@@ -295,7 +296,7 @@ export default function StyleAnItemScreen() {
       message: 'Analyzing your message...',
     };
     updateMessage(progressMessage);
-    const { message, images } = await chatRequest(user?.id || '', '', text, [image], currentSession?.id || '');
+    const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
     dateleMessage(progressMessage.id);
     addMessage({
       id: Date.now().toString(),
@@ -314,21 +315,21 @@ export default function StyleAnItemScreen() {
 
 
   const handleButtonPress = async (button: MessageButton, message: Message) => {
-    console.log('Button clicked:', button.action, button.data);
+
     const messageId = message.id;
     // Handle different logic based on button action
     switch (button.action) {
       case 'style_an_item':
-        console.log('Style an Item');
+
         router.push('/tabs/styling/style_an_item');
         break;
       case 'outfit_check':
-        console.log('Outfit Check');
+
         // 可以添加其他页面的跳转
         router.push('/tabs/styling/outfit_check');
         break;
       case 'generate_ootd':
-        console.log('Generate OOTD');
+
         // 可以添加其他页面的跳转
         router.push('/tabs/styling/generate_ootd');
         break;
@@ -377,13 +378,21 @@ export default function StyleAnItemScreen() {
         let progressMessage1 = createProgressMessage(1, "Analyzing your message...");
         addMessage(progressMessage1);
         let image: string = '';
-        if (selectedImageRef.current && selectedImageRef.current.length > 0) {
-          image = await uploadImageWithFileSystem(user?.id || '', selectedImageRef.current) || '';
+        if (selectedImageRef.current &&
+          selectedImageRef.current.length > 0
+        ) {
+          if (selectedImageRef.current.startsWith('http')) {
+            image = selectedImageRef.current;
+          } else {
+            image = await uploadImageWithFileSystem(user?.id || '', selectedImageRef.current) || '';
+          }
           newMessage.images = [{
             id: generateUniqueId('img_'),
             url: image,
             alt: 'Garment Image',
           },]
+
+          updateMessage(newMessage);
         }
 
         progressMessage1.progress = {
@@ -398,24 +407,31 @@ export default function StyleAnItemScreen() {
         if (onboardingData) {
           const data: OnboardingData = JSON.parse(onboardingData);
           images = [data.fullBodyPhoto];
-        }
-        images.push(image);
-        chatRequest(user?.id || '', '', "", images, currentSession?.id || '').then(({ message, images }) => {
-          dateleMessage(progressMessage1.id);
-          addMessage({
-            id: Date.now().toString(),
-            text: message,
-            sender: 'ai',
-            senderName: 'AI Assistant',
-            timestamp: new Date(),
-            images: images.map(image => ({
-              id: generateUniqueId('img_'),
-              url: image,
-              alt: 'Garment Image',
-            })),
-          });
-        });
+          images.push(image);
 
+          chatRequest(user?.id || '', 
+            data.bodyType,
+            data.bodyStructure,
+            data.skinTone,
+            selectedButtons,
+            "",
+            images, currentSession?.id || '').then(({ message, images }) => {
+            dateleMessage(progressMessage1.id);
+            addMessage({
+              id: Date.now().toString(),
+              text: message,
+              sender: 'ai',
+              senderName: 'AI Assistant',
+              timestamp: new Date(),
+              images: images.map(image => ({
+                id: generateUniqueId('img_'),
+                url: image,
+                alt: 'Garment Image',
+              })),
+            });
+          });
+
+        }
         setCanInput(true);
         break;
       case 'generate_more_outfit':
@@ -502,7 +518,7 @@ export default function StyleAnItemScreen() {
         break;
 
       case 'add_to_cart':
-        console.log('Selected occasion:', button.text);
+
         setSelectedButtons(button.text);
         const message0 = getMessage(selectedIdRef.current) as Message;
         if (message0 && message0.card) {
@@ -511,7 +527,7 @@ export default function StyleAnItemScreen() {
         updateMessage(message0);
         break;
       case 'random':
-        console.log('Random selection');
+
         // Generate random number
         const randomNumber = Math.floor(Math.random() * 5);
         // Set button text based on number
@@ -529,7 +545,7 @@ export default function StyleAnItemScreen() {
 
   const handleImageUpload: ImageUploadCallback = {
     onImageSelect: (imageUri: string, messageId?: string) => {
-      console.log('Selected image:', imageUri, 'Message ID:', messageId);
+
       if (messageId) {
         selectedImageRef.current = imageUri;
         // 直接更新指定消息的卡片图片
@@ -565,8 +581,8 @@ export default function StyleAnItemScreen() {
   };
 
   return (
-    <SafeAreaView  className="flex-1 bg-white">
-      <View style={{ flex: 1 }}>
+    <SafeAreaView className="flex-1 bg-white">
+      {/* <View style={{ flex: 1 }}> */}
         <ChatHeader
           title={currentSession?.title || "Style an item"}
           // subtitle="检查您的搭配是否合适"
@@ -591,7 +607,7 @@ export default function StyleAnItemScreen() {
           clickHighlight={selectedButtons}
           canInput={canInput}
         />
-      </View>
+      {/* </View> */}
     </SafeAreaView>
   );
 }

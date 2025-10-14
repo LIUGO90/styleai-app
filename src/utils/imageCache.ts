@@ -45,9 +45,9 @@ export class ImageCacheManager {
           this.preloadedImages.add(key);
         });
 
-        console.log(`Preloaded ${newImages.length} remote images`);
+
       } else {
-        console.log("All remote images already preloaded");
+
       }
     } catch (error) {
       console.error("Failed to preload images:", error);
@@ -69,7 +69,7 @@ export class ImageCacheManager {
               imageSource.uri.startsWith("https://"));
 
       if (!isRemote) {
-        console.log("Local image - no need to preload");
+
         return;
       }
 
@@ -79,9 +79,9 @@ export class ImageCacheManager {
       if (!this.preloadedImages.has(key)) {
         await Image.prefetch([imageSource]);
         this.preloadedImages.add(key);
-        console.log("Remote image preloaded successfully");
+
       } else {
-        console.log("Remote image already preloaded");
+
       }
     } catch (error) {
       console.error("Failed to preload image:", error);
@@ -93,7 +93,7 @@ export class ImageCacheManager {
     try {
       await Image.clearMemoryCache();
       this.preloadedImages.clear();
-      console.log("Image cache cleared successfully");
+
     } catch (error) {
       console.error("Failed to clear image cache:", error);
     }

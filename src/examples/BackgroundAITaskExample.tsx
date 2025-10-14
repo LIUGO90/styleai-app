@@ -6,7 +6,7 @@ export const BackgroundAITaskExample: React.FC = () => {
   const [results, setResults] = useState<any[]>([]);
 
   const handleAISuccess = (data: any) => {
-    console.log("AI Request Success:", data);
+
     setResults((prev) => [
       ...prev,
       { type: "AI", data, timestamp: new Date() },
@@ -15,7 +15,7 @@ export const BackgroundAITaskExample: React.FC = () => {
   };
 
   const handleKlingSuccess = (data: string) => {
-    console.log("Kling Request Success:", data);
+
     setResults((prev) => [
       ...prev,
       { type: "Kling", data, timestamp: new Date() },
@@ -24,7 +24,7 @@ export const BackgroundAITaskExample: React.FC = () => {
   };
 
   const handleGeminiSuccess = (data: string[]) => {
-    console.log("Gemini Request Success:", data);
+
     setResults((prev) => [
       ...prev,
       { type: "Gemini", data, timestamp: new Date() },

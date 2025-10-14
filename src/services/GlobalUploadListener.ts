@@ -22,22 +22,22 @@ export class GlobalUploadListener {
   ): string {
     const listenerId = `${messageId}_${Date.now()}_${Math.random()}`;
     this.listeners.set(listenerId, callback);
-    
+
     if (componentId) {
       if (!this.componentListeners.has(componentId)) {
         this.componentListeners.set(componentId, new Set());
       }
       this.componentListeners.get(componentId)!.add(listenerId);
     }
-    
-    console.log(`Added listener: ${listenerId} for messageId: ${messageId}`);
+
+
     return listenerId;
   }
 
   // 移除特定监听器
   removeListener(listenerId: string) {
     this.listeners.delete(listenerId);
-    console.log(`Removed listener: ${listenerId}`);
+
   }
 
   // 移除组件的所有监听器
@@ -48,21 +48,20 @@ export class GlobalUploadListener {
         this.listeners.delete(listenerId);
       });
       this.componentListeners.delete(componentId);
-      console.log(`Removed all listeners for component: ${componentId}`);
+
     }
   }
 
   // 处理上传完成事件
   async handleUploadComplete(messageId: string, imageUrl: string) {
-    console.log(`Upload completed for messageId: ${messageId}, imageUrl: ${imageUrl}`);
-    
+
     // 更新本地数据
     await this.updateLocalData(messageId, imageUrl);
-    
+
     // 通知所有相关监听器
     const listenersToNotify = Array.from(this.listeners.entries())
       .filter(([listenerId, callback]) => listenerId.includes(messageId));
-    
+
     listenersToNotify.forEach(([listenerId, callback]) => {
       try {
         callback(imageUrl);
@@ -80,19 +79,19 @@ export class GlobalUploadListener {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {
         const data: OnboardingData = JSON.parse(onboardingData);
-        
+
         // 检查是否有待上传的数据
         if (data.pendingUpload && data.pendingUpload.messageId === messageId) {
           // 更新图片URL
           data.fullBodyPhoto = imageUrl;
-          
+
           // 清除待上传数据
           delete data.pendingUpload;
-          
+
           // 保存更新后的数据
           await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
-          
-          console.log(`Updated onboarding data with uploaded image: ${imageUrl}`);
+
+
         }
       }
     } catch (error) {
@@ -134,7 +133,7 @@ export class GlobalUploadListener {
   clearAllListeners() {
     this.listeners.clear();
     this.componentListeners.clear();
-    console.log('Cleared all listeners');
+
   }
 
   // 获取监听器统计信息

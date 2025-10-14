@@ -64,8 +64,6 @@ export default function MyCloset() {
   const handleStyleToggle = (imageIndex: string) => {
     const index = parseInt(imageIndex);
     const selectedImage = myClosetImages[index];
-    console.log('点击图片索引:', imageIndex, '解析后索引:', index);
-    console.log('选中的图片:', selectedImage);
 
     if (selectedImage) {
       const itemData = {
@@ -73,7 +71,7 @@ export default function MyCloset() {
         source: selectedImage,
         isUploaded: !isLocalResource(selectedImage)
       };
-      console.log('设置selectedItem:', itemData);
+
       setSelectedItem(itemData);
       setModalVisible(true);
     } else {
@@ -125,7 +123,7 @@ export default function MyCloset() {
 
     // 如果是用户上传的图片，先删除远程图片
     if (isUploadedImage) {
-      console.log('删除远程图片:', imageToDelete);
+
       const remoteDeleteSuccess = await deleteRemoteImage(user?.id || '', imageToDelete);
       if (!remoteDeleteSuccess) {
         Alert.alert("Warning", "远程图片删除失败，但本地记录将被移除");
@@ -140,7 +138,7 @@ export default function MyCloset() {
     const uploadedUrls = newImages.filter(image => !isLocalResource(image));
     await saveUploadedUrls(uploadedUrls);
 
-    console.log('图片删除完成，剩余图片数:', newImages.length);
+
   };
 
   // 从相册选择图片
@@ -232,11 +230,11 @@ export default function MyCloset() {
     setUploading(true);
 
     try {
-      console.log("开始上传图片:", imageUri);
+
       const imageUrl = await uploadImageWithFileSystem(user?.id || '', imageUri);
 
       if (imageUrl) {
-        console.log("上传成功:", imageUrl);
+
         const newImages = [...myClosetImages, imageUrl];
         setMyClosetImages(newImages);
 
@@ -399,14 +397,15 @@ export default function MyCloset() {
             <View className="flex-col gap-2 justify-center items-center mb-10 ">
               <Pressable
                 onPress={async () => {
-                  console.log('Style item:', selectedItem?.index);
-                  console.log('Style source:', selectedItem?.source);
+
+                  const session = await ChatSessionService.createSession("style_an_item");
+                  if (session) {
+                  router.push({
+                    pathname: "/style_an_item",
+                      params: { sessionId: session.id, imageUrl: selectedItem?.source }
+                    });
+                  }
                   closeModal();
-                  console.log("Style an Item");
-                  router.replace({
-                    pathname: "/ChatScreen/style_an_item",
-                    params: { imageUrl: selectedItem?.source },
-                  });
                 }}
                 className="bg-black py-3 my-1 w-[50%] rounded-xl items-center justify-center"
               >
@@ -417,7 +416,7 @@ export default function MyCloset() {
               <Pressable
                 onPress={() => {
                   if (selectedItem) {
-                    console.log('Delete item:', selectedItem.index);
+
                     deleteImage(selectedItem.index);
                     closeModal();
                   }

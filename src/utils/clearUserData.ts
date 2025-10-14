@@ -6,26 +6,24 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 export const clearAllUserData = async (): Promise<void> => {
   try {
-    console.log("🧹 Starting complete data cleanup...");
 
     // 1. 获取所有AsyncStorage键
     const allKeys = await AsyncStorage.getAllKeys();
-    console.log("📋 Found keys:", allKeys);
 
     // 2. 清除所有数据
     if (allKeys.length > 0) {
       await AsyncStorage.multiRemove(allKeys);
-      console.log("✅ Cleared all AsyncStorage data");
+
     } else {
-      console.log("ℹ️ No data to clear");
+
     }
 
     // 3. 验证清除结果
     const remainingKeys = await AsyncStorage.getAllKeys();
     if (remainingKeys.length === 0) {
-      console.log("🎉 All user data cleared successfully!");
+
     } else {
-      console.log("⚠️ Some data may still remain:", remainingKeys);
+
     }
   } catch (error) {
     console.error("❌ Error clearing user data:", error);
@@ -38,18 +36,17 @@ export const clearAllUserData = async (): Promise<void> => {
  */
 export const clearSpecificData = async (dataTypes: string[]): Promise<void> => {
   try {
-    console.log("🧹 Clearing specific data types:", dataTypes);
 
     for (const dataType of dataTypes) {
       try {
         await AsyncStorage.removeItem(dataType);
-        console.log(`✅ Removed ${dataType}`);
+
       } catch (error) {
-        console.log(`⚠️ Failed to remove ${dataType}:`, error);
+
       }
     }
 
-    console.log("🎉 Specific data cleared successfully!");
+
   } catch (error) {
     console.error("❌ Error clearing specific data:", error);
     throw error;

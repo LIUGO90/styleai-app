@@ -9,16 +9,15 @@ const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 
 // 注册后台任务
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-  console.log('后台任务执行中...');
-  
+
   try {
     // 模拟后台数据同步
     const response = await fetch('https://api.example.com/data');
     const data = await response.json();
-    
+
     // 保存到本地存储
     // await AsyncStorage.setItem('backgroundData', JSON.stringify(data));
-    
+
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
     console.error('后台任务失败:', error);
@@ -44,7 +43,7 @@ export default function InteractionManagerVsBackground() {
   // InteractionManager 示例 - 前台交互优化
   const handleInteractionManagerExample = () => {
     setInteractionStatus('处理中...');
-    
+
     // 使用 InteractionManager 等待用户交互完成
     InteractionManager.runAfterInteractions(() => {
       // 模拟耗时操作
@@ -90,22 +89,22 @@ export default function InteractionManagerVsBackground() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>InteractionManager vs 后台任务</Text>
-      
+
       {/* InteractionManager 部分 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🔄 InteractionManager (前台优化)</Text>
         <Text style={styles.description}>
           用途：优化前台用户交互体验，等待交互完成后执行任务
         </Text>
-        
+
         <TouchableOpacity style={styles.button} onPress={handleInteractionManagerExample}>
           <Text style={styles.buttonText}>执行前台优化任务</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.button} onPress={checkInteractionStatus}>
           <Text style={styles.buttonText}>检查交互状态</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.statusText}>状态: {interactionStatus}</Text>
       </View>
 
@@ -115,15 +114,15 @@ export default function InteractionManagerVsBackground() {
         <Text style={styles.description}>
           用途：应用在后台时执行任务，如数据同步、推送通知等
         </Text>
-        
+
         <TouchableOpacity style={styles.button} onPress={startBackgroundTask}>
           <Text style={styles.buttonText}>启动后台任务</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.button} onPress={stopBackgroundTask}>
           <Text style={styles.buttonText}>停止后台任务</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.statusText}>状态: {backgroundStatus}</Text>
       </View>
 

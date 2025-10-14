@@ -6,7 +6,7 @@ export const configureWebEnvironment = () => {
     try {
       // 在 Web 环境中，我们暂时禁用复杂的暗色模式配置
       // 以避免 StyleSheet.setFlag 相关的错误
-      console.log("Web 环境配置完成 - 使用默认配置");
+
     } catch (error) {
       console.warn("Web 环境配置失败:", error);
     }

@@ -19,7 +19,7 @@ export const BackgroundUploadExample: React.FC = () => {
         const pending = await backgroundUploadListener.getPendingUpload();
         if (pending) {
           setCurrentImage(pending.imageUri);
-          
+
           // 设置上传完成监听器
           backgroundUploadListener.addListener(pending.messageId, (imageUrl: string) => {
             setUploadedImageUrl(imageUrl);
@@ -37,25 +37,25 @@ export const BackgroundUploadExample: React.FC = () => {
   const simulateImageUpload = async () => {
     try {
       setUploadStatus('准备上传...');
-      
+
       // 模拟图片URI
       const imageUri = 'file:///path/to/simulated/image.jpg';
       const messageId = 'demo_' + Date.now();
-      
+
       // 添加到后台上传队列
       await BackgroundTaskService.addImageToUploadQueue(imageUri, messageId);
-      
+
       setCurrentImage(imageUri);
       setUploadStatus('已添加到队列，等待后台处理');
-      
+
       // 设置上传完成监听器
       backgroundUploadListener.addListener(messageId, (imageUrl: string) => {
         setUploadedImageUrl(imageUrl);
         setUploadStatus('上传完成');
         Alert.alert('上传成功', `图片已上传: ${imageUrl}`);
       });
-      
-      console.log('图片已添加到后台上传队列');
+
+
     } catch (error) {
       console.error('添加图片失败:', error);
       Alert.alert('错误', '添加图片失败');
@@ -67,7 +67,7 @@ export const BackgroundUploadExample: React.FC = () => {
     try {
       const hasPending = await backgroundUploadListener.hasPendingUpload();
       const pending = await backgroundUploadListener.getPendingUpload();
-      
+
       Alert.alert(
         '上传状态',
         `有待上传: ${hasPending ? '是' : '否'}\n` +
@@ -85,7 +85,7 @@ export const BackgroundUploadExample: React.FC = () => {
       setCurrentImage(null);
       setUploadedImageUrl(null);
       setUploadStatus('未开始');
-      console.log('上传数据已清除');
+
     } catch (error) {
       console.error('清除数据失败:', error);
     }
@@ -94,14 +94,14 @@ export const BackgroundUploadExample: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>后台任务上传示例</Text>
-      
+
       {/* 任务状态 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>后台任务状态</Text>
         <Text style={styles.statusText}>
           任务运行: {isTasksRunning ? '✅ 运行中' : '❌ 已停止'}
         </Text>
-        
+
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.button, styles.startButton]}
@@ -109,7 +109,7 @@ export const BackgroundUploadExample: React.FC = () => {
           >
             <Text style={styles.buttonText}>启动任务</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.button, styles.stopButton]}
             onPress={stopTasks}
@@ -131,7 +131,7 @@ export const BackgroundUploadExample: React.FC = () => {
         <Text style={styles.statusText}>
           上传结果: {uploadedImageUrl ? '✅ 已完成' : '❌ 未完成'}
         </Text>
-        
+
         {uploadedImageUrl && (
           <Text style={styles.urlText}>
             URL: {uploadedImageUrl}
@@ -142,21 +142,21 @@ export const BackgroundUploadExample: React.FC = () => {
       {/* 操作按钮 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>操作</Text>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.uploadButton]}
           onPress={simulateImageUpload}
         >
           <Text style={styles.buttonText}>模拟图片上传</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.checkButton]}
           onPress={checkUploadStatus}
         >
           <Text style={styles.buttonText}>检查上传状态</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.clearButton]}
           onPress={clearUploadData}

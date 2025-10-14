@@ -45,7 +45,7 @@
 //       // 注册所有已定义的任务
 //       await this.registerAllTasks();
 
-//       console.log("后台任务管理器初始化完成");
+
 //     } catch (error) {
 //       console.error("后台任务管理器初始化失败:", error);
 //     }
@@ -57,13 +57,12 @@
 
 //     TaskManager.defineTask(taskName, async () => {
 //       try {
-//         console.log("开始后台图片上传任务...");
 
 //         // 获取待上传的图片
 //         const pendingImages = await this.getPendingUploadImages();
 
 //         if (pendingImages.length === 0) {
-//           console.log("没有待上传的图片");
+
 //           return BackgroundFetch.BackgroundFetchResult.NoData;
 //         }
 
@@ -77,7 +76,7 @@
 //             // 从待上传列表中移除
 //             await this.removePendingImage(imageData.id);
 
-//             console.log(`图片上传成功: ${imageData.id}`);
+
 //           } catch (error) {
 //             console.error(`图片上传失败: ${imageData.id}`, error);
 //           }
@@ -89,7 +88,7 @@
 //           BackgroundFetch.BackgroundFetchResult.NewData,
 //         );
 
-//         console.log(`后台图片上传完成，成功上传 ${successCount} 张图片`);
+
 //         return BackgroundFetch.BackgroundFetchResult.NewData;
 //       } catch (error) {
 //         console.error("后台图片上传任务失败:", error);
@@ -122,13 +121,12 @@
 
 //     TaskManager.defineTask(taskName, async () => {
 //       try {
-//         console.log("开始后台数据同步任务...");
 
 //         // 获取待同步的数据
 //         const pendingData = await this.getPendingSyncData();
 
 //         if (pendingData.length === 0) {
-//           console.log("没有待同步的数据");
+
 //           return BackgroundFetch.BackgroundFetchResult.NoData;
 //         }
 
@@ -142,7 +140,7 @@
 //             // 从待同步列表中移除
 //             await this.removePendingData(data.id);
 
-//             console.log(`数据同步成功: ${data.id}`);
+
 //           } catch (error) {
 //             console.error(`数据同步失败: ${data.id}`, error);
 //           }
@@ -154,7 +152,7 @@
 //           BackgroundFetch.BackgroundFetchResult.NewData,
 //         );
 
-//         console.log(`后台数据同步完成，成功同步 ${successCount} 条数据`);
+
 //         return BackgroundFetch.BackgroundFetchResult.NewData;
 //       } catch (error) {
 //         console.error("后台数据同步任务失败:", error);
@@ -186,14 +184,12 @@
 
 //     TaskManager.defineTask(taskName, async () => {
 //       try {
-//         console.log("开始后台通知检查任务...");
 
 //         // 检查是否需要发送通知
 //         const shouldSendNotification = await this.checkNotificationConditions();
 
 //         if (shouldSendNotification) {
 //           await this.sendNotification();
-//           console.log("后台通知已发送");
 
 //           await this.updateTaskStatus(
 //             taskName,
@@ -201,7 +197,7 @@
 //           );
 //           return BackgroundFetch.BackgroundFetchResult.NewData;
 //         } else {
-//           console.log("无需发送通知");
+
 //           await this.updateTaskStatus(
 //             taskName,
 //             BackgroundFetch.BackgroundFetchResult.NoData,
@@ -247,7 +243,7 @@
 //         },
 //       );
 
-//       console.log(`任务已注册: ${taskName}`);
+
 //     } catch (error) {
 //       console.error(`注册任务失败: ${taskName}`, error);
 //     }
@@ -263,7 +259,6 @@
 //   // 启动所有后台任务
 //   public async startAllTasks() {
 //     try {
-//       console.log("启动所有后台任务...");
 
 //       // 定义所有任务
 //       this.defineImageUploadTask();
@@ -273,7 +268,7 @@
 //       // 注册所有任务
 //       await this.registerAllTasks();
 
-//       console.log("所有后台任务已启动");
+
 //     } catch (error) {
 //       console.error("启动后台任务失败:", error);
 //     }
@@ -282,14 +277,13 @@
 //   // 停止所有后台任务
 //   public async stopAllTasks() {
 //     try {
-//       console.log("停止所有后台任务...");
 
 //       for (const taskName of this.tasks.keys()) {
 //         await BackgroundFetch.unregisterTaskAsync(taskName);
-//         console.log(`任务已停止: ${taskName}`);
+
 //       }
 
-//       console.log("所有后台任务已停止");
+
 //     } catch (error) {
 //       console.error("停止后台任务失败:", error);
 //     }
@@ -368,7 +362,7 @@
 //         JSON.stringify(pendingImages),
 //       );
 
-//       console.log("添加待上传图片:", newImage.id);
+
 //     } catch (error) {
 //       console.error("添加待上传图片失败:", error);
 //     }
@@ -390,7 +384,7 @@
 //         JSON.stringify(pendingData),
 //       );
 
-//       console.log("添加待同步数据:", newData.id);
+
 //     } catch (error) {
 //       console.error("添加待同步数据失败:", error);
 //     }
@@ -450,7 +444,7 @@
 //   private async uploadImage(selectedImage: string): Promise<string> {
 //     try {
 //       const imageUri = selectedImage.split("/").pop() || "";
-//       console.log("imageUri", imageUri);
+
 //        const response = await uploadAsync(
 //         `${process.env.EXPO_PUBLIC_API_URL}/api/apple/upload`,
 //         selectedImage,
@@ -463,9 +457,9 @@
 //           },
 //         },
 //       );
-//       console.log("Upload successful:", response);
+
 //       const imageUrl = JSON.parse(response.body).blobUrl;
-//       console.log("imageUrl", imageUrl);
+
 //       await AsyncStorage.setItem("imageUrl", imageUrl);
 //       return imageUrl;
 //     } catch (error) {
@@ -511,7 +505,7 @@
 //     // 模拟数据同步
 //     return new Promise((resolve) => {
 //       setTimeout(() => {
-//         console.log("数据同步完成:", data);
+
 //         resolve();
 //       }, 1000);
 //     });
@@ -526,7 +520,7 @@
 //   // 发送通知
 //   private async sendNotification(): Promise<void> {
 //     // 模拟发送通知
-//     console.log("发送通知: 您有新的消息");
+
 //   }
 
 //   // 获取后台获取状态

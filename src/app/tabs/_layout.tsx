@@ -1,22 +1,65 @@
 import { Tabs } from "expo-router";
 import "../../../global.css";
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { configureWebEnvironment } from "../../utils/web-config";
 import { setupWebPolyfills } from "../../utils/web-polyfill";
 import { tabStyles, getIconSize } from "../../utils/tab-styles";
 import { AuthGuard } from "@/components/AuthGuard";
+import { getAllBadges, addBadgeListener } from "../../utils/badgeManager";
+import { useFocusEffect } from "expo-router";
 
 export default function RootLayout() {
+  // 徽章数字状态
+  const [lookbookBadge, setLookbookBadge] = useState<number | undefined>(undefined);
+  const [closetBadge, setClosetBadge] = useState<number | undefined>(undefined);
+  const [myBadge, setMyBadge] = useState<number | undefined>(undefined);
+
   // 配置 Web 环境
   useEffect(() => {
     configureWebEnvironment();
     setupWebPolyfills();
   }, []);
 
+  // 从 badgeManager 加载徽章数据
+  const loadBadgeData = useCallback(async () => {
+    try {
+      const badges = await getAllBadges();
+      setLookbookBadge(badges.lookbook);
+      setClosetBadge(badges.closet);
+      setMyBadge(badges.my);
+    } catch (error) {
+      console.error('Failed to load badge data:', error);
+    }
+  }, []);
+
+  // 初始加载和监听刷新事件
+  useEffect(() => {
+    // 初始加载
+    loadBadgeData();
+    
+    // 添加监听器，当其他地方调用 triggerBadgeRefresh 时会自动刷新
+    const unsubscribe = addBadgeListener(loadBadgeData);
+    
+    // 设置定时器，每60秒刷新一次（作为兜底）
+    const interval = setInterval(loadBadgeData, 60000);
+    
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [loadBadgeData]);
+
+  // 当页面获得焦点时也刷新徽章
+  useFocusEffect(
+    useCallback(() => {
+      loadBadgeData();
+    }, [loadBadgeData])
+  );
+
   // 直接显示主应用 Tabs，让 index.tsx 处理重定向逻辑
-  console.log("Showing main app tabs");
+
   return (
     <AuthGuard>
       <StatusBar style="auto" />
@@ -49,6 +92,8 @@ export default function RootLayout() {
             title: "Lookbook",
             headerShown: false,
             popToTopOnBlur: true,
+            tabBarBadge: lookbookBadge, // 动态徽章数字
+            tabBarBadgeStyle: tabStyles.badgeStyle,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="book-open-outline"
@@ -62,7 +107,7 @@ export default function RootLayout() {
         <Tabs.Screen
           name="mycloset"
           options={{
-            // tabBarBadge: 2,
+            tabBarBadge: closetBadge, // 动态徽章数字
             tabBarBadgeStyle: tabStyles.badgeStyle,
             title: "Closet",
             headerShown: true,
@@ -80,6 +125,7 @@ export default function RootLayout() {
         <Tabs.Screen
           name="my"
           options={{
+            tabBarBadge: myBadge, // 动态徽章数字
             tabBarBadgeStyle: tabStyles.badgeStyle,
             title: "My",
             tabBarIcon: ({ color, size }) => (

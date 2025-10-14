@@ -68,7 +68,7 @@ export default function BaseFour() {
         <View className="mt-14">
           <DotsContainer activeIndex={4} indexNumber={6} />
         </View>
-        
+
         <View className="flex-1">
           <View className="justify-center px-5">
             <Text className="text-2xl font-bold text-start mb-8 text-gray-800">
@@ -161,7 +161,7 @@ export default function BaseFour() {
             </Text>
           </View>
         </View>
-        
+
         <View className="p-5 mb-8">
           <Pressable
             onPress={handleNext}

@@ -40,7 +40,6 @@ export const useImagePicker = (options?: UseImagePickerOptions) => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const imageUri = result.assets[0].uri;
-        console.log("Selected image:", imageUri);
 
         // 触发回调
         if (onImageSelected) {
@@ -85,7 +84,6 @@ export const useImagePicker = (options?: UseImagePickerOptions) => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const imageUri = result.assets[0].uri;
-        console.log("Photo taken:", imageUri);
 
         // 触发回调
         if (onImageSelected) {

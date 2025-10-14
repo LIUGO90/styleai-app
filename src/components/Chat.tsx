@@ -46,7 +46,6 @@ const imageWidth = Dimensions.get("window").width * 0.4;
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
-
 // 生成唯一ID的辅助函数
 export const generateUniqueId = (prefix: string = "") => {
   return `${prefix}${Date.now()}_${(Math.random() * 10000).toString()}`;
@@ -229,12 +228,12 @@ export const ImageWithDimensions: React.FC<{
           placeholder="https://via.placeholder.com/150x150?text=Loading..."
           placeholderContentFit="cover"
           onError={(error) => {
-            console.log("Image error:", error);
+
             setError(true);
             setLoading(false);
           }}
           onLoad={() => {
-            console.log("Image loaded:", image.id);
+
             setLoading(false);
             setError(false);
           }}
@@ -332,7 +331,6 @@ export function Chat({
   const inputRef = useRef<TextInput>(null);
   const { keyboardHeight, isKeyboardVisible } = useKeyboard();
 
-  console.log(clickHighlight);
   // 自动滚动到底部
   useEffect(() => {
     if (messages.length > 0) {
@@ -519,8 +517,6 @@ export function Chat({
   const renderMessageImages = (images: MessageImage[], isUser: boolean) => {
     if (!images || images.length === 0) return null;
 
-    console.log("Rendering images:", images);
-    console.log("imageHeight", imageHeight);
     return (
       <View
         className={cn(
@@ -530,11 +526,10 @@ export function Chat({
       >
 
         {images.map((image) => {
-          console.log("Image data:", image.url, "Type:", typeof image.url);
+
           return (
-            <View className={` ${imageHeight > 180 ? "w-[180px]" : "w-[100px]"}`}>
+            <View key={image.id} className={imageHeight > 180 ? "w-[180px]" : "w-[100px]"}>
               <ImageWithDimensions
-                key={image.id}
                 image={image}
                 isUser={isUser}
               />
@@ -551,7 +546,7 @@ export function Chat({
 
     const percentage =
       progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
-    console.log("progress", progress);
+
     return (
       <View className="mt-2">
         <CircularProgress
@@ -588,7 +583,7 @@ export function Chat({
   const renderMessageCard = (card: MessageCard, message: Message, showCardImageZoom: boolean, setShowCardImageZoom: (show: boolean) => void) => {
 
     const handleImageSelect = (imageUri: string) => {
-      console.log("handleImageSelect", imageUri, message.id);
+
       onImageUpload?.onImageSelect?.(imageUri, message.id);
 
       // 上传到服务器
@@ -713,7 +708,7 @@ export function Chat({
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.sender === "user";
     const isAi = item.sender === "ai";
-    // console.log('item in renderMessage', item);
+
     return (
       <View
         className={cn(
@@ -894,7 +889,7 @@ export function Chat({
   return (
     <KeyboardAvoidingView
       behavior={"padding"}
-      className={cn("flex-1", className)}
+      className={cn("flex-1")}
       accessibilityRole="none"
     >
       {/* 消息列表 */}
@@ -987,8 +982,6 @@ export function ChatHeader({
         </Pressable>
       )}
 
-
-
       <View className="flex-1 flex-row items-center mx-4">
         {showAvatar && (
           <Avatar
@@ -1009,7 +1002,6 @@ export function ChatHeader({
           )}
         </View>
       </View>
-
 
       {!showDrawerButton && onMore && (
         <Pressable

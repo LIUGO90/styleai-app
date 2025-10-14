@@ -12,7 +12,7 @@ interface UploadImageForGeminiAnalyzeResponse {
 // 压缩图片的辅助函数
 const compressImage = async (imageUri: string, maxWidth: number = 1024): Promise<string> => {
   try {
-    console.log('开始压缩图片...');
+
     const manipResult = await ImageManipulator.manipulateAsync(
       imageUri,
       [
@@ -23,7 +23,7 @@ const compressImage = async (imageUri: string, maxWidth: number = 1024): Promise
         format: ImageManipulator.SaveFormat.JPEG,
       }
     );
-    console.log('图片压缩完成:', manipResult.uri);
+
     return manipResult.uri;
   } catch (error) {
     console.error('图片压缩失败，使用原图:', error);
@@ -44,9 +44,8 @@ export const uploadImageForGeminiAnalyze = async (userId: string, selectedImage:
   try {
     // 先压缩图片
     const compressedImage = await compressImage(selectedImage, 512);
-    
+
     const imageUri = selectedImage.split('/').pop() || '';
-    console.log('开始上传图片:', imageUri);
 
     const response = await uploadAsync(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/gemini`, compressedImage, {
       httpMethod: 'POST',
@@ -57,18 +56,16 @@ export const uploadImageForGeminiAnalyze = async (userId: string, selectedImage:
         'user-id': userId,
       },
     });
-    
+
     stateManager.finishUpload(selectedImage, true);
-    console.log('上传成功:', response);
+
     const body = JSON.parse(response.body);
-    console.log('上传成功:', body);
+
     if (body.success === true) {
       const message = body.message;
       const image = body.image;
       const uploadedImage = body.uploadedImage;
-      console.log('返回的图片URL:', image);
-      console.log('返回的消息:', message);
-      console.log('返回的图片URL:', uploadedImage);
+
       return { message, image, uploadedImage };
     } else {
       return { message: 'error', image: '', uploadedImage: '' };
@@ -96,9 +93,8 @@ export const uploadImageWithFileSystem = async (userId: string, selectedImage: s
   try {
     // 先压缩图片
     const compressedImage = await compressImage(selectedImage, 512);
-    
+
     const imageUri = selectedImage.split('/').pop() || '';
-    console.log('开始上传图片:', imageUri);
 
     const response = await uploadAsync(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/upload`, compressedImage, {
       httpMethod: 'POST',
@@ -110,9 +106,8 @@ export const uploadImageWithFileSystem = async (userId: string, selectedImage: s
       },
     });
 
-    console.log('上传成功:', response);
+
     const imageUrl = JSON.parse(response.body).blobUrl;
-    console.log('返回的图片URL:', imageUrl);
 
     // 标记上传完成
     stateManager.finishUpload(selectedImage, true);
@@ -146,11 +141,9 @@ export const resetUploadState = () => {
 // 删除远程图片
 export const deleteRemoteImage = async (userId: string, imageUrl: string): Promise<boolean> => {
   try {
-    console.log('开始删除远程图片:', imageUrl);
 
     // 从URL中提取图片ID或文件名
     // const imageId = imageUrl.split('/').pop() || '';
-    // console.log('提取的图片ID:', imageId);
 
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/upload`, {
       method: 'DELETE',
@@ -166,7 +159,7 @@ export const deleteRemoteImage = async (userId: string, imageUrl: string): Promi
 
     if (response.ok) {
       const result = await response.json();
-      console.log('删除成功:', result);
+
       return true;
     } else {
       console.error('删除失败，状态码:', response.status);
@@ -191,6 +184,6 @@ export const deleteMultipleRemoteImages = async (userId: string, imageUrls: stri
     }
   }
 
-  console.log('批量删除结果:', results);
+
   return results;
 };

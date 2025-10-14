@@ -11,10 +11,10 @@ export default function SecondScreen() {
   //   userId: "12345",
   // };
 
-  // console.log("Redirecting to styling with params:", params);
 
   // 将参数作为查询字符串传递
   // const queryString = new URLSearchParams(params).toString();
   // return <Redirect href={`/tabs/lookbook/one?${queryString}`} />;
+
   return <Redirect href={`/tabs/lookbook/one`} />;
 }

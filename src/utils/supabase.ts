@@ -6,9 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log("🔍 Environment variables check:");
-console.log("EXPO_PUBLIC_SUPABASE_URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log("Final supabaseUrl:", supabaseUrl);
 
 if (!supabaseUrl) {
   throw new Error(

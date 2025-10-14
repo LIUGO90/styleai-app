@@ -3,6 +3,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { router } from "expo-router";
+import { requestNetworkPermissionForLogin } from "@/utils/networkPermission";
 
 export function AppleAuth() {
   const { signInWithApple } = useAuth();
@@ -11,6 +12,15 @@ export function AppleAuth() {
   const handleAppleSignIn = async () => {
     if (Platform.OS !== "ios") {
       Alert.alert("Error", "Apple Sign In is only available on iOS");
+      return;
+    }
+
+    // 在登录前检查网络权限
+    const hasNetworkPermission = await requestNetworkPermissionForLogin();
+
+    if (!hasNetworkPermission) {
+      // 用户拒绝或网络不可用，阻止登录
+
       return;
     }
 
@@ -23,7 +33,6 @@ export function AppleAuth() {
         ],
       });
 
-      console.log("Apple credential:", credential);
 
       if (credential.identityToken) {
         // 传递完整的credential信息，包括email和fullName
@@ -31,12 +40,24 @@ export function AppleAuth() {
 
         if (error) {
           console.error("Apple sign in error:", error);
-          Alert.alert(
-            "Sign In Error",
-            error.message || "Failed to sign in with Apple",
-          );
+
+          // 检查是否是网络错误
+          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+            Alert.alert(
+              "网络错误",
+              "登录失败，请检查网络连接后重试。",
+              [
+                { text: "取消", style: "cancel" },
+                { text: "重试", onPress: handleAppleSignIn },
+              ]
+            );
+          } else {
+            Alert.alert(
+              "Sign In Error",
+              error.message || "Failed to sign in with Apple",
+            );
+          }
         } else {
-          console.log("Successfully signed in with Apple");
 
           router.replace("/onboarding");
         }
@@ -48,7 +69,7 @@ export function AppleAuth() {
 
       if (e.code === "ERR_REQUEST_CANCELED") {
         // User canceled the sign-in flow
-        console.log("User canceled Apple sign in");
+
       } else {
         Alert.alert(
           "Authentication Error",

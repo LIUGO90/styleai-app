@@ -9,7 +9,7 @@ export default function InteractionManagerExample() {
   // 示例1: 基本用法 - 延迟执行任务
   const handleBasicExample = () => {
     setIsLoading(true);
-    
+
     // 等待所有交互和动画完成后再执行
     InteractionManager.runAfterInteractions(() => {
       // 模拟耗时操作
@@ -23,7 +23,7 @@ export default function InteractionManagerExample() {
   // 示例2: 复杂数据处理
   const handleComplexDataProcessing = () => {
     setIsLoading(true);
-    
+
     InteractionManager.runAfterInteractions(() => {
       // 模拟复杂的数据处理
       const processData = () => {
@@ -33,7 +33,7 @@ export default function InteractionManagerExample() {
         }
         return newData;
       };
-      
+
       const result = processData();
       setData(result);
       setIsLoading(false);
@@ -43,7 +43,7 @@ export default function InteractionManagerExample() {
   // 示例3: 网络请求优化
   const handleNetworkRequest = () => {
     setIsLoading(true);
-    
+
     InteractionManager.runAfterInteractions(async () => {
       try {
         // 模拟网络请求
@@ -66,25 +66,25 @@ export default function InteractionManagerExample() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>InteractionManager 示例</Text>
-      
+
       <TouchableOpacity style={styles.button} onPress={handleBasicExample}>
         <Text style={styles.buttonText}>基本用法</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.button} onPress={handleComplexDataProcessing}>
         <Text style={styles.buttonText}>复杂数据处理</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.button} onPress={handleNetworkRequest}>
         <Text style={styles.buttonText}>网络请求优化</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.button} onPress={checkInteractionStatus}>
         <Text style={styles.buttonText}>检查交互状态</Text>
       </TouchableOpacity>
-      
+
       {isLoading && <Text style={styles.loadingText}>加载中...</Text>}
-      
+
       {data.length > 0 && (
         <View style={styles.dataContainer}>
           <Text style={styles.dataTitle}>数据:</Text>

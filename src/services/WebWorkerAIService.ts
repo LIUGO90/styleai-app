@@ -17,7 +17,7 @@ export interface AIRequestOptions {
 
 export interface RequestTask {
   id: string;
-  type: "ai" | "suggest" | "kling" | "gemini" | "chat" | "analyze" | "lookbook" | "delchat";
+  type: "ai" | "suggest" | "kling" | "gemini" | "chat" | "analyze" | "lookbook" | "delchat" | "foryou";
   args: any[];
   options: AIRequestOptions;
   resolve: (value: any) => void;
@@ -50,7 +50,6 @@ class WebWorkerAIService {
     data: any,
     abortController: AbortController,
   ): Promise<any> {
-    console.log('makeRequest called with:', { url, data });
 
     const response = await fetch(url, {
       method: "POST",
@@ -66,7 +65,7 @@ class WebWorkerAIService {
     }
 
     const result = await response.json();
-    console.log('makeRequest response:', result);
+
     return result;
   }
 
@@ -143,6 +142,9 @@ class WebWorkerAIService {
             args[2],
             args[3],
             args[4],
+            args[5],
+            args[6],
+            args[7],
             options,
             abortController,
           );
@@ -197,6 +199,15 @@ class WebWorkerAIService {
             abortController,
           );
           break;
+        case "foryou":
+          result = await this.executeForYouRequest(
+            args[0],
+            args[1],
+            args[2],
+            options,
+            abortController,
+          );
+          break;
         default:
           throw new Error(`Unknown request type: ${type}`);
       }
@@ -209,6 +220,23 @@ class WebWorkerAIService {
       reject(error);
     }
   }
+
+
+  aiRequestForYou(userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
+    return new Promise((resolve, reject) => {
+      const task: RequestTask = {
+        id: `foryou_${Date.now()}`,
+        type: "foryou",
+        args: [userId, imageUrl, prompt],
+        options,
+        resolve,
+        reject,
+        abortController: new AbortController(),
+      };
+      this.addToQueue(task);
+    });
+  }
+
 
   async deleteChatRequest(
     sessionIds: string[],
@@ -252,8 +280,11 @@ class WebWorkerAIService {
   }
 
   async chatRequest(
-    userId: string,
-    jobId: string,
+    userId:string,
+    bodyShape: string,
+    bodySize: string,
+    skinTone: string,
+    stylePreferences: string,
     message: string,
     imageUrl: string[],
     sessionId: string,
@@ -263,7 +294,7 @@ class WebWorkerAIService {
       const task: RequestTask = {
         id: `chat_${Date.now()}_${Math.random()}`,
         type: "chat",
-        args: [userId, jobId, message, imageUrl, sessionId],
+        args: [userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId],
         options,
         resolve,
         reject,
@@ -383,8 +414,11 @@ class WebWorkerAIService {
    * 执行Chat请求的具体实现
    */
   private async executeChatRequest(
-    userId: string,
-    jobId: string,
+    userId:string,
+    bodyShape: string,
+    bodySize: string,
+    skinTone: string,
+    stylePreferences: string,
     message: string,
     imageUrl: string[],
     sessionId: string,
@@ -392,10 +426,10 @@ class WebWorkerAIService {
     abortController: AbortController,
   ): Promise<AIRequestResponse> {
     options.onProgress?.(50);
-    console.log('executeChatRequest', jobId, message, sessionId,imageUrl);
+
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
-      { userId, jobId, message, imageUrl, sessionId },
+      { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
       abortController,
     );
     options.onProgress?.(80);
@@ -503,13 +537,13 @@ class WebWorkerAIService {
   ): Promise<string[]> {
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
-    console.log('executeGeminiRequest', userId, jobId, index);
+
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/generate`,
       { userId, jobId, index },
       abortController,
     );
-    console.log('executeGeminiRequest response', response);
+
     options.onProgress?.(80);
 
     return response;
@@ -526,16 +560,33 @@ class WebWorkerAIService {
   ): Promise<string[]> {
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
-    console.log('executeAnalyzeRequest', imageUrl);
+
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/gemini`,
       { imageUrl },
       abortController,
     );
-    console.log('executeAnalyzeRequest response', response);
+
     options.onProgress?.(80);
 
     return response.data.analysis;
+  }
+
+  async executeForYouRequest(userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions, abortController: AbortController): Promise<string[]> {
+    options.onStatusChange?.("processing");
+    options.onProgress?.(40);
+
+    const response = await this.makeRequest(
+      `${process.env.EXPO_PUBLIC_API_URL}/api/apple/foryou`,
+      { userId, imageUrl, prompt },
+      abortController,
+    );
+
+    options.onProgress?.(80);
+    if (response.data.images && response.data.images.length > 0) {
+      return response.data.images;
+    }
+    return [];
   }
 
   /**
@@ -549,15 +600,15 @@ class WebWorkerAIService {
   ): Promise<any> {
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
-    console.log('executeDeleteChatRequest', sessionIds);
+
     const result = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat/delete`,
       { sessionIds },
       abortController,
     );
-    console.log('executeDeleteChatRequest response', result);
+
     options.onProgress?.(80);
-    console.log('后台批量删除会话成功:', result);
+
     return result;
   }
 
@@ -576,16 +627,22 @@ class WebWorkerAIService {
     // return []
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
-    console.log('executeLookbookRequest', userId, imageUrl, styleOptions, numImages);
-    const response = await this.makeRequest(
-      `${process.env.EXPO_PUBLIC_API_URL}/api/apple/lookbook`,
-      { userId, imageUrl, styleOptions, numImages },
-      abortController,
-    );
-    console.log('executeLookbookRequest response', response);
-    options.onProgress?.(80);
-    console.log('executeLookbookRequest response images', response);
-    return response.data.images;
+
+    for (let i = 0; i < 3; i++) {
+      const response = await this.makeRequest(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/apple/lookbook`,
+        { userId, imageUrl, styleOptions, numImages },
+        abortController,
+      );
+
+      options.onProgress?.(80);
+
+      if (response.data.images && response.data.images.length > 0) {
+        return response.data.images;
+      }
+
+    }
+    return [];
   }
 
 

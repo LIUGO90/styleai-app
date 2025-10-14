@@ -39,12 +39,11 @@ export default function BaseFive() {
     };
   }, []);
 
-
   useEffect(() => {
     // 记录接收到的路由参数
     const loadOnboardingData = async () => {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
-      console.log("loadOnboardingData", onboardingData);
+
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
         setSelectedImage(onboardingDataObj.fullBodyPhoto);
@@ -54,7 +53,6 @@ export default function BaseFive() {
       loadOnboardingData();
     }
   }, []);
-
 
   // 防抖函数
   const debounce = (func: Function, delay: number) => {
@@ -73,28 +71,23 @@ export default function BaseFive() {
   const handleNext = async () => {
     // 防重复点击
     if (isProcessingRef.current || isUploading) {
-      console.log("正在处理中，忽略重复点击");
+
       return;
     }
 
     // 检查全局上传状态
     const globalStatus = getUploadStatus();
     if (globalStatus.isUploading) {
-      console.log("Global upload status: upload task already in progress");
+
       return;
     }
 
     // 检查特定图片是否正在上传
     if (selectedImage && isImageUploading(selectedImage)) {
-      console.log("This image is being uploaded, ignoring duplicate request");
+
       return;
     }
 
-    console.log("handleNext - Starting processing", {
-      selectedImage: selectedImage?.substring(0, 50) + '...',
-      isUploading,
-      globalStatus
-    });
 
     if (selectedImage && !isUploading) {
       isProcessingRef.current = true;
@@ -103,26 +96,23 @@ export default function BaseFive() {
       const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
       try {
         if (isUpdate === "true" && onboardingDataObj.fullBodyPhoto == selectedImage) {
-          console.log("图片已存在，忽略上传");
+
           router.replace("/");
           return;
         }
 
-        console.log("Starting to upload image to server...");
         // Upload image to server
         const imageUrl = await uploadImageWithFileSystem(user?.id || '', selectedImage);
 
         if (imageUrl) {
-          console.log("Image upload successful, saving to local storage", imageUrl);
-          setSelectedImage(imageUrl);
 
+          setSelectedImage(imageUrl);
 
           onboardingDataObj.fullBodyPhoto = imageUrl;
           await AsyncStorage.setItem(
             "onboardingData",
             JSON.stringify(onboardingDataObj),
           );
-          console.log("Data saved successfully, preparing to navigate");
 
           if (isUpdate) {
             router.replace("/");
@@ -131,7 +121,7 @@ export default function BaseFive() {
           }
 
         } else {
-          console.log("Image upload failed or returned empty URL");
+
           setIsUploading(false);
         }
       } catch (error) {
@@ -141,14 +131,14 @@ export default function BaseFive() {
         isProcessingRef.current = false;
       }
     } else {
-      console.log("No image selected or upload in progress");
+
     }
   };
 
   const handleImageUpload = () => {
     // 防重复点击
     if (isProcessingRef.current) {
-      console.log("Processing in progress, ignoring duplicate clicks");
+
       return;
     }
 
@@ -210,7 +200,7 @@ export default function BaseFive() {
   const handleChooseFromLibrary = async () => {
     // 防重复点击
     if (isProcessingRef.current) {
-      console.log("Processing in progress, ignoring duplicate clicks");
+
       return;
     }
 
@@ -304,7 +294,6 @@ export default function BaseFive() {
                 Take/Upload a Selfie
               </Text>
             </Pressable>)}
-
 
             {selectedImage && !isUploading && (
               <Pressable

@@ -32,11 +32,11 @@ export const useBackgroundTasks = () => {
     try {
       // 先检查权限
       const status = await checkPermissions();
-      
+
       if (status.available) {
         await BackgroundTaskService.startAllTasks();
         setIsTasksRunning(true);
-        console.log('后台任务已启动');
+
         return true;
       } else if (status.needsPermission) {
         // 请求权限
@@ -44,11 +44,11 @@ export const useBackgroundTasks = () => {
         if (granted) {
           await BackgroundTaskService.startAllTasks();
           setIsTasksRunning(true);
-          console.log('权限获取成功，后台任务已启动');
+
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
       console.error('启动后台任务失败:', error);
@@ -61,7 +61,7 @@ export const useBackgroundTasks = () => {
     try {
       await BackgroundTaskService.stopAllTasks();
       setIsTasksRunning(false);
-      console.log('后台任务已停止');
+
       return true;
     } catch (error) {
       console.error('停止后台任务失败:', error);

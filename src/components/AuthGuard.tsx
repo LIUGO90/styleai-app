@@ -4,7 +4,7 @@ import { Redirect } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface AuthGuardProps {
-  children: ReactNode;
+  children?: ReactNode;
   fallback?: ReactNode;
   redirectTo?: string;
 }
@@ -58,11 +58,10 @@ export const GuestGuard: React.FC<GuestGuardProps> = ({
     );
   }
 
-  if (user) {
-    console.log("user", user);
-    console.log("redirectTo", redirectTo);
-    return <Redirect href={redirectTo} />;
-  }
+  // if (user) {
+
+  //   return <Redirect href={redirectTo} />;
+  // }
 
   return <>{children}</>;
 };

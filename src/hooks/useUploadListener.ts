@@ -37,7 +37,7 @@ export const useUploadListener = (componentId: string) => {
   // 组件卸载时清理所有监听器
   useEffect(() => {
     return () => {
-      console.log(`Component ${componentId} unmounting, cleaning up listeners`);
+
       globalUploadListener.removeComponentListeners(componentId);
       listenerIdsRef.current.clear();
     };

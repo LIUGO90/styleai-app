@@ -30,7 +30,7 @@ export class EnhancedImageCacheManager {
 
       // 检查缓存是否过期
       if (expiry && Date.now() > parseInt(expiry)) {
-        console.log('Image cache expired, clearing...');
+
         await this.clearPersistentCache();
         return;
       }
@@ -38,7 +38,7 @@ export class EnhancedImageCacheManager {
       if (cachedImages) {
         const imageUrls = JSON.parse(cachedImages);
         this.preloadedImages = new Set(imageUrls);
-        console.log(`Loaded ${imageUrls.length} cached image URLs from storage`);
+
       }
     } catch (error) {
       console.error('Failed to load cache from storage:', error);
@@ -50,13 +50,13 @@ export class EnhancedImageCacheManager {
     try {
       const imageUrls = Array.from(this.preloadedImages);
       const expiry = Date.now() + this.CACHE_DURATION;
-      
+
       await Promise.all([
         AsyncStorage.setItem(this.CACHE_KEY, JSON.stringify(imageUrls)),
         AsyncStorage.setItem(this.CACHE_EXPIRY_KEY, expiry.toString())
       ]);
-      
-      console.log(`Saved ${imageUrls.length} image URLs to storage`);
+
+
     } catch (error) {
       console.error('Failed to save cache to storage:', error);
     }
@@ -95,10 +95,10 @@ export class EnhancedImageCacheManager {
 
         // 保存到持久化存储
         await this.saveCacheToStorage();
-        
-        console.log(`Preloaded ${newImages.length} remote images`);
+
+
       } else {
-        console.log("All remote images already preloaded");
+
       }
     } catch (error) {
       console.error("Failed to preload images:", error);
@@ -119,7 +119,7 @@ export class EnhancedImageCacheManager {
               imageSource.uri.startsWith("https://"));
 
       if (!isRemote) {
-        console.log("Local image - no need to preload");
+
         return;
       }
 
@@ -129,13 +129,13 @@ export class EnhancedImageCacheManager {
       if (!this.preloadedImages.has(key)) {
         await Image.prefetch([imageSource]);
         this.preloadedImages.add(key);
-        
+
         // 保存到持久化存储
         await this.saveCacheToStorage();
-        
-        console.log("Remote image preloaded successfully");
+
+
       } else {
-        console.log("Remote image already preloaded");
+
       }
     } catch (error) {
       console.error("Failed to preload image:", error);
@@ -167,7 +167,7 @@ export class EnhancedImageCacheManager {
     try {
       await Image.clearMemoryCache();
       this.preloadedImages.clear();
-      console.log("Image memory cache cleared successfully");
+
     } catch (error) {
       console.error("Failed to clear image cache:", error);
     }
@@ -181,7 +181,7 @@ export class EnhancedImageCacheManager {
         AsyncStorage.removeItem(this.CACHE_EXPIRY_KEY)
       ]);
       this.preloadedImages.clear();
-      console.log("Persistent image cache cleared successfully");
+
     } catch (error) {
       console.error("Failed to clear persistent cache:", error);
     }

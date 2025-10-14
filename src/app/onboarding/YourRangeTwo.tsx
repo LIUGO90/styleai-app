@@ -51,7 +51,7 @@ export default function YourRangeTwo() {
 
   const router = useRouter();
   const [selectedBodyType, setSelectedBodyType] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadOnboardingData = async () => {
       const onboardingData = await AsyncStorage.getItem("onboardingData");

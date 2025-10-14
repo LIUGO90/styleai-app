@@ -4,9 +4,9 @@ import { Platform } from "react-native";
 export const tabStyles = {
   // Tab Bar 整体样式
   tabBarStyle: {
-    height: Platform.OS === "ios" ? 88 : 60, // iOS 考虑安全区域
+    height: Platform.OS === "ios" ? 80 : 60, // iOS 考虑安全区域
     paddingBottom: Platform.OS === "ios" ? 20 : 8,
-    paddingTop: 8,
+    paddingTop: 6,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
@@ -21,24 +21,30 @@ export const tabStyles = {
   tabBarLabelStyle: {
     fontSize: 10,
     fontWeight: "600" as const,
-    marginTop: 4,
+    marginTop: 2,
     letterSpacing: 0.5,
   },
 
   // Tab 图标样式
   tabBarIconStyle: {
-    marginBottom: 2,
+    marginBottom: 4,
   },
 
   // 徽章样式
   badgeStyle: {
     fontSize: 10,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: "#ef4444",
     color: "#ffffff",
     fontWeight: "bold" as const,
+    lineHeight: 18, // 确保文字垂直居中
+    textAlign: "center" as const, // 水平居中
+    paddingHorizontal: 5, // 左右内边距
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
 
   // 活跃状态样式

@@ -27,7 +27,7 @@ export class ChatSessionService {
   static async getAllSessions(): Promise<ChatSession[]> {
     try {
       const sessionsJson = await AsyncStorage.getItem(this.SESSIONS_KEY);
-      console.log('getAllSessions - sessionsJson:', sessionsJson ? 'exists' : 'null');
+
       if (sessionsJson) {
         const sessions = JSON.parse(sessionsJson);
         // 转换日期字符串为Date对象
@@ -42,7 +42,7 @@ export class ChatSessionService {
           })),
         }));
       }
-      console.log('getAllSessions - no sessions found');
+
       return [];
     } catch (error) {
       console.error("获取会话列表失败:", error);
@@ -130,14 +130,14 @@ export class ChatSessionService {
 
   // 获取指定会话
   static async getSessionByType(type: ChatSession["type"]): Promise<ChatSession | null> {
-    console.log("getSessionByType", type);
+
     try {
       const sessions = await this.getAllSessions();
-      console.log('getSession - found sessions:', sessions.length);
+
       const session = sessions.find((session) => session.type === type);
-      console.log('getSession - found session:', session ? 'yes' : 'no');
+
       if (session) {
-        console.log('getSession - session messages:', session.messages?.length || 0);
+
       }
       return session || null;
     } catch (error) {
@@ -147,14 +147,14 @@ export class ChatSessionService {
   }
   // 获取指定会话
   static async getSession(sessionId: string): Promise<ChatSession | null> {
-    console.log("getSession", sessionId);
+
     try {
       const sessions = await this.getAllSessions();
-      console.log('getSession - found sessions:', sessions.length);
+
       const session = sessions.find((session) => session.id === sessionId);
-      console.log('getSession - found session:', session ? 'yes' : 'no');
+
       if (session) {
-        console.log('getSession - session messages:', session.messages?.length || 0);
+
       }
       return session || null;
     } catch (error) {
@@ -196,7 +196,7 @@ export class ChatSessionService {
     sessionId: string,
     message: Message,
   ): Promise<void> {
-    console.log("addMessageToSession", sessionId, message);
+
     try {
       const sessions = await this.getAllSessions();
       const sessionIndex = sessions.findIndex(
@@ -221,7 +221,7 @@ export class ChatSessionService {
   // 删除会话
   static async deleteSession(sessionId: string): Promise<void> {
     try {
-      console.log("deleteSession1", sessionId);
+
       // 先通知后台删除记录
       await webWorkerAIService.deleteChatRequest([sessionId], {}, new AbortController());
 
@@ -248,7 +248,7 @@ export class ChatSessionService {
       // 获取所有会话ID，批量通知后台删除
       const sessions = await this.getAllSessions();
       const sessionIds = sessions.map(session => session.id);
-      console.log("deleteSession2", sessionIds);
+
       // 通知后台批量删除
       await webWorkerAIService.deleteChatRequest(sessionIds, {}, new AbortController());
 
@@ -263,8 +263,7 @@ export class ChatSessionService {
 
   // 保存会话列表
   private static async saveSessions(sessions: ChatSession[]): Promise<void> {
-    // console.log('saveSessions', sessions);
-    console.log("saveSessions");
+
     try {
       await AsyncStorage.setItem(this.SESSIONS_KEY, JSON.stringify(sessions));
     } catch (error) {

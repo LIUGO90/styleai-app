@@ -32,7 +32,7 @@ export function ChatSessionList({
     const isCurrentSession = item.id === currentSessionId;
     const isLastMessageEmpty =
       !item.lastMessage || item.lastMessage.trim() === "";
-    // console.log("renderSessionItem", item.title);
+
     return (
       <Pressable
         style={[

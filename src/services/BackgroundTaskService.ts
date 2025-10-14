@@ -14,7 +14,6 @@ const BACKGROUND_TASKS = {
 
 // 图片上传后台任务
 TaskManager.defineTask(BACKGROUND_TASKS.IMAGE_UPLOAD, async () => {
-  console.log('开始执行图片上传后台任务');
 
   try {
     // 获取待上传的图片队列
@@ -37,18 +36,18 @@ TaskManager.defineTask(BACKGROUND_TASKS.IMAGE_UPLOAD, async () => {
           },
         });
 
-        console.log('后台上传成功:', response);
+
         const imageUrl = JSON.parse(response.body).blobUrl;
-        console.log('返回的图片URL:', imageUrl);
+
         successCount++;
-        
+
         // 通知全局上传监听器
         await globalUploadListener.handleUploadComplete(upload.messageId, imageUrl);
-        
+
         // 移除已上传的图片
         const remainingUploads = uploads.filter((u: any) => u.id !== upload.id);
         await AsyncStorage.setItem('pendingImageUploads', JSON.stringify(remainingUploads));
-        console.log('预加载图片:', imageUrl);
+
         preloadImage(imageUrl);
 
       } catch (error) {
@@ -56,7 +55,7 @@ TaskManager.defineTask(BACKGROUND_TASKS.IMAGE_UPLOAD, async () => {
       }
     }
 
-    console.log(`成功上传 ${successCount} 张图片`);
+
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
     console.error('图片上传后台任务失败:', error);
@@ -66,7 +65,6 @@ TaskManager.defineTask(BACKGROUND_TASKS.IMAGE_UPLOAD, async () => {
 
 // 消息同步后台任务
 TaskManager.defineTask(BACKGROUND_TASKS.MESSAGE_SYNC, async () => {
-  console.log('开始执行消息同步后台任务');
 
   try {
     // 获取本地未同步的消息
@@ -102,7 +100,7 @@ TaskManager.defineTask(BACKGROUND_TASKS.MESSAGE_SYNC, async () => {
     // 更新本地消息状态
     await AsyncStorage.setItem('localMessages', JSON.stringify(messages));
 
-    console.log(`成功同步 ${syncCount} 条消息`);
+
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
     console.error('消息同步后台任务失败:', error);
@@ -112,7 +110,6 @@ TaskManager.defineTask(BACKGROUND_TASKS.MESSAGE_SYNC, async () => {
 
 // 推送通知后台任务
 TaskManager.defineTask(BACKGROUND_TASKS.PUSH_NOTIFICATION, async () => {
-  console.log('开始执行推送通知后台任务');
 
   try {
     // 检查是否有新消息
@@ -163,7 +160,7 @@ export class BackgroundTaskService {
         startOnBoot: true,
       });
 
-      console.log('所有后台任务已启动');
+
     } catch (error) {
       console.error('启动后台任务失败:', error);
     }
@@ -176,7 +173,7 @@ export class BackgroundTaskService {
       await BackgroundFetch.unregisterTaskAsync(BACKGROUND_TASKS.MESSAGE_SYNC);
       await BackgroundFetch.unregisterTaskAsync(BACKGROUND_TASKS.PUSH_NOTIFICATION);
 
-      console.log('所有后台任务已停止');
+
     } catch (error) {
       console.error('停止后台任务失败:', error);
     }
@@ -198,7 +195,7 @@ export class BackgroundTaskService {
       uploads.push(newUpload);
       await AsyncStorage.setItem('pendingImageUploads', JSON.stringify(uploads));
 
-      console.log('图片已添加到上传队列');
+
     } catch (error) {
       console.error('添加图片到上传队列失败:', error);
     }
@@ -220,7 +217,7 @@ export class BackgroundTaskService {
       messages.push(newMessage);
       await AsyncStorage.setItem('localMessages', JSON.stringify(messages));
 
-      console.log('消息已添加到同步队列');
+
     } catch (error) {
       console.error('添加消息到同步队列失败:', error);
     }

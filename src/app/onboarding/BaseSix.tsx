@@ -29,14 +29,17 @@ export default function BaseSix() {
   const loadImagesUrl = async () => {
     const imagesUrl = await AsyncStorage.getItem("newlook");
     if (imagesUrl) {
-      console.log("imagesUrl", JSON.parse(imagesUrl));
+      
       setImage(JSON.parse(imagesUrl) as string[]);
     }
   }
 
   const handleNext = async () => {
-    router.dismissAll();
-    router.replace("/tabs/home");
+    // router.dismissAll();
+    router.replace({
+      pathname: "/tabs/home",
+      params: { imagesUrls: JSON.stringify(image) }
+    });
   };
 
   const handlePlanSelect = (planId: string) => {
@@ -59,25 +62,27 @@ export default function BaseSix() {
           <DotsContainer activeIndex={5} indexNumber={6} />
         </View>
 
-        <View className="flex-1 mb-8">
+        <View className="flex-1 mb-2">
           <View
-            className="flex-row justify-center px-2 gap-6"
+            className="flex-row justify-center px-2 gap-6 "
             style={{ height: 220 }}
           >
             {image.map((item, index) => (
-              <View key={index} style={{ width: imagewidth, position: 'relative' }}>
+              <View key={index} style={{ width: imagewidth }}
+                className="overflow-hidden rounded-2xl"
+              >
                 <Image
-                  source={item}
+                  source={{ uri: item }}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   onLoadStart={() => setLoadingImage1(true)}
                   onLoad={() => setLoadingImage1(false)}
                   style={{
 
-                    width: "100%",
-                    height: 220,
-                    borderRadius: 12,
-                    backgroundColor: "#f0f0f0",
+                    width: imagewidth,
+                    height: '120%',
+                    // borderRadius: 12,
+                    // backgroundColor: "#f0f0f0",
                   }}
                 />
                 {loadingImage1 && (
@@ -114,7 +119,7 @@ export default function BaseSix() {
           </Text>
         </View>
 
-        <View className="flex-row justify-between h-40 px-5">
+        {/* <View className="flex-row justify-between h-40 px-5">
           <Pressable
             onPress={() => handlePlanSelect("monthly")}
             className={`flex-1 rounded-3xl border-2 h-40 mx-2 overflow-hidden ${selectedPlan === "monthly"
@@ -150,7 +155,7 @@ export default function BaseSix() {
               }`}
             disabled={false}
           >
-            {/* 优惠标签 */}
+
             <View className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
               <View className="bg-orange-500 rounded-2xl px-3 py-1">
                 <Text className="text-white text-xs font-bold">10% OFF</Text>
@@ -183,7 +188,6 @@ export default function BaseSix() {
               }`}
             disabled={false}
           >
-            {/* 优惠标签 */}
             <View className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
               <View className="bg-orange-500 rounded-2xl px-3 py-1">
                 <Text className="text-white text-xs font-bold">10% OFF</Text>
@@ -207,7 +211,7 @@ export default function BaseSix() {
               </Text>
             </View>
           </Pressable>
-        </View>
+        </View> */}
 
         <View className="p-5 mb-10">
           <View className="flex-row space-x-4">
@@ -216,8 +220,11 @@ export default function BaseSix() {
               className={`flex-1 py-5 px-6 rounded-full bg-black `}
               disabled={false}
             >
-              <Text className={`text-center font-medium text-white`}>
+              {/* <Text className={`text-center font-medium text-white`}>
                 Start 3-days Free Trial
+              </Text> */}
+              <Text className={`text-center font-medium text-white`}>
+                Continue to App
               </Text>
             </Pressable>
           </View>

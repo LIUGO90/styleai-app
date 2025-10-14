@@ -46,15 +46,15 @@ export const UploadListenerMonitor: React.FC<UploadListenerMonitorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>上传监听器监控</Text>
-      
+
       <Text style={styles.statText}>
         总监听器: {stats.totalListeners}
       </Text>
-      
+
       <Text style={styles.statText}>
         组件数量: {stats.componentCount}
       </Text>
-      
+
       {stats.listeners.length > 0 && (
         <View style={styles.listenersContainer}>
           <Text style={styles.listenersTitle}>活跃监听器:</Text>
@@ -70,7 +70,7 @@ export const UploadListenerMonitor: React.FC<UploadListenerMonitorProps> = ({
           )}
         </View>
       )}
-      
+
       <TouchableOpacity
         onPress={clearAllListeners}
         style={styles.clearButton}

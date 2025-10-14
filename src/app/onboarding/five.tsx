@@ -104,7 +104,7 @@ export default function Five() {
   };
 
   const handleNext = async () => {
-    console.log("handleNext", selectedStyles);
+
     if (selectedStyles.length > 0) {
       setIsUploading(true);
       const onboardingData = await AsyncStorage.getItem("onboardingData");
@@ -115,7 +115,7 @@ export default function Five() {
         // for (let i = 0; i < 2; i++) {
         try {
           const resultLookbook = await aiRequestLookbook(user?.id || '', onboardingDataObj.fullBodyPhoto, selectedStyles.slice(0, 2), 1);
-          console.log("resultLookbook", resultLookbook);
+
           imagesUrl.push(...resultLookbook);
         } catch (error) {
           // console.error(`Error generating ${i} lookbook:`, error);

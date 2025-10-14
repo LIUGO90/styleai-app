@@ -76,7 +76,6 @@ export const useBackgroundAITask = (): UseBackgroundAITaskReturn => {
         statusListenerRef.current = backgroundAITaskManager.onTaskStatusChange(
           requestId,
           (status) => {
-            console.log("Task status update:", status);
 
             if (status.success !== undefined) {
               // 这是任务结果

@@ -1,7 +1,7 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
 // 聊天后台服务 - 处理与后台的聊天记录同步
 export class ChatBackendService {
-  
+
   // 发送聊天消息 (对应 POST /api/apple/chat)
   static async sendChatMessage(data: {
     jobId: string;
@@ -10,8 +10,7 @@ export class ChatBackendService {
     includeJobContext?: boolean;
   }): Promise<{ success: boolean; message?: string; sessionId?: string; error?: string }> {
     try {
-      console.log('发送聊天消息到后台:', data.jobId, data.message);
-      
+
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`, {
         method: 'POST',
         headers: {
@@ -22,7 +21,7 @@ export class ChatBackendService {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('发送聊天消息成功:', result);
+
         return result;
       } else {
         const errorResult = await response.json();
@@ -44,8 +43,7 @@ export class ChatBackendService {
   // 获取聊天历史 (对应 GET /api/apple/chat)
   static async getChatHistory(sessionId: string): Promise<any[]> {
     try {
-      console.log('从后台获取聊天历史:', sessionId);
-      
+
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat?sessionId=${sessionId}`, {
         method: 'GET',
         headers: {
@@ -55,7 +53,7 @@ export class ChatBackendService {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('获取聊天历史成功:', result);
+
         return result.messages || [];
       } else {
         console.error('获取聊天历史失败，状态码:', response.status);
@@ -70,8 +68,7 @@ export class ChatBackendService {
   // 清空特定会话的聊天记录 (对应 DELETE /api/apple/chat)
   static async clearChatHistory(sessionId: string): Promise<boolean> {
     try {
-      console.log('清空聊天记录:', sessionId);
-      
+
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat?sessionId=${sessionId}`, {
         method: 'DELETE',
         headers: {
@@ -80,7 +77,7 @@ export class ChatBackendService {
       });
 
       if (response.ok) {
-        console.log('清空聊天记录成功:', sessionId);
+
         return true;
       } else {
         console.error('清空聊天记录失败，状态码:', response.status);

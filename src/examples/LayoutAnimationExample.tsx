@@ -30,15 +30,15 @@ export default function LayoutAnimationExample() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>LayoutAnimation 示例</Text>
-      
+
       <TouchableOpacity style={styles.button} onPress={addItem}>
         <Text style={styles.buttonText}>添加项目</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.button} onPress={toggleExpanded}>
         <Text style={styles.buttonText}>{expanded ? '收起' : '展开'}</Text>
       </TouchableOpacity>
-      
+
       <View style={styles.itemsContainer}>
         {items.map((item, index) => (
           <View key={index} style={styles.item}>
@@ -52,7 +52,7 @@ export default function LayoutAnimationExample() {
           </View>
         ))}
       </View>
-      
+
       {expanded && (
         <View style={styles.expandedContent}>
           <Text style={styles.expandedText}>这是展开的内容</Text>

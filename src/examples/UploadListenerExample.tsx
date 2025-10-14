@@ -8,7 +8,7 @@ export const UploadListenerExample: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState<string>('未开始');
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [showMonitor, setShowMonitor] = useState(false);
-  
+
   // 使用上传监听器Hook
   const { addListener, checkPendingUpload, hasPendingUpload, listenerCount } = useUploadListener('ExampleComponent');
 
@@ -36,7 +36,7 @@ export const UploadListenerExample: React.FC = () => {
   const simulateUpload = async () => {
     try {
       setUploadStatus('准备上传...');
-      
+
       // 这里应该调用 BackgroundTaskService.addImageToUploadQueue
       // 为了演示，我们直接模拟上传完成
       setTimeout(() => {
@@ -44,7 +44,7 @@ export const UploadListenerExample: React.FC = () => {
         setUploadedImageUrl(mockImageUrl);
         setUploadStatus('上传完成');
       }, 2000);
-      
+
     } catch (error) {
       console.error('模拟上传失败:', error);
       setUploadStatus('上传失败');
@@ -54,7 +54,7 @@ export const UploadListenerExample: React.FC = () => {
   // 检查监听器状态
   const checkListenerStatus = () => {
     const stats = globalUploadListener.getListenerStats();
-    console.log('监听器状态:', stats);
+
   };
 
   // 清理所有监听器
@@ -67,14 +67,14 @@ export const UploadListenerExample: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>上传监听器管理示例</Text>
-      
+
       {/* 监听器监控 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>监听器监控</Text>
         <Text style={styles.statusText}>
           当前组件监听器: {listenerCount}
         </Text>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.monitorButton]}
           onPress={() => setShowMonitor(!showMonitor)}
@@ -83,7 +83,7 @@ export const UploadListenerExample: React.FC = () => {
             {showMonitor ? '隐藏' : '显示'}监听器监控
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.checkButton]}
           onPress={checkListenerStatus}
@@ -101,7 +101,7 @@ export const UploadListenerExample: React.FC = () => {
         <Text style={styles.statusText}>
           上传结果: {uploadedImageUrl ? '✅ 已完成' : '❌ 未完成'}
         </Text>
-        
+
         {uploadedImageUrl && (
           <Text style={styles.urlText}>
             URL: {uploadedImageUrl}
@@ -112,14 +112,14 @@ export const UploadListenerExample: React.FC = () => {
       {/* 操作按钮 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>操作</Text>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.uploadButton]}
           onPress={simulateUpload}
         >
           <Text style={styles.buttonText}>模拟图片上传</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.clearButton]}
           onPress={clearAllListeners}

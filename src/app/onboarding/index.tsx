@@ -1,5 +1,5 @@
 import { Redirect, Stack } from "expo-router";
 
 export default function RootIndex() {
-  return <Redirect href="/onboarding/BaseOne" />;
+  return <Redirect href="/onboarding/BaseTwo" />;
 }

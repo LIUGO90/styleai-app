@@ -77,7 +77,7 @@ export default function YourRangeOne() {
     };
     loadOnboardingData();
   }, []);
-  
+
   const handleSkip = async () => {
     router.replace("/");
   };

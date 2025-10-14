@@ -38,7 +38,7 @@ export default function BaseThree() {
   }, []);
 
   const handleNext = async () => {
-    console.log("handleNext", selectedIndices);
+
     if (selectedIndices.length > 0) {
       const onboardingData = await AsyncStorage.getItem("onboardingData");
       if (onboardingData) {

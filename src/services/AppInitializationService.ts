@@ -16,18 +16,17 @@ class AppInitializationService {
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log("App services already initialized");
+
       return;
     }
 
     try {
-      console.log("Initializing app services...");
 
       // Web Worker AI服务不需要特殊初始化
       // 它会在第一次使用时自动初始化
 
       this.isInitialized = true;
-      console.log("App services initialized successfully");
+
     } catch (error) {
       console.error("Failed to initialize app services:", error);
       throw error;
@@ -39,13 +38,12 @@ class AppInitializationService {
    */
   async cleanup(): Promise<void> {
     try {
-      console.log("Cleaning up app services...");
 
       // 取消所有正在进行的AI请求
       webWorkerAIService.cancelAllRequests();
 
       this.isInitialized = false;
-      console.log("App services cleaned up successfully");
+
     } catch (error) {
       console.error("Failed to cleanup app services:", error);
     }

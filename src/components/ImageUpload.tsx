@@ -36,7 +36,7 @@ export function ImageUpload({
       onImageSelect?.(imageUri);
     },
   });
-  
+
   const handleRemoveImage = () => {
     Alert.alert("删除图片", "确定要删除这张图片吗？", [
       {

@@ -45,9 +45,7 @@ export const useAuthMiddleware = (currentPath: string) => {
     // 如果是受保护的路由，检查用户是否已登录
     if (isProtectedRoute(currentPath)) {
       if (!user) {
-        console.log(
-          "Protected route accessed without auth, redirecting to login",
-        );
+
         router.replace("/Login");
         return;
       }
@@ -56,7 +54,7 @@ export const useAuthMiddleware = (currentPath: string) => {
     // 如果是游客路由，检查用户是否已登录
     if (isGuestRoute(currentPath)) {
       if (user) {
-        console.log("Guest route accessed with auth, redirecting to main app");
+
         router.replace("/tabs");
         return;
       }

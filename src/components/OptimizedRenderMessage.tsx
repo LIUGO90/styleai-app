@@ -44,7 +44,7 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
 
   // 计算并排显示的图片尺寸
   const imageCount = images.length;
-  console.log("imageCount", imageCount);
+
   const gap = 2; // 图片间距
   let imageWidth, imageHeight;
 

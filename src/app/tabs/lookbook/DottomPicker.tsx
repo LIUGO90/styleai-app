@@ -22,7 +22,7 @@ export default function DottomPicker({ isVisible, children, onClose }: Props) {
       // 手势开始时的处理
     })
     .onUpdate((event) => {
-      console.log(event.translationY);
+
       // 只允许向下拖拽
       if (event.translationY > 0) {
         translateY.value = event.translationY;

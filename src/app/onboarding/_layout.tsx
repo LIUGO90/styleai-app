@@ -21,13 +21,13 @@ export default function OnboardingLayout() {
           },
         }}
       >
-        <Stack.Screen
+        {/* <Stack.Screen
           name="BaseOne"
           options={{
             title: "姓名输入",
             headerShown: false,
           }}
-        />
+        /> */}
         <Stack.Screen
           name="BaseTwo"
           options={{
@@ -92,7 +92,7 @@ export default function OnboardingLayout() {
             headerShown: false,
           }}
         />
-      
+
         <Stack.Screen
           name="five"
           options={{

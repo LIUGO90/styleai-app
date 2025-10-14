@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import "../utils/reanimated-config";
 import { Alert, LogBox } from "react-native";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import "../utils/authTest"; // 导入认证测试工具
 import "../utils/clearUserData"; // 导入清除数据工具
 import { appInitializationService } from "@/services/AppInitializationService";
@@ -15,13 +15,41 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ChatSessionList } from "@/components/ChatSessionList";
+import revenueCatService from "@/services/RevenueCatService";
 
-// 忽略 React Native Reanimated 警告
+// 忽略 React Native Reanimated 和 RevenueCat 警告
 LogBox.ignoreLogs([
   "Warning: Error: Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'?",
   "Reanimated 2",
   "Reanimated 3",
+  "Reading from `value` during component render",
+  "RevenueCat",
+  "Invalid API key",
+  "Error configuring Purchases",
 ]);
+
+// RevenueCat 初始化组件
+function RevenueCatInitializer() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const initRevenueCat = async () => {
+      try {
+        await revenueCatService.initialize(user?.id);
+      } catch (error: any) {
+        // 完全忽略错误 - RevenueCat 服务内部已经处理了
+        // 不需要额外的日志，避免重复
+      }
+    };
+
+    // 使用 Promise.resolve 包裹，确保不会有未捕获的 Promise 错误
+    Promise.resolve(initRevenueCat()).catch(() => {
+      // 最后一道防线：捕获任何可能的错误
+    });
+  }, [user?.id]);
+
+  return null;
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -96,7 +124,9 @@ export default function RootLayout() {
     await ChatSessionService.deleteSession(sessionId);
     setSessions(prev => prev.filter(session => session.id !== sessionId));
 
+    // 如果删除的是当前会话，跳转到主页（tabs）而不是根路径
     if (currentSessionId === sessionId) {
+      setCurrentSessionId(undefined);
       router.replace('/');
     }
   };
@@ -112,11 +142,13 @@ export default function RootLayout() {
           text: 'Clear',
           style: 'destructive',
           onPress: async () => {
-            // 跳转到默认页面
-            router.push('/');
+            // 先清空会话
             await ChatSessionService.clearAllSessions();
             setSessions([]);
             setCurrentSessionId(undefined);
+
+            // 跳转到主页
+            router.replace('/');
           },
         },
       ]
@@ -150,6 +182,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
+      <RevenueCatInitializer />
       <Drawer
         screenOptions={{
           headerShown: false,
@@ -227,6 +260,15 @@ export default function RootLayout() {
             drawerLabel: 'free_chat',
             drawerIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="magic-staff" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="foryou"
+          options={{
+            drawerLabel: 'foryou',
+            drawerIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="heart-outline" size={size} color={color} />
             ),
           }}
         />

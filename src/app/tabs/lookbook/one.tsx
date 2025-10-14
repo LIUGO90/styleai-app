@@ -1,312 +1,202 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet, TouchableOpacity, Modal, Dimensions } from "react-native";
 import { Image } from "expo-image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import DottomPicker from "./DottomPicker";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { aiRequestGemini, aiRequestLookbook } from "@/services/aiReuest";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { LookbookService } from "@/services/LookbookService";
 import { Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { clearBadge } from "@/utils/badgeManager";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LookbookOne() {
-  const [selectedStyles, setSelectedStyles] = useState<string>("");
+  const [images, setImages] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const { user } = useAuth();
-  // 接收传递的参数
-  // const params = useLocalSearchParams();
 
-  // // 打印接收到的参数
-  // useEffect(() => {
-  //     console.log("Received params:", params);
-  //     setSelectedStyles("")
-  // }, [params.userId]);
-
-  const STYLE_OPTIONS = [
-    {
-      id: "Casual",
-      name: "Casual",
-      url: require("../../../../assets/onboarding/Style/Casual.png"),
-    },
-    {
-      id: "Classy",
-      name: "Classy",
-      url: require("../../../../assets/onboarding/Style/Classy.jpg"),
-    },
-    {
-      id: "Old Money",
-      name: "Old Money",
-      url: require("../../../../assets/onboarding/Style/OldMoney.png"),
-    },
-    {
-      id: "Preppy",
-      name: "Preppy",
-      url: require("../../../../assets/onboarding/Style/Preppy.png"),
-    },
-    {
-      id: "Coastal",
-      name: "Coastal",
-      url: require("../../../../assets/onboarding/Style/Coastal.png"),
-    },
-    {
-      id: "Boho",
-      name: "Boho",
-      url: require("../../../../assets/onboarding/Style/Boho.png"),
-    },
-    {
-      id: "Coquette",
-      name: "Coquette",
-      url: require("../../../../assets/onboarding/Style/Coquette.png"),
-    },
-    {
-      id: "Edgy",
-      name: "Edgy",
-      url: require("../../../../assets/onboarding/Style/Edgy.png"),
-    },
-    {
-      id: "Sporty",
-      name: "Sporty",
-      url: require("../../../../assets/onboarding/Style/Sporty.png"),
-    },
-    {
-      id: "Streetstyle",
-      name: "Streetstyle",
-      url: require("../../../../assets/onboarding/Style/Streetstyle.png"),
-    },
-    {
-      id: "Dopamine",
-      name: "Dopamine",
-      url: require("../../../../assets/onboarding/Style/Dopamine.png"),
-    },
-    {
-      id: "Y2K",
-      name: "Y2K",
-      url: require("../../../../assets/onboarding/Style/Y2K.png"),
-    },
-  ];
-
-  const MODEL_OPTIONS = [
-    { id: "1", url: require("../../../../assets/onboarding/model/1.png") },
-    { id: "2", url: require("../../../../assets/onboarding/model/2.png") },
-    { id: "3", url: require("../../../../assets/onboarding/model/3.png") },
-  ];
-
-  const handleStyleToggle = (styleId: string) => {
-    setSelectedStyles(styleId);
-    setModalVisible(true);
-  };
-
-  const handleNext = async () => {
+  const loadCollections = useCallback(async () => {
     try {
-      const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
-      const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
-      const imageUrl = onboardingDataObj.fullBodyPhoto;
 
-      if (!imageUrl) {
-        Alert.alert("Error", "Please complete onboarding first");
-        return;
-      }
+      // 直接获取所有 items，而不是从 collections 中提取
+      const allItems = await LookbookService.getAllItems();
 
-      // 显示加载状态
-      Alert.alert("Generating", "Creating your personalized lookbook...");
-
-      setSelectedStyles("");
-      setModalVisible(false);
-      let imagesUrl: string[] = [];
-      for (let i = 0; i < 4; i++) {
-        try {
-          const resultLookbook = await aiRequestLookbook(user?.id || '', imageUrl, [selectedStyles], 1);
-          console.log("resultLookbook", resultLookbook);
-          imagesUrl.push(resultLookbook[0]);
-        } catch (error) {
-          console.error(`Error generating ${i} lookbook:`, error);
+      // 提取所有图片 URL
+      const allImages: string[] = [];
+      for (const item of allItems) {
+        if (item.images && item.images.length > 0) {
+          // 添加该 item 的所有图片
+          allImages.push(...item.images);
         }
       }
 
-      if (imagesUrl && imagesUrl.length > 0) {
-        // 获取或创建默认相册集合
-        const defaultCollection = await LookbookService.getOrCreateDefaultCollection(user?.id || '');
-        console.log("defaultCollection", defaultCollection);
-        // 保存生成的图片到相册
-        await LookbookService.addLookbookItem(
-          defaultCollection.id,
-          selectedStyles,
-          imagesUrl,
-          user?.id || '',
-          `${selectedStyles} Lookbook`,
-          `Generated ${imagesUrl.length} outfit images in ${selectedStyles} style`
-        );
+      setImages(allImages);
 
-        Alert.alert(
-          "Success!",
-          `Your ${selectedStyles} lookbook has been generated and saved to your collection!`,
-          [
-            {
-              text: "View Collection",
-              onPress: () => {
-                // 这里可以导航到相册页面
-                router.push("/tabs/lookbook/gallery");
-              }
-            },
-            {
-              text: "OK",
-              onPress: () => {
-                setModalVisible(false);
-                setSelectedStyles("");
-              }
-            }
-          ]
-        );
-      } else {
-        Alert.alert("Error", "Failed to generate lookbook images");
-      }
     } catch (error) {
-      console.error("Error generating lookbook:", error);
-      Alert.alert("Error", "Failed to generate lookbook. Please try again.");
+      console.error('❌ Failed to load lookbook items:', error);
+      Alert.alert('Error', 'Failed to load your lookbook');
+    }
+  }, []);
+
+  const handleImagePress = (index: number) => {
+    setCurrentIndex(index);
+    setModalVisible(true);
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
+  const handleNext = () => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  // 使用 useFocusEffect 确保每次页面获得焦点时都重新加载
+  useFocusEffect(
+    useCallback(() => {
+      loadCollections();
+      // 用户进入 lookbook 页面时清除徽章
+      clearBadge('lookbook');
+    }, [loadCollections])
+  );
+
   return (
-    <View className="flex-1 bg-white px-5">
+    <View className="flex-1 bg-white">
       <ScrollView
+        className="flex-1 px-4 pt-4"
         showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
+
+        contentContainerStyle={{ 
+          paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
+        }}
       >
-        <View className="flex-1 p-2 ">
-          <Text className="text-xl font-bold text-start  text-black">
-            Select a style and generate persoanlized lookbook.
-          </Text>
-        </View>
-
-        {/* 风格选择网格 */}
-        <View className="flex-row flex-wrap justify-between ">
-          {STYLE_OPTIONS.map((style) => {
-            const isSelected = selectedStyles === style.id;
-            return (
-              <Pressable
-                key={style.id}
-                onPress={() => handleStyleToggle(style.id)}
-                className={`w-[48%] max-w-[200px] mb-4 rounded-xl border-2 overflow-hidden ${isSelected ? "border-red-500" : "border-gray-200"
-                  }`}
-              >
-                {/* 图片容器 */}
-                <View className="relative bg-gray-100 items-center justify-center ">
-                  <Image
-                    source={style.url}
-                    style={{
-                      width: "100%",
-                      height: 280,
-                      flex: 1,
-                    }}
-                    contentFit="cover"
-                  />
-
-                  {/* 水印 */}
-                  <View className="absolute inset-0 items-center justify-center">
-                    <View className="bg-opacity-60 rounded-lg px-3 py-1">
-                      <Text className="text-white text-3xl font-bold text-center">
-                        {style.name}
-                      </Text>
-                      <Text className="text-white text-sm font-bold text-center">
-                        10 outfits
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* 选中状态覆盖层 */}
-                  {isSelected && (
-                    <View className="absolute top-2 right-2">
-                      <View className="bg-red-500 rounded-full w-8 h-8 items-center justify-center shadow-lg">
-                        <MaterialCommunityIcons
-                          name="check"
-                          size={20}
-                          color="white"
-                        />
-                      </View>
-                    </View>
-                  )}
-                </View>
-              </Pressable>
-            );
-          })}
+        <View className="flex-row flex-wrap justify-between">
+          {images.map((image, index) => (
+            <TouchableOpacity
+              key={index}
+              className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
+              style={{ aspectRatio: 712 / 1247 }}
+              activeOpacity={0.8}
+              onPress={() => handleImagePress(index)}
+            >
+              <Image
+                source={image}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                placeholder="Loading..."
+                cachePolicy="memory-disk"
+                priority="high"
+                recyclingKey={`lookbook-${index}`}
+              />
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
 
-      <DottomPicker
-        isVisible={modalVisible}
-        onClose={() => {
-          setSelectedStyles("");
-          setModalVisible(false);
-        }}
+      {/* 全屏查看 Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setModalVisible(false)}
       >
-        <View className="p-5 mb-5">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 30,
-            }}
-            style={{
-              marginHorizontal: -20,
-            }}
-          >
-            {MODEL_OPTIONS.map((image, index) => {
-              return (
-                <View
-                  key={image.id}
-                  className="relative mr-4"
-                  style={{
-                    width: 120,
-                    height: 260,
-                  }}
-                >
-                  {/* 图片容器 */}
-                  <View
-                    className="rounded-xl overflow-hidden shadow-md"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 4,
-                      elevation: 3,
-                    }}
-                  >
-                    <Image
-                      source={image.url}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                      }}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  </View>
-                </View>
-              );
-            })}
-          </ScrollView>
-          <View className="flex-row space-x-4 mt-5">
-            <Pressable
-              onPress={handleNext}
-              className={`flex-1 py-3 px-6 rounded-full ${selectedStyles.length > 0 ? "bg-black" : "bg-gray-300"
-                }`}
-              disabled={selectedStyles.length === 0}
+        <SafeAreaView className="flex-1 bg-black">
+          {/* Header */}
+          <View className="absolute top-10 left-0 right-0 z-10 flex-row justify-between items-center px-4 py-3 bg-black/50">
+            <TouchableOpacity 
+              onPress={() => {
+
+                setModalVisible(false);}} 
+              className="p-2"
+              activeOpacity={0.8}
             >
-              <Text
-                className={`text-center text-base font-extrabold text-white`}
-              >
-                Generate My Magic Look
-              </Text>
-            </Pressable>
+              <MaterialCommunityIcons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text className="text-white text-lg font-semibold">
+              {currentIndex + 1} / {images.length}
+            </Text>
+            <View style={{ width: 44 }} />
           </View>
-        </View>
-      </DottomPicker>
+
+          {/* Main Image */}
+          <View className="flex-1 justify-center items-center">
+            <Image
+              source={images[currentIndex]}
+              style={styles.fullscreenImage}
+              contentFit="contain"
+              placeholder="Loading..."
+              cachePolicy="memory-disk"
+            />
+          </View>
+
+          {/* Navigation Arrows */}
+          {currentIndex > 0 && (
+            <TouchableOpacity 
+              onPress={handlePrevious}
+              className="absolute left-4 top-1/2 -mt-8 bg-black/50 p-4 rounded-full"
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
+            </TouchableOpacity>
+          )}
+
+          {currentIndex < images.length - 1 && (
+            <TouchableOpacity 
+              onPress={handleNext}
+              className="absolute right-4 top-1/2 -mt-8 bg-black/50 p-4 rounded-full"
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="chevron-right" size={32} color="#fff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Thumbnail Strip */}
+          <View className="absolute bottom-0 left-0 right-0 bg-black/50 pb-4">
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12 }}
+            >
+              {images.map((image, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => setCurrentIndex(index)}
+                  className={`mr-3 rounded-lg overflow-hidden ${
+                    index === currentIndex ? 'border-2 border-white' : 'opacity-60'
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={image}
+                    style={{ width: 60, height: 80 }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fullscreenImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.75,
+  },
+});

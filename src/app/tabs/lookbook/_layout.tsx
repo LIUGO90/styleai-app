@@ -19,34 +19,18 @@ export default function Layout() {
           title: "MAGIC LOOKBOOK",
           headerShown: true,
           headerBackVisible: false,
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.push("/tabs/lookbook/gallery")}
-              className="flex-row items-center ml-4"
-            >
-              <Ionicons name="book-outline" size={30} color="#000000" />
-              {/* <Text className="ml-2 text-black font-medium text-xl">Back</Text> */}
-            </Pressable>
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="gallery"
-        options={{
-          title: "MAGIC LOOKBOOK RESULT",
-          headerShown: true,
-          headerBackVisible: true,
-          // headerLeft: () => (
-          //   <Pressable
-          //     onPress={() => router.dismissTo("/")}
-          //     className="flex-row items-center"
+          //       // 使用 replace 避免页面堆叠
+          //       router.replace("/tabs/lookbook/gallery");
+          //     }}
+          //     className="flex-row items-center ml-4"
           //   >
-          //     <Ionicons name="arrow-back" size={28} color="#000000" />
+          //     <Ionicons name="book-outline" size={30} color="#000000" />
           //     {/* <Text className="ml-2 text-black font-medium text-xl">Back</Text> */}
           //   </Pressable>
           // ),
         }}
       />
+
     </Stack>
   );
 }

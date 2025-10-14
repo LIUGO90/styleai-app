@@ -80,7 +80,7 @@ export default function OutfitCheckScreen() {
 
   const loadCurrentSession = async () => {
     try {
-      console.log('loadCurrentSession', sessionId);
+
       // 重置状态，避免会话切换时的混淆
       setMessages([]);
 
@@ -89,36 +89,35 @@ export default function OutfitCheckScreen() {
         // 如果路由参数中有sessionId，加载指定会话
         session = await ChatSessionService.getSession(sessionId);
       }
-      console.log('session in loadCurrentSession', session);
+
       if (session) {
-        console.log('session setCurrentSession', session.id);
+
         await ChatSessionService.setCurrentSession(session.id);
       } 
-      
-      console.log('session init', session);
+
 
       setCurrentSession(session);
 
       // 如果会话中有消息，加载会话消息
       if (session && session.messages && session.messages.length > 0) {
-        // console.log('session.messages', session.messages);
+
         setMessages(session.messages);
         if (session.messages.length > 4) {
           setCanInput(true);
         }
       } else {
         // 如果是新会话，设置初始消息
-        console.log('initMessages', initMessages);
+
         setMessages(initMessages);
       }
-      console.log('messages', messages);
+
     } catch (error) {
       console.error('Failed to load session:', error);
     }
   };
 
   const saveMessagesToSession = async () => {
-    // console.log('saveMessagesToSession', currentSession);
+
     if (currentSession) {
       try {
         await ChatSessionService.updateSessionMessages(currentSession.id, messages);
@@ -139,22 +138,22 @@ export default function OutfitCheckScreen() {
   }
 
   const hideMessage = (messageId: string) => {
-    console.log('hideMessage', messageId);
+
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
   }
 
   const updateMessage = (message: Message) => {
-    console.log('updateMessage', message);
+
     setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
   }
 
   const addMessage = (message: Message) => {
-    // console.log('addMessage', message);
+
     setMessages(prev => [...prev, message]);
   }
 
   const dateleMessage = (messageId: string) => {
-    console.log('dateleMessage', messageId);
+
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
   }
 
@@ -197,7 +196,7 @@ export default function OutfitCheckScreen() {
       message: 'Analyzing your message...',
     };
     updateMessage(progressMessage);
-    const { message, images } = await chatRequest(user?.id || '', '', text, [image], currentSession?.id || '');
+    const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
     dateleMessage(progressMessage.id);
     addMessage({
       id: Date.now().toString(),
@@ -218,7 +217,7 @@ export default function OutfitCheckScreen() {
 
   const handleImageUpload: ImageUploadCallback = {
     onImageSelect: (imageUri: string, messageId?: string) => {
-      console.log("选择的图片:", imageUri, "消息ID:", messageId);
+
       if (messageId) {
         // 直接更新指定消息的卡片图片
         setMessages(prev => prev.map(msg => {
@@ -316,7 +315,7 @@ export default function OutfitCheckScreen() {
         messages={messages}
         onSendMessage={handleSendMessage}
         onImageUpload={handleImageUpload}
-        placeholder="Describe your outfit needs..."
+        placeholder="Describe outfit ..."
         showAvatars={false}
         canInput={canInput}
       />

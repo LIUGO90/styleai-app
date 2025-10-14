@@ -125,13 +125,13 @@
 //     if (onButtonPress) {
 //       onButtonPress(button, message);
 //     } else {
-//       console.log('按钮点击:', button.action, button.data);
+
 //     }
 //   }
 
 //   const handleImageUpload: ImageUploadCallback = {
 //     onImageSelect: (imageUri: string, messageId?: string) => {
-//       console.log('选择的图片:', imageUri, '消息ID:', messageId);
+
 //       if (messageId) {
 //         setMessages(prev => prev.map(msg => {
 //           if (msg.id === messageId && msg.card) {

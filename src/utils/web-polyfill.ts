@@ -11,7 +11,7 @@ export const setupWebPolyfills = () => {
           // 如果 StyleSheet.setFlag 存在，设置为 class 模式
           if (RN.StyleSheet && (RN.StyleSheet as any).setFlag) {
             (RN.StyleSheet as any).setFlag("darkMode", "class");
-            console.log("StyleSheet.setFlag 设置成功");
+
           }
         })
         .catch(() => {

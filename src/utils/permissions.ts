@@ -5,12 +5,12 @@ export const requestBackgroundPermissions = async (): Promise<boolean> => {
   try {
     // 检查当前权限状态
     const status = await BackgroundFetch.getStatusAsync();
-    
+
     if (status === BackgroundFetch.BackgroundFetchStatus.Available) {
-      console.log('后台任务权限已可用');
+
       return true;
     }
-    
+
     if (status === BackgroundFetch.BackgroundFetchStatus.Denied) {
       // 权限被拒绝，引导用户到设置
       Alert.alert(
@@ -30,7 +30,7 @@ export const requestBackgroundPermissions = async (): Promise<boolean> => {
       );
       return false;
     }
-    
+
     if (status === BackgroundFetch.BackgroundFetchStatus.Restricted) {
       Alert.alert(
         '权限受限',
@@ -39,10 +39,10 @@ export const requestBackgroundPermissions = async (): Promise<boolean> => {
       );
       return false;
     }
-    
+
     // 权限未知，尝试注册任务来触发权限请求
     return false;
-    
+
   } catch (error) {
     console.error('检查后台权限失败:', error);
     return false;
@@ -56,7 +56,7 @@ export const checkBackgroundPermissions = async (): Promise<{
 }> => {
   try {
     const status = await BackgroundFetch.getStatusAsync();
-    
+
     return {
       available: status === BackgroundFetch.BackgroundFetchStatus.Available,
       status: getStatusText(status),

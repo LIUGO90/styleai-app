@@ -11,7 +11,8 @@ import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface AuthUser extends User {
-  // 可以在这里扩展用户信息
+  name: string;
+  email: string;
 }
 
 export interface AuthContextType {
@@ -37,10 +38,10 @@ export const useAuth = () => {
 };
 
 interface AuthProviderProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 获取初始session
     const getInitialSession = async () => {
       try {
-        console.log("supabase get session");
+
         const {
           data: { session },
           error,
@@ -74,24 +75,99 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
 
       // 如果正在清除数据，跳过状态更新
       if (isClearingRef.current) {
-        console.log("Skipping auth state change during data clearing");
         return;
       }
 
-      setSession(session);
-      setUser((session?.user as AuthUser) || null);
-      setLoading(false);
+      switch (event) {
+        case "SIGNED_OUT":
+          console.log("🎈user signed out:", session);
+          await AsyncStorage.removeItem("supabase_session");
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          break;
+        case "SIGNED_IN":
+          console.log("🎈user signed in:", event, session?.user?.id);
+          setSession(session);
+          
+          if (session?.user?.id) {
+            try {
+              // 添加超时控制：最多等待3秒
+              const profilePromise = supabase
+                .from('profiles')
+                .select('name, email')
+                .eq('id', session?.user?.id)
+                .single();
+              
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Profile query timeout')), 3000)
+              );
+              
+              const { data: profile, error } = await Promise.race([
+                profilePromise,
+                timeoutPromise
+              ]) as any;
+              
+              if (error) {
+                console.log("⚠️ Error fetching profile (using fallback):", error.message);
+              } else {
+                console.log("🎈profile", profile);
+              }
 
-      // 保存session到AsyncStorage
-      if (session) {
-        await AsyncStorage.setItem("supabase_session", JSON.stringify(session));
-      } else {
-        await AsyncStorage.removeItem("supabase_session");
+              // 优先从profile获取，如果没有则从user_metadata获取（Apple登录的用户信息在这里）
+              const userName = profile?.name || session.user.user_metadata?.full_name || "";
+              const userEmail = profile?.email || session.user.email || "";
+
+              console.log("🎈最终获取的 userName:", userName, "userEmail:", userEmail);
+
+              setUser({
+                ...session.user,
+                name: userName,
+                email: userEmail,
+              } as AuthUser);
+
+              // 保存到本地存储（保存 userName 而不是 profile?.name，因为 userName 已经包含了 fallback 逻辑）
+              if (userName) {
+                await AsyncStorage.setItem("userName", userName);
+                console.log("✅ 已保存 name 到 AsyncStorage:", userName);
+              }
+              if (userEmail) {
+                await AsyncStorage.setItem("userEmail", userEmail);
+                console.log("✅ 已保存 userEmail 到 AsyncStorage:", userEmail);
+              }
+
+              // 验证保存是否成功
+              const savedName = await AsyncStorage.getItem("userName");
+              const savedEmail = await AsyncStorage.getItem("userEmail");
+              console.log("🔍 验证 AsyncStorage - userName:", savedName, "email:", savedEmail);
+            } catch (error: any) {
+              console.log("⚠️ Profile query failed (using fallback):", error.message);
+              // 如果查询失败，使用 session 中的基本信息
+              const userName = session.user.user_metadata?.full_name || "";
+              const userEmail = session.user.email || "";
+              
+              setUser({
+                ...session.user,
+                name: userName,
+                email: userEmail,
+              } as AuthUser);
+            }
+          }
+          setLoading(false);
+          // 设置 loading 为 false，否则应用会一直显示加载状态
+          // ⚠️ 非常重要：必须有 break，否则代码会继续执行到下一个 case！
+          // 这是 JavaScript switch 语句的特性，叫做 "fall-through"
+          break;
+        case "TOKEN_REFRESHED":
+        case "USER_UPDATED":
+          console.log("🎈user", event, session?.user?.id);
+          break;
+
       }
+      setLoading(false);
     });
 
     return () => {
@@ -124,23 +200,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signInWithApple = async (appleCredential: any) => {
-    console.log("supabase save apple with full credential:", appleCredential);
-
+    console.log("🎈用户登录信息", appleCredential);
     try {
       // 首先尝试使用Supabase认证
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data: { user, session }, error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: appleCredential.identityToken,
       });
-
-      // // 如果Supabase认证失败（通常是audience错误），我们创建本地用户
-      // if (error && error.message?.includes('audience')) {
-      //   console.log('Supabase authentication failed, creating local user with Apple data');
-
-      //   // 从Apple credential中提取用户信息
+      // console.log("🎈supabase sign in with apple data:", user, session, error);
       const userInfo = {
-        id: appleCredential.user || "apple_user_" + Date.now(),
-        email: appleCredential.email || "",
+        id: user?.id,
+        email: user?.email || "",
         user_metadata: {
           full_name: appleCredential.fullName
             ? `${appleCredential.fullName.givenName || ""} ${appleCredential.fullName.familyName || ""}`.trim()
@@ -159,7 +229,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updated_at: new Date().toISOString(),
       };
 
-      console.log("Creating user with Apple data:", userInfo);
 
       //   // 直接设置用户状态
       setUser(userInfo as unknown as AuthUser);
@@ -185,12 +254,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }),
       );
 
-      // 注意：这里使用的是模拟登录，不需要调用 admin.updateUserById
-      // 如果需要真实的 Supabase 集成，应该使用 supabase.auth.signInWithIdToken
-      console.log("Apple user created successfully with real data");
-      //   console.log('Apple user created successfully with real data');
-      //   return { error: null };
-      // }
 
       return { error };
     } catch (error) {
@@ -203,7 +266,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // 检查是否是Apple开发用户
       if (session?.access_token === "apple_dev_token") {
-        console.log("Signing out Apple development user");
+
         setUser(null);
         setSession(null);
         await AsyncStorage.removeItem("supabase_session");
@@ -229,7 +292,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const clearAllUserData = async () => {
     try {
-      console.log("🧹 Clearing all user data...");
+
       isClearingRef.current = true;
 
       // 1. 先清除所有AsyncStorage数据
@@ -239,14 +302,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         "user_preferences",
         "app_settings",
         "cached_data",
+        "userName",
+        "userEmail",
       ];
 
       for (const key of keysToRemove) {
         try {
           await AsyncStorage.removeItem(key);
-          console.log(`✅ Removed ${key}`);
+
         } catch (error) {
-          console.log(`⚠️ Failed to remove ${key}:`, error);
+
         }
       }
 
@@ -254,9 +319,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const allKeys = await AsyncStorage.getAllKeys();
         await AsyncStorage.multiRemove(allKeys);
-        console.log("✅ Cleared all AsyncStorage data");
+
       } catch (error) {
-        console.log("⚠️ Failed to clear all AsyncStorage:", error);
+
       }
 
       // 3. 清除本地状态
@@ -266,7 +331,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 4. 最后清除Supabase session（这可能会触发onAuthStateChange）
       await supabase.auth.signOut();
 
-      console.log("🎉 All user data cleared successfully");
+
     } catch (error) {
       console.error("❌ Error clearing user data:", error);
     } finally {

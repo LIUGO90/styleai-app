@@ -73,7 +73,7 @@ export const EnhancedImagePerformanceMonitor: React.FC<
       <Text style={{ color: "white", fontSize: 10, marginTop: 4 }}>
         内存缓存: {stats.preloadedCount} 张
       </Text>
-      
+
       <Text style={{ color: "white", fontSize: 10 }}>
         持久缓存: {stats.hasPersistentCache ? '✅ 有' : '❌ 无'}
       </Text>
@@ -83,7 +83,7 @@ export const EnhancedImagePerformanceMonitor: React.FC<
           <Text style={{ color: "#4CAF50", fontSize: 10, marginBottom: 4 }}>
             expo-image 磁盘缓存: 自动管理
           </Text>
-          
+
           <Text style={{ color: "#FFC107", fontSize: 10, marginBottom: 8 }}>
             重启后: 磁盘缓存保留，内存缓存重建
           </Text>
@@ -103,7 +103,7 @@ export const EnhancedImagePerformanceMonitor: React.FC<
                 清内存
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleClearCache}
               style={{

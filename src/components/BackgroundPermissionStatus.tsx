@@ -29,7 +29,7 @@ export const BackgroundPermissionStatus: React.FC = () => {
           { 
             text: '去设置', 
             onPress: () => {
-              console.log('引导用户到设置页面');
+
             }
           }
         ]
@@ -64,15 +64,15 @@ export const BackgroundPermissionStatus: React.FC = () => {
       <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
         后台任务状态
       </Text>
-      
+
       <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
         状态: {permissionStatus.status}
       </Text>
-      
+
       <Text style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
         可用性: {permissionStatus.available ? '✅ 可用' : '❌ 不可用'}
       </Text>
-      
+
       {permissionStatus.needsPermission && (
         <TouchableOpacity
           onPress={handleRequestPermission}
@@ -89,7 +89,7 @@ export const BackgroundPermissionStatus: React.FC = () => {
           </Text>
         </TouchableOpacity>
       )}
-      
+
       <TouchableOpacity
         onPress={startBackgroundTasks}
         style={{
@@ -104,7 +104,7 @@ export const BackgroundPermissionStatus: React.FC = () => {
           启动后台任务
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         onPress={stopBackgroundTasks}
         style={{
@@ -119,7 +119,7 @@ export const BackgroundPermissionStatus: React.FC = () => {
           停止后台任务
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         onPress={checkStatus}
         style={{
