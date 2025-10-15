@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Alert, FlatList, ViewToken, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Alert, FlatList, ViewToken, ActivityIndicator, RefreshControl } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,93 +12,11 @@ import { useCallback } from "react";
 import { incrementBadge } from "@/utils/badgeManager";
 import { Toast } from "@/components/Toast";
 import { addImageLook } from "@/services/addLookBook";
+import { StyleTemplateService } from "@/services/StyleTemplateService";
+import { StyleTemplate } from "@/types/styleTemplate.types";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const foryou = [
-    {
-        name: "Old Money",
-        urls: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/image_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/image_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/image_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/image_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/image_005.png",
-        ],
-        post: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/post_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/post_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/post_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/post_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/OldMoney/post_005.png",
-        ],
-        prompt: [
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is a luxury private estate with lush gardens and marble columns. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image.The model stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is a luxury private estate with lush gardens and marble columns. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image.The model stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is a luxury private estate with lush gardens and marble columns. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image.The model stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is a luxury private estate with lush gardens and marble columns. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image.The model stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is a luxury private estate with lush gardens and marble columns. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-        ],
 
-    },
-    {
-        name: "Y2K",
-        urls: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_005.png",
-        ],
-        post: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/Y2K/2025_005.png",
-        ],
-        prompt: [
-            "Full-body Y2K fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands with a chic and cool-girl posture. The background is New York Time Square. The overall mood is chic and edgy. Shot with a 50mm lens at f/1.8.",
-            "Full-body Y2K fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands with a chic and cool-girl posture. The background is New York Time Square. The overall mood is chic and edgy. Shot with a 50mm lens at f/1.8.",
-            "Full-body Y2K fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands with a chic and cool-girl posture. The background is New York Time Square. The overall mood is chic and edgy. Shot with a 50mm lens at f/1.8.",
-            "Full-body Y2K fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands with a chic and cool-girl posture. The background is New York Time Square. The overall mood is chic and edgy. Shot with a 50mm lens at f/1.8.",
-            "Full-body Y2K fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands with a chic and cool-girl posture. The background is New York Time Square. The overall mood is chic and edgy. Shot with a 50mm lens at f/1.8.",
-        ],
-    },
-    {
-        name: "BurgundyFall",
-        urls: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_005.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_006.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_007.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/image_008.png",
-        ],
-        post: [
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_001.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_002.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_003.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_004.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_005.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_006.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_007.png",
-            "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/lookbook/BurgundyFall/post_008.png",
-        ],
-        prompt: [
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-            "Full-body fashion editorial photography of the woman in the first image wearing the outfit in the second image. She stands elegantly with a composed and stylish posture. Gentle smile on her face. The background is an elegant European palace courtyard with stone architecture. The overall mood is polished, blending classic old-money elegance with a chic attitude.Shot with a 50mm lens at f/1.8.",
-        ],
-    },
-
-];
 export default function ForYouScreen() {
     const router = useRouter();
     const { user } = useAuth();
@@ -106,6 +24,7 @@ export default function ForYouScreen() {
     const flatListRef = useRef<FlatList>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [reloadKey, setReloadKey] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Toast 状态
     const [toastVisible, setToastVisible] = useState(false);
@@ -119,10 +38,8 @@ export default function ForYouScreen() {
     // 解析传递过来的图片数据
     const imageData = params.image ? JSON.parse(params.image as string) : null;
 
-    // 使用多张图片 URL
-    const selectedImageData = foryou.find(item => item.name === imageData.name);
-    const images = selectedImageData?.post || [];
-    const imagesurl = selectedImageData?.urls || [];
+    const [foryou, setForyou] = useState<StyleTemplate[]>([]);
+
 
     // 显示 Toast 的辅助函数
     const showToast = (
@@ -136,16 +53,46 @@ export default function ForYouScreen() {
         setToastVisible(true);
     };
 
+    // 加载模板数据的函数
+    const loadTemplates = async () => {
+        if (imageData?.name) {
+            try {
+                const templates = await StyleTemplateService.getTemplateByName(imageData.name);
+                console.log(`✅ 获取到 ${templates?.length || 0} 个 ${imageData.name} 模板`);
+
+                if (templates && templates.length > 0) {
+                    setForyou(templates);
+                    setCurrentIndex(0);
+
+                    // 确保数据设置后再滚动
+                    setTimeout(() => {
+                        if (templates.length > 0) {
+                            flatListRef.current?.scrollToIndex({ index: 0, animated: false });
+                        }
+                    }, 200);
+                }
+            } catch (error) {
+                console.error('❌ 加载模板失败:', error);
+            }
+        }
+    };
+
+    // 手动刷新函数
+    const onRefresh = async () => {
+        setRefreshing(true);
+        setForyou([]);
+        setReloadKey(prev => prev + 1);
+        await loadTemplates();
+        setRefreshing(false);
+    };
+
     // 每次页面获得焦点时强制重载
     useFocusEffect(
         useCallback(() => {
+            setForyou([]);
             setReloadKey(prev => prev + 1);
-            setCurrentIndex(0);
-            // 延迟滚动，确保 FlatList 已渲染
-            setTimeout(() => {
-                flatListRef.current?.scrollToIndex({ index: 0, animated: false });
-            }, 100);
-        }, [])
+            loadTemplates();
+        }, [imageData?.name])
     );
 
     if (!imageData) {
@@ -167,9 +114,21 @@ export default function ForYouScreen() {
 
     const handleNext = async () => {
         try {
-            // 获取当前显示的图片 URL
-            const currentImageUrl = imagesurl[currentIndex];
-            const prompt = selectedImageData?.prompt[currentIndex] || "";
+            // 安全检查：确保数据已加载
+            if (!foryou || foryou.length === 0) {
+                showToast("Loading templates, please wait...", "info");
+                return;
+            }
+
+            if (currentIndex >= foryou.length) {
+                showToast("Invalid selection", "error");
+                return;
+            }
+
+            // 获取当前显示的模板数据
+            const currentTemplate = foryou[currentIndex];
+            const currentImageUrl = currentTemplate.urls;  // 使用 urls 作为参考图
+            const prompt = currentTemplate.prompt;
 
             const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
             const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
@@ -256,72 +215,83 @@ export default function ForYouScreen() {
                         {imageData.name}
                     </Text>
                     <Text className="text-gray-500 text-xs mt-1">
-                        {currentIndex + 1} / {images.length}
+                        {currentIndex + 1} / {foryou.length}
                     </Text>
                 </View>
                 <TouchableOpacity
-                    onPress={() => {
-                        if (router.canGoBack()) {
-                            router.back();
-                        } else {
-                            router.replace('/tabs/home');
-                        }
-                    }}
+                    onPress={onRefresh}
                     className="p-2 -mr-2"
                     activeOpacity={0.7}
+                    disabled={refreshing}
                 >
-                    <MaterialCommunityIcons name="close" size={24} color="#000" />
+                    <MaterialCommunityIcons 
+                        name="refresh" 
+                        size={24} 
+                        color={refreshing ? "#999" : "#000"} 
+                    />
                 </TouchableOpacity>
             </View>
 
             {/* 水平滑动图片列表 */}
             <View className="flex-1 bg-gray-50 mt-8" key={`container-${reloadKey}`}>
-                <FlatList
-                    ref={flatListRef}
-                    data={images}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onViewableItemsChanged={onViewableItemsChanged}
-                    viewabilityConfig={{
-                        itemVisiblePercentThreshold: 50
-                    }}
-                    keyExtractor={(item, index) => `image-${index}-${reloadKey}`}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.imageContainer}>
-                            <Image
-                                source={{ uri: item }}
-                                style={styles.mainImage}
-                                contentFit="contain"
-                                placeholder="Loading..."
-                                cachePolicy="memory-disk"
-                                priority="high"
-                                recyclingKey={`foryou-${index}-${reloadKey}`}
-                            />
-                        </View>
-                    )}
-                    extraData={reloadKey}
-                />
-
-                {/* 页面指示器（圆点） */}
-                <View className="absolute bottom-8 left-0 right-0 flex-row justify-center items-center">
-                    {images.map((_, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            onPress={() => {
-                                flatListRef.current?.scrollToIndex({ index, animated: true });
+                {foryou.length === 0 ? (
+                    <View className="flex-1 justify-center items-center">
+                        <ActivityIndicator size="large" color="#000" />
+                        <Text className="text-gray-500 mt-4">Loading templates...</Text>
+                    </View>
+                ) : (
+                    <>
+                        <FlatList
+                            ref={flatListRef}
+                            data={foryou}
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            onViewableItemsChanged={onViewableItemsChanged}
+                            viewabilityConfig={{
+                                itemVisiblePercentThreshold: 50
                             }}
-                            className="mx-1"
-                        >
-                            <View
-                                className={`h-2 rounded-full transition-all ${index === currentIndex
-                                    ? 'w-8 bg-black'
-                                    : 'w-2 bg-gray-400'
-                                    }`}
-                            />
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                            keyExtractor={(item, index) => `image-${item.id}-${index}-${reloadKey}`}
+                            renderItem={({ item, index }) => (
+                                <View style={styles.imageContainer}>
+                                    <Image
+                                        source={{ uri: item.post }}
+                                        style={styles.mainImage}
+                                        contentFit="contain"
+                                        placeholder="Loading..."
+                                        cachePolicy="memory-disk"
+                                        priority="high"
+                                        recyclingKey={`foryou-${item.id}-${index}-${reloadKey}`}
+                                    />
+                                </View>
+                            )}
+                            extraData={reloadKey}
+                        />
+
+                        {/* 页面指示器（圆点） */}
+                        {foryou.length > 0 && (
+                            <View className="absolute bottom-8 left-0 right-0 flex-row justify-center items-center">
+                                {foryou.map((_, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        onPress={() => {
+                                            flatListRef.current?.scrollToIndex({ index, animated: true });
+                                        }}
+                                        className="mx-1"
+                                    >
+                                        <View
+                                            className={`h-2 rounded-full transition-all ${index === currentIndex
+                                                ? 'w-8 bg-black'
+                                                : 'w-2 bg-gray-400'
+                                                }`}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </>
+                )}
+
             </View>
 
             {/* Bottom Info Card */}
@@ -330,7 +300,7 @@ export default function ForYouScreen() {
                     {/* 显示当前选择的图片信息 */}
                     <View className="bg-gray-100 px-4 py-2 rounded-full mb-4">
                         <Text className="text-gray-600 text-sm">
-                            Selected Look {currentIndex + 1} of {images.length}
+                            Selected Look {currentIndex + 1} of {foryou.length}
                         </Text>
                     </View>
 
@@ -338,8 +308,8 @@ export default function ForYouScreen() {
                         className="bg-black w-full py-4 rounded-xl"
                         activeOpacity={0.8}
                         onPress={handleNext}
-                        disabled={isGenerating}
-                        style={{ opacity: isGenerating ? 0.6 : 1 }}
+                        disabled={isGenerating || foryou.length === 0}
+                        style={{ opacity: (isGenerating || foryou.length === 0) ? 0.6 : 1 }}
                     >
                         <View className="flex-row items-center justify-center">
                             {isGenerating ? (
