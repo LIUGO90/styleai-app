@@ -280,10 +280,10 @@ export default function ForYouScreen() {
                                         className="mx-1"
                                     >
                                         <View
-                                            className={`h-2 rounded-full transition-all ${index === currentIndex
-                                                ? 'w-8 bg-black'
-                                                : 'w-2 bg-gray-400'
-                                                }`}
+                                            style={[
+                                                styles.indicator,
+                                                index === currentIndex ? styles.indicatorActive : styles.indicatorInactive
+                                            ]}
                                         />
                                     </TouchableOpacity>
                                 ))}
@@ -350,5 +350,17 @@ const styles = StyleSheet.create({
         width: SCREEN_WIDTH * 0.9,
         aspectRatio: 712 / 1247,  // 使用实际图片的宽高比
         maxHeight: SCREEN_HEIGHT * 0.65,  // 最大高度限制
+    },
+    indicator: {
+        height: 8,
+        borderRadius: 4,
+    },
+    indicatorActive: {
+        width: 32,
+        backgroundColor: '#000000',
+    },
+    indicatorInactive: {
+        width: 8,
+        backgroundColor: '#9CA3AF',
     },
 });
