@@ -74,7 +74,7 @@ export function ProgressBar({
       <View className="w-full bg-gray-200 rounded-full h-2 mb-2">
         <View
           className={cn(
-            "h-2 rounded-full transition-all duration-300 ease-out",
+            "h-2 rounded-full",
             getStatusColor(),
           )}
           style={{ width: `${percentage}%` }}

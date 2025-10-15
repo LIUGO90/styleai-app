@@ -435,12 +435,12 @@ export function Chat({
               key={button.id}
               onPress={() => clickButton(button, message)}
               className={cn(
-                "px-3 py-1.5 rounded-lg border flex-shrink-0 transition-all duration-200",
+                "px-3 py-1.5 rounded-lg border flex-shrink-0",
                 button.type === "primary" && "bg-[#007AFF] border-[#007AFF]",
                 button.type === "secondary" &&
                 (isSelected
                   ? "bg-blue-500 border-blue-500"
-                  : "bg-white border-gray-300 hover:bg-gray-50"),
+                  : "bg-white border-gray-300"),
                 button.type === "danger" && "bg-red-500 border-red-500",
                 !button.type && "bg-white border-gray-300",
               )}
@@ -480,7 +480,7 @@ export function Chat({
         <Pressable
           onPress={() => onButtonPress?.(commitButton, message)}
           className={cn(
-            "w-full py-2 rounded-lg border flex-row items-center justify-center transition-all duration-200",
+            "w-full py-2 rounded-lg border flex-row items-center justify-center",
             commitButton.type === "primary" && "bg-[#007AFF] border-[#007AFF]",
             commitButton.type === "secondary" && "bg-white border-gray-300",
             commitButton.type === "danger" && "bg-red-500 border-red-500",
@@ -650,10 +650,10 @@ export function Chat({
                 // onPressIn={() => setDeleteButtonPressed(message.id)}
                 // onPressOut={() => setDeleteButtonPressed(null)}
                 className={cn(
-                  "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20 transition-all duration-150",
+                  "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20",
                   deleteButtonPressed === message.id
-                    ? "bg-red-500/90 scale-95"
-                    : "bg-black/70 hover:bg-black/80",
+                    ? "bg-red-500/90"
+                    : "bg-black/70",
                 )}
                 accessibilityRole="button"
                 accessibilityLabel="Delete image"

@@ -73,10 +73,10 @@ export function ImageUpload({
               onPressIn={() => setDeleteButtonPressed(true)}
               onPressOut={() => setDeleteButtonPressed(false)}
               className={cn(
-                "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20 transition-all duration-150",
+                "absolute top-3 right-3 backdrop-blur-sm rounded-full w-8 h-8 items-center justify-center border border-white/20",
                 deleteButtonPressed
-                  ? "bg-red-500/90 scale-95"
-                  : "bg-black/70 hover:bg-black/80",
+                  ? "bg-red-500/90"
+                  : "bg-black/70",
               )}
               accessibilityRole="button"
               accessibilityLabel="Delete Image"
