@@ -1,15 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Chat, ChatHeader } from "@/components/Chat";
-import { Message, MessageButton } from "@/components/types";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useRef, useState, useCallback } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ChatHeader } from "@/components/Chat";
+import { useRouter, useFocusEffect } from "expo-router";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { Image } from "expo-image";
 import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform, RefreshControl } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import MaskedView from "@react-native-masked-view/masked-view";
 import { BACKGROUNDS } from "@/config/imagePaths";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useImagePicker } from "@/hooks/useImagePicker";
@@ -26,16 +22,21 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // 加载数据函数
-  const loadForYouData = async () => {
+  const loadForYouData = useCallback(async () => {
     const data = await ForYouService.getAllForYouItems();
     setForyou(data);
-  };
-
-  useEffect(() => {
-    loadForYouData();
   }, []);
+
+  // 页面获得焦点时滚动到顶部并刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      loadForYouData();
+    }, [loadForYouData])
+  );
 
   // 下拉刷新处理
   const onRefresh = async () => {
@@ -200,6 +201,7 @@ export default function HomeScreen() {
             {/* 可滚动内容 */}
             <View className="flex-1 items-start justify-center ">
               <ScrollView
+                ref={scrollViewRef}
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"

@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, Pressable, StyleSheet, TouchableOpacity, Modal, Dimensions } from "react-native";
 import { Image } from "expo-image";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -26,8 +26,10 @@ export default function LookbookOne() {
   const [availableStyles, setAvailableStyles] = useState<string[]>(['All']);
   const [showStyleFilter, setShowStyleFilter] = useState(false);
   const { user } = useAuth();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const loadCollections = useCallback(async () => {
+    
     try {
       // 获取所有 items
       const items = await UserImageService.getUserImages(user?.id || '');
@@ -89,6 +91,9 @@ export default function LookbookOne() {
   // 使用 useFocusEffect 确保每次页面获得焦点时都重新加载
   useFocusEffect(
     useCallback(() => {
+      // 滚动到顶部
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      
       loadCollections();
       // 用户进入 lookbook 页面时清除徽章
       clearBadge('lookbook');
@@ -153,6 +158,7 @@ export default function LookbookOne() {
       )}
 
       <ScrollView
+        ref={scrollViewRef}
         className="flex-1 px-4 pt-4"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ 
