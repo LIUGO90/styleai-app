@@ -33,11 +33,10 @@ class RevenueCatService {
     try {
       const apiKey = Platform.select({
         ios: REVENUECAT_CONFIG.apiKeys.apple,
-        android: REVENUECAT_CONFIG.apiKeys.google,
         default: REVENUECAT_CONFIG.apiKeys.apple,
       });
 
-      if (!apiKey || apiKey.includes('your_api_key_here')) {
+      if (!apiKey || apiKey.includes('appl_')) {
         console.warn('⚠️ [RevenueCat] API key not configured - subscription features disabled');
         return;
       }
@@ -52,10 +51,10 @@ class RevenueCatService {
       Purchases.setLogLevel(LOG_LEVEL.DEBUG);
       await Purchases.configure({ apiKey });
 
-      // Set user ID if provided
-      if (userId) {
-        await this.login(userId);
-      }
+      // // Set user ID if provided
+      // if (userId) {
+      //   await this.login(userId);
+      // }
 
       this.initialized = true;
 

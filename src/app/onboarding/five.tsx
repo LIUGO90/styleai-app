@@ -9,6 +9,7 @@ import { ImagePerformanceMonitor } from "@/components/ImagePerformanceMonitor";
 import { OnboardingData } from "@/components/types";
 import { aiRequestLookbook } from "@/services/aiReuest";
 import { useAuth } from "@/contexts/AuthContext";
+import { addImageLook } from "@/services/addLookBook";
 
 
 export default function Five() {
@@ -117,6 +118,8 @@ export default function Five() {
           const resultLookbook = await aiRequestLookbook(user?.id || '', onboardingDataObj.fullBodyPhoto, selectedStyles.slice(0, 2), 1);
 
           imagesUrl.push(...resultLookbook);
+          addImageLook(user?.id || "", selectedStyles[0], imagesUrl.slice(0, 1));
+          addImageLook(user?.id || "", selectedStyles[1], imagesUrl.slice(1, 2));
         } catch (error) {
           // console.error(`Error generating ${i} lookbook:`, error);
         }

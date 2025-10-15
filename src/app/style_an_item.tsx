@@ -12,6 +12,7 @@ import { ChatSessionService, ChatSession } from '@/services/ChatSessionService';
 import { uploadImageWithFileSystem } from '@/services/FileUploadService';
 import { useAuth } from '@/contexts/AuthContext';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { addImageLook } from '@/services/addLookBook';
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = '') => {
@@ -311,6 +312,9 @@ export default function StyleAnItemScreen() {
       })),
     });
 
+    if (images.length > 0) {
+      addImageLook(user?.id || "", "chat", images);
+    }
   };
 
 
@@ -409,27 +413,33 @@ export default function StyleAnItemScreen() {
           images = [data.fullBodyPhoto];
           images.push(image);
 
-          chatRequest(user?.id || '', 
+          chatRequest(user?.id || '',
             data.bodyType,
             data.bodyStructure,
             data.skinTone,
             selectedButtons,
             "",
-            images, currentSession?.id || '').then(({ message, images }) => {
-            dateleMessage(progressMessage1.id);
-            addMessage({
-              id: Date.now().toString(),
-              text: message,
-              sender: 'ai',
-              senderName: 'AI Assistant',
-              timestamp: new Date(),
-              images: images.map(image => ({
-                id: generateUniqueId('img_'),
-                url: image,
-                alt: 'Garment Image',
-              })),
+            images, currentSession?.id || '').then(({ status, message, images }) => {
+              if (status == "success") {
+                dateleMessage(progressMessage1.id);
+                addMessage({
+                  id: Date.now().toString(),
+                  text: message,
+                  sender: 'ai',
+                  senderName: 'AI Assistant',
+                  timestamp: new Date(),
+                  images: images.map(image => ({
+                    id: generateUniqueId('img_'),
+                    url: image,
+                    alt: 'Garment Image',
+                  })),
+                });
+                addImageLook(user?.id || "", selectedButtons, images);
+              } else {
+                dateleMessage(progressMessage1.id);
+                Alert.alert('AI request failed');
+              }
             });
-          });
 
         }
         setCanInput(true);
@@ -583,30 +593,30 @@ export default function StyleAnItemScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* <View style={{ flex: 1 }}> */}
-        <ChatHeader
-          title={currentSession?.title || "Style an item"}
-          // subtitle="检查您的搭配是否合适"
-          isOnline={true}
-          showAvatar={false}
-          onBack={() => {
-            router.replace({
-              pathname: "/tabs/",
-            });
-          }}
-          //   onMore={handleDrawerOpen}
-          showDrawerButton={false}
-        />
+      <ChatHeader
+        title={currentSession?.title || "Style an item"}
+        // subtitle="检查您的搭配是否合适"
+        isOnline={true}
+        showAvatar={false}
+        onBack={() => {
+          router.replace({
+            pathname: "/tabs/",
+          });
+        }}
+        //   onMore={handleDrawerOpen}
+        showDrawerButton={false}
+      />
 
-        <Chat
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onButtonPress={handleButtonPress}
-          onImageUpload={handleImageUpload}
-          placeholder="Type a message..."
-          showAvatars={true}
-          clickHighlight={selectedButtons}
-          canInput={canInput}
-        />
+      <Chat
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        onButtonPress={handleButtonPress}
+        onImageUpload={handleImageUpload}
+        placeholder="Type a message..."
+        showAvatars={true}
+        clickHighlight={selectedButtons}
+        canInput={canInput}
+      />
       {/* </View> */}
     </SafeAreaView>
   );

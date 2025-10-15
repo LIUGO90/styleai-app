@@ -66,27 +66,8 @@ const initMessages: Message[] = [
   },
 ];
 
-const { width, height } = Dimensions.get("window");
-
 export default function Login() {
-  const { signOut, user } = useAuth();
-  const router = useRouter();
 
-  const handleNext = () => {
-    const onboardingData: OnboardingData = {
-      userId: user?.id || "",
-      stylePreferences: [],
-      fullBodyPhoto: "",
-      skinTone: "",
-      bodyType: "",
-      bodyStructure: "",
-      faceShape: "",
-      selectedStyles: [],
-      gender: undefined
-    };
-    AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
-    router.push("/onboarding");
-  };
 
   return (
     <GuestGuard>

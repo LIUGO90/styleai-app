@@ -996,9 +996,21 @@ export function ChatHeader({
         )}
 
         <View className="flex-1">
-          <Text className="text-xl font-semibold text-black">{title}</Text>
+          <Text 
+            className="text-xl font-semibold text-black"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
           {subtitle && (
-            <Text className="text-xs text-gray-500">{subtitle}</Text>
+            <Text 
+              className="text-xs text-gray-500"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {subtitle}
+            </Text>
           )}
         </View>
       </View>

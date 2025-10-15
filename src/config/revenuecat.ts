@@ -13,7 +13,6 @@ export const REVENUECAT_CONFIG = {
   // Get these from https://app.revenuecat.com/settings/api-keys
   apiKeys: {
     apple: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY || 'appl_your_api_key_here',
-    google: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY || 'goog_your_api_key_here',
   },
 
   // Entitlement identifiers

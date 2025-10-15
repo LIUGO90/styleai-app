@@ -13,6 +13,33 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import DotsContainer from "@/components/dotsContainer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import revenueCatService from "@/services/RevenueCatService";
+import { useAuth } from "@/contexts/AuthContext";
+
+
+// RevenueCat 初始化组件
+function RevenueCatInitializer() {
+  // const { user } = useAuth();
+
+  useEffect(() => {
+    const initRevenueCat = async () => {
+      try {
+        await revenueCatService.initialize();
+      } catch (error: any) {
+        // 完全忽略错误 - RevenueCat 服务内部已经处理了
+        // 不需要额外的日志，避免重复
+      }
+    };
+
+    // 使用 Promise.resolve 包裹，确保不会有未捕获的 Promise 错误
+    Promise.resolve(initRevenueCat()).catch(() => {
+      // 最后一道防线：捕获任何可能的错误
+    });
+  }, []);
+
+  return null;
+}
+
 
 const imagewidth = Dimensions.get("window").width * 0.4 > 180 ? 180 : Dimensions.get("window").width * 0.4;
 export default function BaseSix() {
@@ -29,7 +56,7 @@ export default function BaseSix() {
   const loadImagesUrl = async () => {
     const imagesUrl = await AsyncStorage.getItem("newlook");
     if (imagesUrl) {
-      
+
       setImage(JSON.parse(imagesUrl) as string[]);
     }
   }
@@ -48,6 +75,7 @@ export default function BaseSix() {
 
   return (
     <View className="flex-1">
+      {/* <RevenueCatInitializer /> */}
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}

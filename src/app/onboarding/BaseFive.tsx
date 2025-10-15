@@ -17,6 +17,7 @@ import { uploadImageWithFileSystem, getUploadStatus, isImageUploading } from "@/
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/utils/supabase";
 
 export default function BaseFive() {
   const router = useRouter();
@@ -46,9 +47,34 @@ export default function BaseFive() {
 
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
-        setSelectedImage(onboardingDataObj.fullBodyPhoto);
+        // 读取本地缓存
+        if (onboardingDataObj.fullBodyPhoto.length > 0) {
+          setSelectedImage(onboardingDataObj.fullBodyPhoto);
+        } else {
+          // 读取远程
+          const profilePromise = supabase
+            .from('profiles')
+            .select('name, fullbodyphoto')
+            .eq('id', user?.id)
+            .single();
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Profile query timeout')), 5000 * 10)
+          );
+          const { data: userProfile, error } = await Promise.race([
+            profilePromise,
+            timeoutPromise
+          ]) as any;
+
+          if (userProfile?.fullbodyphoto && userProfile?.fullbodyphoto.length > 0) {
+            setSelectedImage(userProfile.fullbodyphoto);
+            onboardingDataObj.fullBodyPhoto = userProfile.fullbodyphoto
+            AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingDataObj));
+          }
+        }
       }
     };
+
     if (isUpdate) {
       loadOnboardingData();
     }
@@ -94,6 +120,7 @@ export default function BaseFive() {
       setIsUploading(true);
       const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
       const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
+
       try {
         if (isUpdate === "true" && onboardingDataObj.fullBodyPhoto == selectedImage) {
 
@@ -105,7 +132,13 @@ export default function BaseFive() {
         const imageUrl = await uploadImageWithFileSystem(user?.id || '', selectedImage);
 
         if (imageUrl) {
-
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ fullbodyphoto: imageUrl })  // 正确的对象语法
+            .eq('id', user?.id);
+          if(updateError){
+            console.log("error ",updateError)
+          }
           setSelectedImage(imageUrl);
 
           onboardingDataObj.fullBodyPhoto = imageUrl;
@@ -126,8 +159,8 @@ export default function BaseFive() {
         }
       } catch (error) {
         console.error("Processing failed:", error);
-        setIsUploading(false);
       } finally {
+        setIsUploading(false);
         isProcessingRef.current = false;
       }
     } else {
@@ -267,7 +300,7 @@ export default function BaseFive() {
           </Text>
           <View
             className="flex-row justify-center items-center px-5"  >
-            {selectedImage && (
+            {selectedImage ? (
               <Image
                 source={{ uri: selectedImage }}
                 style={{
@@ -278,7 +311,19 @@ export default function BaseFive() {
                 resizeMode="contain"
                 cachePolicy="memory-disk"
               />
-            )}
+            ) :
+              <Image
+                source={require("../../../assets/upload.png")}
+                style={{
+                  width: Dimensions.get('window').height * 0.5 * imageDimensions,
+                  height: Dimensions.get('window').height * 0.5,
+                  borderRadius: 16,
+                }}
+                resizeMode="contain"
+
+              />
+            }
+
           </View>
         </View>
         {/* 底部按钮 */}

@@ -229,6 +229,7 @@ export default function MyProfile() {
           try {
             // Clear avatar
             await AsyncStorage.removeItem('userAvatar');
+            await AsyncStorage.removeItem("onboardingData");
             setUserAvatar("");
 
             await signOut();
@@ -237,7 +238,6 @@ export default function MyProfile() {
               "Success",
               "Signed out successfully. The app will restart.",
             );
-            await AsyncStorage.removeItem("onboardingData");
           } catch (error) {
             console.error("Error signing out:", error);
             Alert.alert("Error", "Failed to sign out. Please try again.");

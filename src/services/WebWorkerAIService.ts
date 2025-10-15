@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetch } from "expo/fetch";
 
 export interface AIRequestResponse {
+  status: string;
   jobId: string;
   message: string;
   images: string[];
@@ -280,7 +281,7 @@ class WebWorkerAIService {
   }
 
   async chatRequest(
-    userId:string,
+    userId: string,
     bodyShape: string,
     bodySize: string,
     skinTone: string,
@@ -290,19 +291,25 @@ class WebWorkerAIService {
     sessionId: string,
     options: AIRequestOptions = {},
   ): Promise<AIRequestResponse> {
-    return new Promise((resolve, reject) => {
-      const task: RequestTask = {
-        id: `chat_${Date.now()}_${Math.random()}`,
-        type: "chat",
-        args: [userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId],
-        options,
-        resolve,
-        reject,
-        abortController: new AbortController(),
-      };
-      this.addToQueue(task);
-    });
+
+    for (var i = 0; i < 3; i++) {
+      const controller = new AbortController()
+      const response = await this.makeRequest(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
+        { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
+        controller
+      );
+      setTimeout(() => {
+        controller.abort()
+      }, 3000 * 10)
+      return { status: "success", jobId: response.jobId, message: response.message.text, images: response.message.images };
+    }
+    
+    return { status: 'error', jobId: "", message: "", images: [] };
   }
+
+
+
   async analyzeRequest(
     imageUrl: string,
     options: AIRequestOptions = {},
@@ -414,7 +421,7 @@ class WebWorkerAIService {
    * 执行Chat请求的具体实现
    */
   private async executeChatRequest(
-    userId:string,
+    userId: string,
     bodyShape: string,
     bodySize: string,
     skinTone: string,
@@ -433,7 +440,7 @@ class WebWorkerAIService {
       abortController,
     );
     options.onProgress?.(80);
-    return { jobId: response.jobId, message: response.message.text, images: response.message.images };
+    return { status: response.status, jobId: response.jobId, message: response.message.text, images: response.message.images };
   }
   /**
    * 执行AI请求的具体实现
@@ -476,7 +483,7 @@ class WebWorkerAIService {
 
     options.onProgress?.(80);
 
-    return { jobId: response.jobId, message: response.message, images: [] };
+    return { status: response.status, jobId: response.jobId, message: response.message, images: [] };
   }
 
   /**
@@ -499,7 +506,7 @@ class WebWorkerAIService {
 
     options.onProgress?.(80);
 
-    return { jobId: response.jobId, message: response.message, images: [] };
+    return { status: response.status, jobId: response.jobId, message: response.message, images: [] };
   }
 
   /**
@@ -634,9 +641,7 @@ class WebWorkerAIService {
         { userId, imageUrl, styleOptions, numImages },
         abortController,
       );
-
       options.onProgress?.(80);
-
       if (response.data.images && response.data.images.length > 0) {
         return response.data.images;
       }

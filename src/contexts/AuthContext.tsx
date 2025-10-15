@@ -21,7 +21,7 @@ export interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithApple: (appleCredential: any) => Promise<{ error: any }>;
+  signInWithApple: (appleCredential: any) => Promise<{ userId?: string, error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   clearAllUserData: () => Promise<void>;
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         case "SIGNED_IN":
           console.log("🎈user signed in:", event, session?.user?.id);
           setSession(session);
-          
+
           if (session?.user?.id) {
             try {
               // 添加超时控制：最多等待3秒
@@ -101,16 +101,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .select('name, email')
                 .eq('id', session?.user?.id)
                 .single();
-              
-              const timeoutPromise = new Promise((_, reject) => 
+
+              const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Profile query timeout')), 3000)
               );
-              
+
               const { data: profile, error } = await Promise.race([
                 profilePromise,
                 timeoutPromise
               ]) as any;
-              
+
               if (error) {
                 console.log("⚠️ Error fetching profile (using fallback):", error.message);
               } else {
@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               // 如果查询失败，使用 session 中的基本信息
               const userName = session.user.user_metadata?.full_name || "";
               const userEmail = session.user.email || "";
-              
+
               setUser({
                 ...session.user,
                 name: userName,
@@ -254,8 +254,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }),
       );
 
-
-      return { error };
+      // 返回用户信息和错误（如果有）
+      return { userId: userInfo.id, error };
     } catch (error) {
       console.error("Apple sign in error:", error);
       return { error };

@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Message } from "@/components/types";
-import { ChatBackendService } from "./ChatBackendService";
 import { webWorkerAIService } from "./WebWorkerAIService";
 import { Alert } from "react-native";
 
@@ -274,11 +273,11 @@ export class ChatSessionService {
   // 获取默认标题
   private static getDefaultTitle(type: ChatSession["type"]): string {
     const titles = {
-      style_an_item: "Style an item",
-      outfit_check: "Outfit Check",
-      free_chat: "Free Chat",
+      style_an_item: "StyleAnitem",
+      outfit_check: "OutfitCheck",
+      free_chat: "FreeChat",
     };
-    return titles[type] + " " + this.NowTime(new Date());
+    return titles[type] + "_" + this.NowTime(new Date());
   }
 
   // 生成 年月日 时分 格式
@@ -289,7 +288,7 @@ export class ChatSessionService {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    return `${year}${month}${day} ${hours}:${minutes}`;
   }
 
   // 格式化时间显示

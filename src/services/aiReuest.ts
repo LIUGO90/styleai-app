@@ -1,6 +1,7 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
 
 interface AiRequestResponse {
+  status: string,
   jobId: string;
   message: string;
   images: string[];
@@ -54,7 +55,7 @@ export const aiRequest = async (
     });
   } catch (error) {
     console.error("AI request failed:", error);
-    return { jobId: "error", message: "error", images: [] };
+    return {status:"error", jobId: "error", message: "error", images: [] };
   }
 };
 
@@ -74,7 +75,7 @@ export const aisuggest = async (
     });
   } catch (error) {
     console.error("AI suggest request failed:", error);
-    return { jobId: "error", message: "error", images: [] };
+    return {status:"error", jobId: "error", message: "error", images: [] };
   }
 };
 

@@ -10,34 +10,39 @@ import { useAuth } from "@/contexts/AuthContext";
 import { aiRequestGemini, aiRequestLookbook } from "@/services/aiReuest";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
-import { LookbookService } from "@/services/LookbookService";
 import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { clearBadge } from "@/utils/badgeManager";
+import { UserImageService } from "@/services/UserImageService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LookbookOne() {
   const [images, setImages] = useState<string[]>([]);
+  const [allItems, setAllItems] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedStyle, setSelectedStyle] = useState<string>('All');
+  const [availableStyles, setAvailableStyles] = useState<string[]>(['All']);
+  const [showStyleFilter, setShowStyleFilter] = useState(false);
   const { user } = useAuth();
 
   const loadCollections = useCallback(async () => {
     try {
+      // 获取所有 items
+      const items = await UserImageService.getUserImages(user?.id || '');
+      setAllItems(items);
 
-      // 直接获取所有 items，而不是从 collections 中提取
-      const allItems = await LookbookService.getAllItems();
+      // 提取所有独特的风格
+      const styles = ['All', ...new Set(items.map(item => item.style || 'Unknown').filter(Boolean))];
+      setAvailableStyles(styles);
 
       // 提取所有图片 URL
-      const allImages: string[] = [];
-      for (const item of allItems) {
-        if (item.images && item.images.length > 0) {
-          // 添加该 item 的所有图片
-          allImages.push(...item.images);
-        }
-      }
-
+      const allImages: string[] = items
+        .filter(item => item.image_url && item.image_url.length > 0)
+        .map(item => item.image_url);
+      
+      console.log(`✅ 成功获取 ${allImages.length} 张图片，${styles.length - 1} 个风格`);
       setImages(allImages);
 
     } catch (error) {
@@ -45,6 +50,24 @@ export default function LookbookOne() {
       Alert.alert('Error', 'Failed to load your lookbook');
     }
   }, []);
+
+  // 根据选择的风格过滤图片
+  const filterImagesByStyle = useCallback((style: string) => {
+    setSelectedStyle(style);
+    
+    if (style === 'All') {
+      const allImages = allItems
+        .filter(item => item.image_url && item.image_url.length > 0)
+        .map(item => item.image_url);
+      setImages(allImages);
+    } else {
+      const filteredImages = allItems
+        .filter(item => item.style === style && item.image_url && item.image_url.length > 0)
+        .map(item => item.image_url);
+      setImages(filteredImages);
+    }
+    console.log(`🎨 筛选风格: ${style}, 图片数量: ${images.length}`);
+  }, [allItems]);
 
   const handleImagePress = (index: number) => {
     setCurrentIndex(index);
@@ -73,36 +96,106 @@ export default function LookbookOne() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
+      {/* 顶部标题栏 */}
+      <View className="flex-row justify-between items-center px-4 pt-4 pb-3 bg-white border-b border-gray-100">
+        <Text className="text-2xl font-bold text-black">MAGIC LOOKBOOK</Text>
+        <TouchableOpacity
+          onPress={() => setShowStyleFilter(!showStyleFilter)}
+          className="bg-black px-4 py-2 rounded-full flex-row items-center"
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons 
+            name={showStyleFilter ? "close" : "filter-variant"} 
+            size={18} 
+            color="#fff" 
+          />
+          <Text className="text-white text-sm font-medium ml-1">
+            {selectedStyle === 'All' ? 'Filter' : selectedStyle}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 风格筛选水平滚动栏 */}
+      {showStyleFilter && (
+        <View className="bg-gray-50 border-b border-gray-100">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+          >
+            {availableStyles.map((style, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  filterImagesByStyle(style);
+                  setShowStyleFilter(false);
+                }}
+                className={`mr-3 px-4 py-2 rounded-full ${
+                  selectedStyle === style
+                    ? 'bg-black'
+                    : 'bg-white border border-gray-300'
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedStyle === style ? 'text-white' : 'text-gray-700'
+                  }`}
+                >
+                  {style}
+                  {style !== 'All' && ` (${allItems.filter(item => item.style === style).length})`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       <ScrollView
         className="flex-1 px-4 pt-4"
         showsVerticalScrollIndicator={false}
-
         contentContainerStyle={{ 
           paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
         }}
       >
-        <View className="flex-row flex-wrap justify-between">
-          {images.map((image, index) => (
-            <TouchableOpacity
-              key={index}
-              className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
-              style={{ aspectRatio: 712 / 1247 }}
-              activeOpacity={0.8}
-              onPress={() => handleImagePress(index)}
-            >
-              <Image
-                source={image}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-                placeholder="Loading..."
-                cachePolicy="memory-disk"
-                priority="high"
-                recyclingKey={`lookbook-${index}`}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* 当前显示的图片数量提示 */}
+        {selectedStyle !== 'All' && (
+          <View className="mb-3">
+            <Text className="text-sm text-gray-500">
+              Showing {images.length} {images.length === 1 ? 'image' : 'images'} in {selectedStyle}
+            </Text>
+          </View>
+        )}
+
+        {images.length > 0 ? (
+          <View className="flex-row flex-wrap justify-between">
+            {images.map((image, index) => (
+              <TouchableOpacity
+                key={index}
+                className="bg-gray-200 w-[48%] rounded-3xl overflow-hidden relative mb-4"
+                style={{ aspectRatio: 712 / 1247 }}
+                activeOpacity={0.8}
+                onPress={() => handleImagePress(index)}
+              >
+                <Image
+                  source={image}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                  placeholder="Loading..."
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  recyclingKey={`lookbook-${index}`}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <View className="flex-1 justify-center items-center py-20">
+            <MaterialCommunityIcons name="image-off-outline" size={64} color="#d1d5db" />
+            <Text className="text-gray-400 text-lg mt-4">No images in this category</Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* 全屏查看 Modal */}
@@ -190,7 +283,7 @@ export default function LookbookOne() {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

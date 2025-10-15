@@ -8,10 +8,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { aiRequestForYou, aiRequestLookbook } from "@/services/aiReuest";
 import { useAuth } from "@/contexts/AuthContext";
-import { LookbookService } from "@/services/LookbookService";
 import { useCallback } from "react";
 import { incrementBadge } from "@/utils/badgeManager";
 import { Toast } from "@/components/Toast";
+import { addImageLook } from "@/services/addLookBook";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const foryou = [
@@ -106,13 +106,13 @@ export default function ForYouScreen() {
     const flatListRef = useRef<FlatList>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [reloadKey, setReloadKey] = useState(0);
-    
+
     // Toast 状态
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('success');
     const [toastAction, setToastAction] = useState<{ label: string; onPress: () => void } | undefined>();
-    
+
     // 加载状态
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -126,7 +126,7 @@ export default function ForYouScreen() {
 
     // 显示 Toast 的辅助函数
     const showToast = (
-        message: string, 
+        message: string,
         type: 'success' | 'error' | 'info' | 'warning' = 'success',
         action?: { label: string; onPress: () => void }
     ) => {
@@ -195,21 +195,8 @@ export default function ForYouScreen() {
 
             if (imagesUrl && imagesUrl.length > 0) {
 
-                // 获取或创建默认相册集合
-                const defaultCollection = await LookbookService.getOrCreateDefaultCollection(user?.id || '');
-
                 // 保存生成的图片到相册
-                const savedItem = await LookbookService.addLookbookItem(
-                    defaultCollection.id,
-                    selectedStyles,
-                    imagesUrl,
-                    user?.id || '',
-                    `${selectedStyles} Lookbook`,
-                    `Generated ${imagesUrl.length} outfit images in ${selectedStyles} style`
-                );
-
-                // 增加 Lookbook 徽章计数
-                await incrementBadge('lookbook');
+                addImageLook(user?.id || "", selectedStyles, imagesUrl);
 
                 // 显示成功消息
                 showToast(
@@ -248,7 +235,7 @@ export default function ForYouScreen() {
                     setToastAction(undefined);
                 }}
             />
-            
+
             {/* Header */}
             <View className="absolute top-10 left-0 right-0 z-12 flex-row justify-between items-center px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200">
                 <TouchableOpacity

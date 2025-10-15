@@ -28,28 +28,6 @@ LogBox.ignoreLogs([
   "Error configuring Purchases",
 ]);
 
-// RevenueCat 初始化组件
-function RevenueCatInitializer() {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const initRevenueCat = async () => {
-      try {
-        await revenueCatService.initialize(user?.id);
-      } catch (error: any) {
-        // 完全忽略错误 - RevenueCat 服务内部已经处理了
-        // 不需要额外的日志，避免重复
-      }
-    };
-
-    // 使用 Promise.resolve 包裹，确保不会有未捕获的 Promise 错误
-    Promise.resolve(initRevenueCat()).catch(() => {
-      // 最后一道防线：捕获任何可能的错误
-    });
-  }, [user?.id]);
-
-  return null;
-}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -121,14 +99,14 @@ export default function RootLayout() {
 
   // 处理删除会话
   const handleDeleteSession = async (sessionId: string) => {
-    await ChatSessionService.deleteSession(sessionId);
     setSessions(prev => prev.filter(session => session.id !== sessionId));
-
+    
     // 如果删除的是当前会话，跳转到主页（tabs）而不是根路径
     if (currentSessionId === sessionId) {
       setCurrentSessionId(undefined);
       router.replace('/');
     }
+    await ChatSessionService.deleteSession(sessionId);
   };
 
   // 清空所有会话
@@ -143,12 +121,12 @@ export default function RootLayout() {
           style: 'destructive',
           onPress: async () => {
             // 先清空会话
-            await ChatSessionService.clearAllSessions();
             setSessions([]);
             setCurrentSessionId(undefined);
-
+            
             // 跳转到主页
             router.replace('/');
+            await ChatSessionService.clearAllSessions();
           },
         },
       ]
@@ -182,7 +160,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RevenueCatInitializer />
+
       <Drawer
         screenOptions={{
           headerShown: false,

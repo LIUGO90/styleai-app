@@ -55,8 +55,7 @@ export default function BaseTwo() {
           JSON.stringify(onboardingDataObj),
         );
       }
-      // router.push("/onboarding/BaseThree");
-      router.replace("/");
+      router.push("/onboarding/BaseThree");
     }
   };
 

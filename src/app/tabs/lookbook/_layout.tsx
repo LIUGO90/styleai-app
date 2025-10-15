@@ -17,7 +17,7 @@ export default function Layout() {
         name="one"
         options={{
           title: "MAGIC LOOKBOOK",
-          headerShown: true,
+          headerShown: false,
           headerBackVisible: false,
           //       // 使用 replace 避免页面堆叠
           //       router.replace("/tabs/lookbook/gallery");
