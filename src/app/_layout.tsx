@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import "../utils/authTest"; // 导入认证测试工具
 import "../utils/clearUserData"; // 导入清除数据工具
 import { appInitializationService } from "@/services/AppInitializationService";
+import { ToastProvider, globalToast } from "@/utils/globalToast";
 import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Drawer } from "expo-router/drawer";
@@ -160,8 +161,8 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-
-      <Drawer
+      <ToastProvider>
+        <Drawer
         screenOptions={{
           headerShown: false,
           drawerActiveTintColor: '#007AFF',
@@ -251,6 +252,7 @@ export default function RootLayout() {
           }}
         />
       </Drawer>
+      </ToastProvider>
     </AuthProvider>
   );
 }

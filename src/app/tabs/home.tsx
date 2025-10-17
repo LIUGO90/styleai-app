@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [foryou, setForyou] = useState<ForYou[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // 刷新计数器，用于强制重新渲染图片
   const navigation = useNavigation();
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
@@ -34,6 +35,11 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      
+      // 清空现有数据，避免显示旧内容
+      // setForyou([]);
+      
+      // 重新加载数据
       loadForYouData();
     }, [loadForYouData])
   );
@@ -41,8 +47,34 @@ export default function HomeScreen() {
   // 下拉刷新处理
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadForYouData();
-    setRefreshing(false);
+    
+    try {
+      // 清除图片缓存
+      console.log('🧹 开始清除图片缓存...');
+      await Promise.all([
+        Image.clearMemoryCache(),  // 清除内存缓存
+        Image.clearDiskCache(),    // 清除磁盘缓存
+      ]);
+      console.log('✅ 图片缓存清除完成');
+      
+      // 清空现有数据，强制重新渲染
+      // setForyou([]);
+      
+      // 增加刷新计数器，强制重新渲染图片
+      setRefreshKey(prev => prev + 1);
+      
+      // 短暂延迟，确保清空操作完成
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 重新加载数据
+      await loadForYouData();
+    } catch (error) {
+      console.error('❌ 清除缓存失败:', error);
+      // 即使清除缓存失败，也要加载数据
+      await loadForYouData();
+    } finally {
+      setRefreshing(false);
+    }
   };
   // 使用图片选择 hook
   const { showImagePickerOptions } = useImagePicker({
@@ -221,7 +253,7 @@ export default function HomeScreen() {
                 <View className="flex-row flex-wrap justify-between items-center w-full">
                   {foryou.map((image, index) => (
                     <TouchableOpacity
-                      key={index}
+                      key={`${refreshKey}-${index}`}
                       className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
                       style={{ aspectRatio: 712 / 1247 }}
                       activeOpacity={0.8}
@@ -240,14 +272,14 @@ export default function HomeScreen() {
                       }}
                     >
                       <Image
-                        key={`style-image-${index}-${image.id}`}
+                        key={`style-image-${refreshKey}-${index}-${image.id}`}
                         source={image.url}
                         style={{ width: '100%', height: '100%' }}
                         contentFit="cover"
                         placeholder="Loading..."
                         cachePolicy="memory-disk"
                         priority="high"
-                        recyclingKey={`home-style-${index}`}
+                        recyclingKey={`home-style-${refreshKey}-${index}`}
                       />
                       {/* 图片名称标签 */}
                       <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">

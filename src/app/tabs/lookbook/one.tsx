@@ -14,6 +14,8 @@ import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { clearBadge } from "@/utils/badgeManager";
 import { UserImageService } from "@/services/UserImageService";
+import { pageActivityManager } from "@/utils/pageActivityManager";
+import { imageUpdateManager } from "@/utils/imageUpdateManager";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -91,12 +93,30 @@ export default function LookbookOne() {
   // 使用 useFocusEffect 确保每次页面获得焦点时都重新加载
   useFocusEffect(
     useCallback(() => {
+      // 标记用户进入 lookbook 页面
+      pageActivityManager.setActivePage('lookbook');
+      
       // 滚动到顶部
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       
       loadCollections();
       // 用户进入 lookbook 页面时清除徽章
       clearBadge('lookbook');
+
+      // 监听图片更新事件，实时刷新页面
+      const unsubscribe = imageUpdateManager.addListener((type) => {
+        console.log(`🔄 收到图片更新通知: ${type}，刷新 Lookbook 页面`);
+        // 当有新图片时，自动重新加载
+        if (type === 'lookbook' || type === 'all') {
+          loadCollections();
+        }
+      });
+
+      // 返回清理函数，用户离开页面时清除活动状态和监听器
+      return () => {
+        pageActivityManager.clearActivePage();
+        unsubscribe(); // 移除监听器
+      };
     }, [loadCollections])
   );
 

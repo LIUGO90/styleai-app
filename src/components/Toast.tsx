@@ -46,10 +46,14 @@ export function Toast({
         }),
       ]).start();
 
+      let timeOut = duration;
+      if (type === 'info') {
+        timeOut = 2000;
+      }
       // 自动隐藏
       const timer = setTimeout(() => {
         hideToast();
-      }, duration);
+      }, timeOut);
 
       return () => clearTimeout(timer);
     } else {
@@ -130,7 +134,7 @@ export function Toast({
             {message}
           </Text>
         </View>
-        
+
         {action && (
           <TouchableOpacity
             style={styles.actionButton}
@@ -143,7 +147,7 @@ export function Toast({
             <Text style={styles.actionText}>{action.label}</Text>
           </TouchableOpacity>
         )}
-        
+
         <TouchableOpacity
           style={styles.closeButton}
           onPress={hideToast}

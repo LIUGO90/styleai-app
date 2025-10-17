@@ -10,10 +10,11 @@ import { aiRequestForYou, aiRequestLookbook } from "@/services/aiReuest";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallback } from "react";
 import { incrementBadge } from "@/utils/badgeManager";
-import { Toast } from "@/components/Toast";
 import { addImageLook } from "@/services/addLookBook";
 import { StyleTemplateService } from "@/services/StyleTemplateService";
 import { StyleTemplate } from "@/types/styleTemplate.types";
+import { useTemplateGenerationStore } from "@/stores/templateGenerationStore";
+import { useGlobalToast } from "@/utils/globalToast";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -26,32 +27,16 @@ export default function ForYouScreen() {
     const [reloadKey, setReloadKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Toast 状态
-    const [toastVisible, setToastVisible] = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
-    const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('success');
-    const [toastAction, setToastAction] = useState<{ label: string; onPress: () => void } | undefined>();
+    // 使用全局 Toast
+    const { showToast } = useGlobalToast();
 
-    // 加载状态
-    const [isGenerating, setIsGenerating] = useState(false);
+    // 使用 Zustand store 管理每个 template 的生成状态
+    const { setGenerating, isGenerating: isTemplateGenerating, clearAll } = useTemplateGenerationStore();
 
     // 解析传递过来的图片数据
     const imageData = params.image ? JSON.parse(params.image as string) : null;
 
     const [foryou, setForyou] = useState<StyleTemplate[]>([]);
-
-
-    // 显示 Toast 的辅助函数
-    const showToast = (
-        message: string,
-        type: 'success' | 'error' | 'info' | 'warning' = 'success',
-        action?: { label: string; onPress: () => void }
-    ) => {
-        setToastMessage(message);
-        setToastType(type);
-        setToastAction(action);
-        setToastVisible(true);
-    };
 
     // 加载模板数据的函数
     const loadTemplates = async () => {
@@ -89,6 +74,8 @@ export default function ForYouScreen() {
     // 每次页面获得焦点时强制重载
     useFocusEffect(
         useCallback(() => {
+            // 清除所有之前的生成状态
+            clearAll();
             setForyou([]);
             setReloadKey(prev => prev + 1);
             loadTemplates();
@@ -116,33 +103,40 @@ export default function ForYouScreen() {
         try {
             // 安全检查：确保数据已加载
             if (!foryou || foryou.length === 0) {
-                showToast("Loading templates, please wait...", "info");
+                showToast({ message: "Loading templates, please wait...", type: "info" });
                 return;
             }
 
             if (currentIndex >= foryou.length) {
-                showToast("Invalid selection", "error");
+                showToast({ message: "Invalid selection", type: "error" });
                 return;
             }
 
             // 获取当前显示的模板数据
             const currentTemplate = foryou[currentIndex];
+            const currentTemplateId = currentTemplate.id;
             const currentImageUrl = currentTemplate.urls;  // 使用 urls 作为参考图
             const prompt = currentTemplate.prompt;
+
+            // 检查当前 template 是否正在生成
+            if (isTemplateGenerating(currentTemplateId)) {
+                showToast({ message: "This look is already being generated...", type: "info" });
+                return;
+            }
 
             const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
             const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
             const imageUrl = onboardingDataObj.fullBodyPhoto;
 
             if (!imageUrl) {
-                showToast("Please complete onboarding first", "error");
+                showToast({ message: "Please complete onboarding first", type: "error" });
                 return;
             }
             const selectedStyles = imageData.name;
 
-            // 显示加载状态
-            setIsGenerating(true);
-            showToast("Creating your personalized lookbook...", "info");
+            // 设置当前 template 的加载状态
+            setGenerating(currentTemplateId, true);
+            showToast({ message: "Creating your personalized lookbook...", type: "info" });
 
             let imagesUrl: string[] = [];
             // 只使用当前选中的图片
@@ -158,43 +152,34 @@ export default function ForYouScreen() {
                 addImageLook(user?.id || "", selectedStyles, imagesUrl);
 
                 // 显示成功消息
-                showToast(
-                    `Your ${selectedStyles} lookbook has been saved!`,
-                    "success",
-                    {
+                showToast({
+                    message: `Your ${selectedStyles} lookbook has been saved!`,
+                    type: "success",
+                    action: {
                         label: "View",
                         onPress: () => {
                             router.replace("/tabs/lookbook/one");
                         }
                     }
-                );
+                });
 
             } else {
                 console.error('❌ No images generated - imagesUrl is empty or null');
-                showToast("Failed to generate lookbook images", "error");
+                showToast({ message: "Failed to generate lookbook images", type: "error" });
             }
         } catch (error) {
             console.error("Error generating lookbook:", error);
-            showToast("Failed to generate lookbook. Please try again.", "error");
+            showToast({ message: "Failed to generate lookbook. Please try again.", type: "error" });
         } finally {
-            setIsGenerating(false);
+            // 清除当前 template 的加载状态
+            if (foryou[currentIndex]) {
+                setGenerating(foryou[currentIndex].id, false);
+            }
         }
     };
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            {/* Toast 通知 */}
-            <Toast
-                visible={toastVisible}
-                message={toastMessage}
-                type={toastType}
-                action={toastAction}
-                onHide={() => {
-                    setToastVisible(false);
-                    setToastAction(undefined);
-                }}
-            />
-
             {/* Header */}
             <View className="absolute top-10 left-0 right-0 z-12 flex-row justify-between items-center px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200">
                 <TouchableOpacity
@@ -308,11 +293,19 @@ export default function ForYouScreen() {
                         className="bg-black w-full py-4 rounded-xl"
                         activeOpacity={0.8}
                         onPress={handleNext}
-                        disabled={isGenerating || foryou.length === 0}
-                        style={{ opacity: (isGenerating || foryou.length === 0) ? 0.6 : 1 }}
+                        disabled={
+                            foryou.length === 0 || 
+                            (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
+                        }
+                        style={{ 
+                            opacity: (
+                                foryou.length === 0 || 
+                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
+                            ) ? 0.6 : 1 
+                        }}
                     >
                         <View className="flex-row items-center justify-center">
-                            {isGenerating ? (
+                            {foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id) ? (
                                 <>
                                     <ActivityIndicator size="small" color="#ffffff" />
                                     <Text className="text-white text-lg font-semibold ml-2">

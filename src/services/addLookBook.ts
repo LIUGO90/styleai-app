@@ -5,6 +5,7 @@
 import { incrementBadge } from "@/utils/badgeManager";
 import { UserImageService } from '@/services/UserImageService';
 import { ImageStyle } from '@/types/userImage.types';
+import { imageUpdateManager } from '@/utils/imageUpdateManager';
 
 /**
  * 添加 Lookbook 图片到 Supabase
@@ -45,6 +46,9 @@ export const addImageLook = async (
         if (savedImages.length > 0) {
             // 增加 Lookbook 徽章计数
             await incrementBadge('lookbook', savedImages.length);
+
+            // 通知图片更新（用于实时刷新页面）
+            imageUpdateManager.notifyImageUpdate('lookbook');
 
             console.log(`✅ 成功保存 ${savedImages.length} 张图片到 Lookbook`);
             return savedImages;

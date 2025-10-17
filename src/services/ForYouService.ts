@@ -15,7 +15,7 @@ export class ForYouService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('order', { ascending: false });
 
       if (error) {
         console.error('❌ 获取 For You 推荐内容失败:', error);

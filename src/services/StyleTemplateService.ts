@@ -38,13 +38,16 @@ export class StyleTemplateService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .eq('name', name);
+        .eq('name', name)
+        .order('order', { ascending: true });
 
       if (error) {
         console.error('❌ 获取风格模板失败:', error);
         return null;
       }
-
+      // for (const template of data as StyleTemplate[]) {
+      //   console.log(`${template.name} - ${template.order}`);
+      // }
       return data as StyleTemplate[];
     } catch (error) {
       console.error('❌ 获取风格模板异常:', error);

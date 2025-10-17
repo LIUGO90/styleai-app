@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { pageActivityManager } from "./pageActivityManager";
 
 /**
  * 徽章管理工具
@@ -98,11 +99,20 @@ export const getBadge = async (type: BadgeType): Promise<number | undefined> => 
  * 增加徽章数字
  * @param type 徽章类型
  * @param increment 增加的数量（默认 1）
+ * 
+ * 注意：如果用户当前停留在对应的页面，不会增加徽章
  */
 export const incrementBadge = async (type: BadgeType, increment: number = 1): Promise<void> => {
   try {
+    // 检查用户是否在当前页面，如果在则不增加徽章
+    if (pageActivityManager.isPageActive(type)) {
+      console.log(`⏭️ 用户正在 ${type} 页面，跳过徽章增加`);
+      return;
+    }
+
     const current = await getBadge(type) || 0;
     await setBadge(type, current + increment);
+    console.log(`🔔 ${type} 徽章增加 ${increment}，当前: ${current + increment}`);
   } catch (error) {
     console.error(`Failed to increment badge for ${type}:`, error);
   }
