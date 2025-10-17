@@ -27,7 +27,7 @@ export default function HomeScreen() {
 
   // 加载数据函数
   const loadForYouData = useCallback(async () => {
-    const data = await ForYouService.getAllForYouItems();
+    const data = await ForYouService.getAllActiveForYou();
     setForyou(data);
   }, []);
 

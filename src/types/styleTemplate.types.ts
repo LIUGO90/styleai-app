@@ -6,6 +6,7 @@ export interface ForYou {
   url: string;
   created_at?: string;
   updated_at?: string;
+  state: number; // 0: draft, 1: active, 2: pending ,3:deleted
 }
 
 /**

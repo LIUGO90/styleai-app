@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export interface AuthUser extends User {
   name: string;
   email: string;
+  role: string;
 }
 
 export interface AuthContextType {
@@ -127,6 +128,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 ...session.user,
                 name: userName,
                 email: userEmail,
+                role: profile?.role || "",
               } as AuthUser);
 
               // 保存到本地存储（保存 userName 而不是 profile?.name，因为 userName 已经包含了 fallback 逻辑）
