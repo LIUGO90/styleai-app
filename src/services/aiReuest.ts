@@ -79,26 +79,6 @@ export const aisuggest = async (
   }
 };
 
-// 使用Web Worker模拟处理Kling请求
-export const aiRequestKling = async (
-  jobId: string,
-  index: number,
-): Promise<string> => {
-  try {
-    return await webWorkerAIService.aiRequestKling(jobId, index, {
-      onProgress: (progress) => {
-
-      },
-      onStatusChange: (status) => {
-
-      },
-    });
-  } catch (error) {
-    console.error("Kling request failed:", error);
-    return "error";
-  }
-};
-
 // 使用Web Worker模拟处理Gemini请求
 export const aiRequestGemini = async (
   userId: string,

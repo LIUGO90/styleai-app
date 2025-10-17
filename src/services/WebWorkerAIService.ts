@@ -1,6 +1,7 @@
 import { OnboardingData } from "@/components/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetch } from "expo/fetch";
+import { addImageLook } from "./addLookBook";
 
 export interface AIRequestResponse {
   status: string;
@@ -18,7 +19,7 @@ export interface AIRequestOptions {
 
 export interface RequestTask {
   id: string;
-  type: "ai" | "suggest" | "kling" | "gemini" | "chat" | "analyze" | "lookbook" | "delchat" | "foryou";
+  type: "ai" | "suggest" | "gemini" | "chat" | "analyze" | "lookbook" | "delchat" | "foryou";
   args: any[];
   options: AIRequestOptions;
   resolve: (value: any) => void;
@@ -158,14 +159,6 @@ class WebWorkerAIService {
             abortController,
           );
           break;
-        case "kling":
-          result = await this.executeKlingRequest(
-            args[0],
-            args[1],
-            options,
-            abortController,
-          );
-          break;
         case "gemini":
           result = await this.executeGeminiRequest(
             args[0],
@@ -205,6 +198,7 @@ class WebWorkerAIService {
             args[0],
             args[1],
             args[2],
+            args[3],
             options,
             abortController,
           );
@@ -223,18 +217,26 @@ class WebWorkerAIService {
   }
 
 
-  aiRequestForYou(userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
+  aiRequestForYou(requestId: string,userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
     return new Promise((resolve, reject) => {
       const task: RequestTask = {
         id: `foryou_${Date.now()}`,
         type: "foryou",
-        args: [userId, imageUrl, prompt],
+        args: [requestId,userId, imageUrl, prompt],
         options,
         resolve,
         reject,
         abortController: new AbortController(),
       };
       this.addToQueue(task);
+    }).then((result) => {
+      if (result && (result as string[]).length > 0) {
+        addImageLook(userId, "foryou", result as string[]);
+        return result as string[];
+      }
+      return [];
+    }).catch((error) => {
+      throw error;
     });
   }
 
@@ -373,28 +375,6 @@ class WebWorkerAIService {
   }
 
   /**
-   * Kling AI请求
-   */
-  async aiRequestKling(
-    jobId: string,
-    index: number,
-    options: AIRequestOptions = {},
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const task: RequestTask = {
-        id: `kling_${jobId}_${index}_${Date.now()}`,
-        type: "kling",
-        args: [jobId, index],
-        options,
-        resolve,
-        reject,
-        abortController: new AbortController(),
-      };
-      this.addToQueue(task);
-    });
-  }
-
-  /**
    * Gemini AI请求
    */
   async aiRequestGemini(
@@ -510,29 +490,6 @@ class WebWorkerAIService {
   }
 
   /**
-   * 执行Kling请求的具体实现
-   */
-  private async executeKlingRequest(
-    jobId: string,
-    index: number,
-    options: AIRequestOptions,
-    abortController: AbortController,
-  ): Promise<string> {
-    options.onStatusChange?.("processing");
-    options.onProgress?.(30);
-
-    const response = await this.makeRequest(
-      `${process.env.EXPO_PUBLIC_API_URL}/api/apple/kling`,
-      { jobId, index },
-      abortController,
-    );
-
-    options.onProgress?.(80);
-
-    return response.data;
-  }
-
-  /**
    * 执行Gemini请求的具体实现
    */
   private async executeGeminiRequest(
@@ -579,13 +536,13 @@ class WebWorkerAIService {
     return response.data.analysis;
   }
 
-  async executeForYouRequest(userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions, abortController: AbortController): Promise<string[]> {
+  async executeForYouRequest(requestId: string,userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions, abortController: AbortController): Promise<string[]> {
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
 
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/foryou`,
-      { userId, imageUrl, prompt },
+      { requestId,userId, imageUrl, prompt },
       abortController,
     );
 

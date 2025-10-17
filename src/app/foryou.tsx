@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { aiRequestForYou, aiRequestLookbook } from "@/services/aiReuest";
+import { persistentAIService } from "@/services/PersistentAIService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallback } from "react";
 import { incrementBadge } from "@/utils/badgeManager";
@@ -15,6 +16,7 @@ import { StyleTemplateService } from "@/services/StyleTemplateService";
 import { StyleTemplate } from "@/types/styleTemplate.types";
 import { useTemplateGenerationStore } from "@/stores/templateGenerationStore";
 import { useGlobalToast } from "@/utils/globalToast";
+import { usePersistentRequests } from "@/hooks/usePersistentRequests";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -37,6 +39,18 @@ export default function ForYouScreen() {
     const imageData = params.image ? JSON.parse(params.image as string) : null;
 
     const [foryou, setForyou] = useState<StyleTemplate[]>([]);
+
+    // 使用持久化请求 Hook（启用自动恢复）
+    const { pendingRequests, isRestoring, isInitialized, setAutoRestore } = usePersistentRequests({
+        autoRestore: true, // 启用自动恢复
+        onRequestRestored: (request) => {
+            console.log('🔄 ForYou 请求正在恢复:', request);
+            showToast({ 
+                message: "Restoring interrupted request...", 
+                type: "info" 
+            });
+        }
+    });
 
     // 加载模板数据的函数
     const loadTemplates = async () => {
@@ -138,19 +152,19 @@ export default function ForYouScreen() {
             setGenerating(currentTemplateId, true);
             showToast({ message: "Creating your personalized lookbook...", type: "info" });
 
-            let imagesUrl: string[] = [];
-            // 只使用当前选中的图片
-            const resultLookbook = await aiRequestForYou(user?.id || '', [imageUrl, currentImageUrl], prompt);
+            // 使用持久化 AI 服务发起请求，支持中断恢复
+            const resultLookbook = await persistentAIService.requestForYou(
+                user?.id || '', 
+                [imageUrl, currentImageUrl], 
+                prompt,
+                {
+                    onProgress: (progress) => {
+                        console.log(`📊 生成进度: ${progress}%`);
+                    }
+                }
+            );
 
             if (resultLookbook && resultLookbook.length > 0) {
-                imagesUrl.push(resultLookbook[0]);
-            }
-
-            if (imagesUrl && imagesUrl.length > 0) {
-
-                // 保存生成的图片到相册
-                addImageLook(user?.id || "", selectedStyles, imagesUrl);
-
                 // 显示成功消息
                 showToast({
                     message: `Your ${selectedStyles} lookbook has been saved!`,
@@ -169,7 +183,11 @@ export default function ForYouScreen() {
             }
         } catch (error) {
             console.error("Error generating lookbook:", error);
-            showToast({ message: "Failed to generate lookbook. Please try again.", type: "error" });
+            showToast({ 
+                message: "Request interrupted. It will be restored automatically when you reopen the app.", 
+                type: "warning",
+                duration: 5000
+            });
         } finally {
             // 清除当前 template 的加载状态
             if (foryou[currentIndex]) {
@@ -180,6 +198,26 @@ export default function ForYouScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-white">
+            {/* 待恢复请求提示 */}
+            {/* {pendingRequests.length > 0 && (
+                <View className="absolute top-2 left-4 right-4 z-20 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center flex-1">
+                            <MaterialCommunityIcons name="restore" size={20} color="#d97706" />
+                            <Text className="text-amber-700 text-sm ml-2 flex-1">
+                                {isRestoring 
+                                    ? "Restoring interrupted requests..." 
+                                    : `${pendingRequests.length} request(s) will be restored automatically`
+                                }
+                            </Text>
+                        </View>
+                        {isRestoring && (
+                            <ActivityIndicator size="small" color="#d97706" />
+                        )}
+                    </View>
+                </View>
+            )} */}
+
             {/* Header */}
             <View className="absolute top-10 left-0 right-0 z-12 flex-row justify-between items-center px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200">
                 <TouchableOpacity

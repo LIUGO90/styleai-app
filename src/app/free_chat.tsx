@@ -207,7 +207,7 @@ export default function FreeChatScreen() {
             message: 'Analyzing your message...',
         };
         updateMessage(progressMessage);
-        const { message, images } = await chatRequest(user?.id || '', '', text, [image] , currentSession?.id || '');
+        const { message, images } = await chatRequest(user?.id || '', '','','','', text, [image] , currentSession?.id || '');
         dateleMessage(progressMessage.id);
         addMessage({
             id: Date.now().toString(),
