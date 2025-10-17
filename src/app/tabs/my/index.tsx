@@ -9,6 +9,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useImagePicker } from "@/hooks/useImagePicker";
 import { supabase } from "@/utils/supabase";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function MyProfile() {
@@ -180,17 +181,18 @@ export default function MyProfile() {
     {
       id: "Subscription",
       title: "Subscription",
-      icon: "heart" as const,
-      color: "#ef4444",
-      onPress: () => router.replace("/tabs/my/subscription"),
+      icon: "crown" as const,
+      color: "#f59e0b",
+      onPress: () => router.push("/tabs/my/subscription"),
     },
     {
-      id: "subscription-demo'",
-      title: "subscription-demo'",
-      icon: "heart" as const,
-      color: "#ef4444",
-      onPress: () => router.replace("/subscription-demo"),
+      id: "Credits",
+      title: "Credits Store",
+      icon: "star" as const,
+      color: "#fbbf24",
+      onPress: () => router.push("/tabs/my/credit"),
     },
+
 
   ];
 
@@ -306,68 +308,49 @@ export default function MyProfile() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f9fafb" }}>
-      <ScrollView style={{ flex: 1 }}>
-        {/* Header */}
-        <View className="bg-white pt-12 pb-6 px-5">
-          {/* <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-2xl font-bold text-gray-800">My Profile</Text>
-            <View className="flex-row items-center space-x-2">
-              <Pressable
-                onPress={refreshUserInfo}
-                className="p-2"
-                disabled={refreshing}
-              >
-                <MaterialCommunityIcons
-                  name={refreshing ? "loading" : "refresh"}
-                  size={24}
-                  color={refreshing ? "#9ca3af" : "#007AFF"}
-                />
-              </Pressable>
-            </View>
-          </View> */}
-
-          {/* User Info Card */}
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={showImagePickerOptions}
-              disabled={uploading}
-              className="relative mr-4 rounded-full"
-            >
-              <Image
-                source={{ uri: userAvatar }}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                }}
-                cachePolicy="memory-disk"
-                contentFit="cover"
-              />
-              {uploading ? (
-                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
-                  <ActivityIndicator color="white" />
-                </View>
-              ) : (
-                <View className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1.5">
-                  <MaterialCommunityIcons name="camera" size={10} color="white" />
-                </View>
-              )}
-            </TouchableOpacity>
-            <View className="flex-1">
-              <Text className="text-black text-xl font-bold mb-1">
-                {name}
-              </Text>
-              <Text className="text-black text-sm mb-1">
-                {email}
-              </Text>
-              {/* <Text className="text-black text-xs">
+    <SafeAreaView edges={["top"]} className="flex-1 bg-white">
+      <View className="bg-white mt-12 px-6">
+        {/* User Info Card */}
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={showImagePickerOptions}
+            disabled={uploading}
+            className="relative mr-4 rounded-full"
+          >
+            <Image
+              source={{ uri: userAvatar }}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+              }}
+              cachePolicy="memory-disk"
+              contentFit="cover"
+            />
+            {uploading ? (
+              <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                <ActivityIndicator color="white" />
+              </View>
+            ) : (
+              <View className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1.5">
+                <MaterialCommunityIcons name="camera" size={10} color="white" />
+              </View>
+            )}
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text className="text-black text-xl font-bold mb-1">
+              {name}
+            </Text>
+            <Text className="text-black text-sm mb-1">
+              {email}
+            </Text>
+            {/* <Text className="text-black text-xs">
                 Member since {userData.memberSince}
               </Text>
               <Text className="text-black-100 text-xs">
                 Signed in with {userData.provider}
               </Text> */}
-              {/* {userData.isVerified && (
+            {/* {userData.isVerified && (
                   <View className="flex-row items-center mt-1">
                     <MaterialCommunityIcons
                       name="check-circle"
@@ -379,98 +362,94 @@ export default function MyProfile() {
                     </Text>
                   </View>
                 )} */}
-            </View>
-            <Pressable className="p-2">
-              <MaterialCommunityIcons name="pencil" size={20} color="white" />
-            </Pressable>
           </View>
-        </View>
-
-
-
-        {/* Menu Items */}
-        <View
-          className="bg-white rounded-2xl p-4 m-6"
-        >
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Settings & Preferences
-          </Text>
-          <View className="space-y-2">
-            {menuItems.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={item.onPress}
-                className="flex-row items-center p-4 my-2 rounded-xl bg-gray-50"
-              >
-                <View
-                  className="w-10 h-10 rounded-full items-center justify-center mr-4"
-                  style={{ backgroundColor: `${item.color}20` }}
-                >
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={20}
-                    color={item.color}
-                  />
-                </View>
-                <Text className="flex-1 text-gray-700 font-medium">
-                  {item.title}
-                </Text>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color="#9ca3af"
-                />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Logout Button */}
-        <View style={{ marginHorizontal: 20, marginBottom: 16 }}>
-          <Pressable
-            onPress={logout}
-            style={{
-              backgroundColor: "#fef2f2",
-              borderWidth: 1,
-              borderColor: "#fecaca",
-              borderRadius: 16,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <MaterialCommunityIcons name="logout" size={20} color="#ef4444" />
-            <Text className="text-red-600 font-medium ml-2">Log Out</Text>
+          <Pressable className="p-2">
+            <MaterialCommunityIcons name="pencil" size={20} color="white" />
           </Pressable>
         </View>
+      </View>
 
-        {/* Revoke Apple Authorization Button - Only for Apple Users */}
-        {(session?.access_token === "apple_dev_token" ||
-          user?.user_metadata?.provider === "apple" ||
-          user?.app_metadata?.provider === "apple") && (
-            <View style={{ marginHorizontal: 20, marginBottom: 32 }}>
-              <Pressable
-                onPress={revokeAppleAuthorization}
-                style={{
-                  backgroundColor: "#1e1b4b",
-                  borderWidth: 1,
-                  borderColor: "#4338ca",
-                  borderRadius: 16,
-                  padding: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+     {/* Menu Items */}
+      <View className=" flex-1 bg-white rounded-2xl p-4 m-6"
+      >
+        <Text className="text-lg font-semibold text-gray-800 mb-4">
+          Settings & Preferences
+        </Text>
+        <View className="space-y-2">
+          {menuItems.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={item.onPress}
+              className="flex-row items-center p-4 my-2 rounded-xl bg-gray-50"
+            >
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center mr-4"
+                style={{ backgroundColor: `${item.color}20` }}
               >
-                <MaterialCommunityIcons name="shield-lock-open" size={20} color="#a5b4fc" />
-                <Text style={{ color: "#a5b4fc", fontWeight: "600", marginLeft: 8 }}>
-                  Revoke Apple Authorization
-                </Text>
-              </Pressable>
-            </View>
-          )}
-      </ScrollView>
-    </View>
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={20}
+                  color={item.color}
+                />
+              </View>
+              <Text className="flex-1 text-gray-700 font-medium">
+                {item.title}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color="#9ca3af"
+              />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* Logout Button */}
+      <View style={{ marginHorizontal: 20, marginBottom: 16 }}>
+        <Pressable
+          onPress={logout}
+          style={{
+            backgroundColor: "#fef2f2",
+            borderWidth: 1,
+            borderColor: "#fecaca",
+            borderRadius: 16,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <MaterialCommunityIcons name="logout" size={20} color="#ef4444" />
+          <Text className="text-red-600 font-medium ml-2">Log Out</Text>
+        </Pressable>
+      </View>
+
+      {/* Revoke Apple Authorization Button - Only for Apple Users */}
+      {(session?.access_token === "apple_dev_token" ||
+        user?.user_metadata?.provider === "apple" ||
+        user?.app_metadata?.provider === "apple") && (
+          <View style={{ marginHorizontal: 20, marginBottom: 32 }}>
+            <Pressable
+              onPress={revokeAppleAuthorization}
+              style={{
+                backgroundColor: "#1e1b4b",
+                borderWidth: 1,
+                borderColor: "#4338ca",
+                borderRadius: 16,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MaterialCommunityIcons name="shield-lock-open" size={20} color="#a5b4fc" />
+              <Text style={{ color: "#a5b4fc", fontWeight: "600", marginLeft: 8 }}>
+                Revoke Apple Authorization
+              </Text>
+            </Pressable>
+          </View>
+        )}
+    </SafeAreaView>
   );
 }

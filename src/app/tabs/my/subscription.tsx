@@ -1,15 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSubscription, usePurchase, useManageSubscription } from '@/hooks/useRevenueCat';
-import Paywall from '@/components/Paywall';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SubscriptionScreen() {
-  const { isActive, isPro, expirationDate, willRenew, productIdentifier, loading } = useSubscription();
+  const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
   const { restore, restoring } = usePurchase();
   const { showManageSubscriptions } = useManageSubscription();
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
+
+  // 获取详细的订阅信息
+  useEffect(() => {
+    if (customerInfo && isActive) {
+      const activeEntitlements = customerInfo.entitlements.active;
+      const entitlementKeys = Object.keys(activeEntitlements);
+      
+      if (entitlementKeys.length > 0) {
+        const activeEntitlement = activeEntitlements[entitlementKeys[0]];
+        setSubscriptionDetails({
+          productIdentifier: activeEntitlement.productIdentifier,
+          expirationDate: activeEntitlement.expirationDate,
+          purchaseDate: activeEntitlement.latestPurchaseDate,
+          originalPurchaseDate: activeEntitlement.originalPurchaseDate,
+          willRenew: activeEntitlement.willRenew,
+          periodType: activeEntitlement.periodType,
+          isSandbox: activeEntitlement.isSandbox,
+          billingIssueDetectedAt: activeEntitlement.billingIssueDetectedAt,
+          unsubscribeDetectedAt: activeEntitlement.unsubscribeDetectedAt,
+        });
+      }
+    } else {
+      setSubscriptionDetails(null);
+    }
+  }, [customerInfo, isActive]);
 
   const handleRestore = async () => {
     try {
@@ -17,6 +42,42 @@ export default function SubscriptionScreen() {
       Alert.alert('成功', '已恢复购买');
     } catch (error) {
       Alert.alert('失败', '无法恢复购买，请稍后重试');
+    }
+  };
+
+  // 查看完整订阅信息（开发调试用）
+  const handleViewFullDetails = () => {
+    if (customerInfo) {
+      const activeEntitlements = customerInfo.entitlements.active;
+      const allEntitlements = customerInfo.entitlements.all;
+      const activeSubscriptions = customerInfo.activeSubscriptions;
+      const allPurchaseDates = customerInfo.allPurchaseDates;
+      
+      const details = {
+        userId: customerInfo.originalAppUserId,
+        activeSubscriptions,
+        allPurchaseDates,
+        activeEntitlements: Object.keys(activeEntitlements),
+        allEntitlements: Object.keys(allEntitlements),
+        requestDate: customerInfo.requestDate,
+        firstSeen: customerInfo.firstSeen,
+        managementURL: customerInfo.managementURL,
+        subscriptionDetails: subscriptionDetails,
+      };
+      
+      console.log('📊 Complete Subscription Info:', JSON.stringify(details, null, 2));
+      
+      Alert.alert(
+        'Subscription Information',
+        `User ID: ${customerInfo.originalAppUserId}\n\n` +
+        `Active Subscriptions: ${activeSubscriptions.length}\n` +
+        `${activeSubscriptions.join(', ')}\n\n` +
+        `Active Entitlements: ${Object.keys(activeEntitlements).join(', ') || 'None'}\n\n` +
+        `Full details logged to console.`,
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert('No Subscription Data', 'No subscription information available');
     }
   };
 
@@ -29,188 +90,233 @@ export default function SubscriptionScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-white">
+    <SafeAreaView edges={["top"]} className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-6 pt-12 pb-6 bg-black">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mb-4"
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
-        </TouchableOpacity>
-        <Text className="text-white text-3xl font-bold">订阅管理</Text>
+      <View className="px-6 pt-4 pb-2">
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity
+            onPress={() => router.replace("/tabs/my")}
+            className="p-2"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color="black" />
+          </TouchableOpacity>
+          <Text className="text-black text-xl font-bold">Subscription</Text>
+          <TouchableOpacity
+            onPress={handleViewFullDetails}
+            className="p-2"
+          >
+            <MaterialCommunityIcons name="information-outline" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Subscription Status */}
-      <View className="px-6 py-6">
-        {isActive ? (
-          <View className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-2xl border-2 border-purple-200">
-            <View className="flex-row items-center mb-4">
-              <View className="w-12 h-12 rounded-full bg-purple-600 items-center justify-center mr-4">
-                <MaterialCommunityIcons name="crown" size={24} color="white" />
-              </View>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Premium Subscription Card */}
+        <View className="px-6 mb-6  rounded-2xl">
+          <View className="bg-gradient-to-br from-amber-50 bg-orange-50 to-orange-100 rounded-2xl p-6 border border-orange-200">
+            <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-xl font-bold text-gray-900">Pro 会员</Text>
-                <Text className="text-purple-600 font-semibold">当前激活</Text>
+                <Text className="text-3xl font-bold text-orange-800 mb-1">
+                  {isActive ? 'Premium' : 'Free'}
+                </Text>
+                <Text className="text-orange-700 text-lg mb-2">
+                  {isActive ? '1000 Free Credits/Month' : 'Upgrade to Premium'}
+                </Text>
+                <Text className="text-gray-500 text-sm">
+                  {isActive && expirationDate 
+                    ? `${willRenew ? 'Renew' : 'Expires'} on ${new Date(expirationDate).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}`
+                    : isActive 
+                      ? 'Active subscription'
+                      : 'No active subscription'
+                  }
+                </Text>
+                {productIdentifier && (
+                  <Text className="text-gray-400 text-xs mt-1">
+                    Plan: {productIdentifier}
+                  </Text>
+                )}
+              </View>
+              <View className="w-16 h-16 bg-orange-200 rounded-full items-center justify-center">
+                <MaterialCommunityIcons name="crown" size={32} color="#ea580c" />
               </View>
             </View>
+          </View>
+        </View>
 
-            <View className="bg-white/50 rounded-xl p-4 mb-4">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-600">订阅计划</Text>
-                <Text className="font-semibold text-gray-900">{productIdentifier}</Text>
+        {/* Subscription Details - 当前订阅详情 */}
+        {isActive && subscriptionDetails && (
+          <View className="px-6 mb-6">
+            <Text className="text-lg font-bold text-gray-900 mb-3">Current Subscription Details</Text>
+            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              {/* Subscription Status */}
+              <View className="mb-3">
+                <Text className="text-xs text-gray-500 mb-1">Status</Text>
+                <View className="flex-row items-center">
+                  <MaterialCommunityIcons 
+                    name={willRenew ? "check-circle" : "alert-circle"} 
+                    size={16} 
+                    color={willRenew ? "#22c55e" : "#f59e0b"} 
+                  />
+                  <Text className="text-sm font-semibold text-gray-900 ml-2">
+                    {willRenew ? 'Active - Will Renew' : subscriptionDetails.unsubscribeDetectedAt ? 'Canceled' : 'Active'}
+                  </Text>
+                </View>
               </View>
-              {expirationDate && (
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">{willRenew ? '下次续订' : '到期时间'}</Text>
-                  <Text className="font-semibold text-gray-900">
-                    {new Date(expirationDate).toLocaleDateString('zh-CN')}
+
+              {/* Purchase Date */}
+              {subscriptionDetails.purchaseDate && (
+                <View className="mb-3">
+                  <Text className="text-xs text-gray-500 mb-1">Purchase Date</Text>
+                  <Text className="text-sm text-gray-900">
+                    {new Date(subscriptionDetails.purchaseDate).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </Text>
+                </View>
+              )}
+
+              {/* Next Billing Date - 下一次续订日期 */}
+              {subscriptionDetails.expirationDate && willRenew && (
+                <View className="mb-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <Text className="text-xs text-blue-600 mb-1 font-semibold">Next Billing Date</Text>
+                  <Text className="text-sm font-bold text-blue-900">
+                    {new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </Text>
+                  <Text className="text-xs text-blue-700 mt-1">
+                    Your subscription will automatically renew on this date
+                  </Text>
+                </View>
+              )}
+
+              {/* Expiration Date (if not renewing) */}
+              {subscriptionDetails.expirationDate && !willRenew && (
+                <View className="mb-3 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                  <Text className="text-xs text-amber-600 mb-1 font-semibold">Expires On</Text>
+                  <Text className="text-sm font-bold text-amber-900">
+                    {new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </Text>
+                  <Text className="text-xs text-amber-700 mt-1">
+                    Your subscription will not renew. Reactivate before expiration to continue.
+                  </Text>
+                </View>
+              )}
+
+              {/* Period Type */}
+              {subscriptionDetails.periodType && (
+                <View className="mb-3">
+                  <Text className="text-xs text-gray-500 mb-1">Billing Period</Text>
+                  <Text className="text-sm text-gray-900 capitalize">
+                    {subscriptionDetails.periodType}
+                  </Text>
+                </View>
+              )}
+
+              {/* Billing Issues */}
+              {subscriptionDetails.billingIssueDetectedAt && (
+                <View className="mb-3 bg-red-50 p-3 rounded-lg border border-red-200">
+                  <View className="flex-row items-center mb-1">
+                    <MaterialCommunityIcons name="alert" size={16} color="#ef4444" />
+                    <Text className="text-xs text-red-600 ml-1 font-semibold">Billing Issue Detected</Text>
+                  </View>
+                  <Text className="text-xs text-red-700">
+                    Please update your payment method to avoid service interruption
+                  </Text>
+                </View>
+              )}
+
+              {/* Sandbox Mode */}
+              {subscriptionDetails.isSandbox && (
+                <View className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-300">
+                  <Text className="text-xs text-yellow-700 text-center">
+                    🧪 Test Mode - This is a sandbox subscription
                   </Text>
                 </View>
               )}
             </View>
-
-            {/* Premium Features */}
-            <View className="mb-4">
-              <Text className="font-bold text-gray-900 mb-3">Pro 特权</Text>
-              <FeatureItem icon="check-circle" text="无限 AI 造型建议" />
-              <FeatureItem icon="check-circle" text="高级穿搭推荐" />
-              <FeatureItem icon="check-circle" text="个人风格档案" />
-              <FeatureItem icon="check-circle" text="无限保存搭配" />
-              <FeatureItem icon="check-circle" text="优先客户支持" />
-            </View>
-
-            <TouchableOpacity
-              onPress={showManageSubscriptions}
-              className="bg-purple-600 rounded-full py-4"
-            >
-              <Text className="text-white text-center font-bold">管理订阅</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View className="bg-gray-50 p-6 rounded-2xl border-2 border-gray-200">
-            <View className="items-center mb-6">
-              <View className="w-16 h-16 rounded-full bg-gray-200 items-center justify-center mb-4">
-                <MaterialCommunityIcons name="crown-outline" size={32} color="#9ca3af" />
-              </View>
-              <Text className="text-xl font-bold text-gray-900 mb-2">免费版本</Text>
-              <Text className="text-gray-600 text-center">
-                升级到 Pro 解锁所有高级功能
-              </Text>
-            </View>
-
-            {/* Features Preview */}
-            <View className="mb-6">
-              <Text className="font-bold text-gray-900 mb-3">Pro 特权包括</Text>
-              <FeatureItem icon="star" text="无限 AI 造型建议" locked />
-              <FeatureItem icon="star" text="高级穿搭推荐" locked />
-              <FeatureItem icon="star" text="个人风格档案" locked />
-              <FeatureItem icon="star" text="无限保存搭配" locked />
-            </View>
-
-            <TouchableOpacity
-              onPress={() => setShowPaywall(true)}
-              className="bg-black rounded-full py-4 mb-3"
-            >
-              <Text className="text-white text-center font-bold text-lg">
-                升级到 Pro 🌟
-              </Text>
-            </TouchableOpacity>
-
-            <Text className="text-center text-gray-500 text-xs">
-              7 天无理由退款保证
-            </Text>
           </View>
         )}
 
-        {/* Restore Purchases */}
-        <TouchableOpacity
-          onPress={handleRestore}
-          disabled={restoring}
-          className="mt-6 py-4 border border-gray-300 rounded-full"
-        >
-          {restoring ? (
-            <ActivityIndicator color="#666" />
-          ) : (
-            <Text className="text-center text-gray-700 font-semibold">
-              恢复购买
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* FAQ */}
-        <View className="mt-8">
-          <Text className="font-bold text-lg mb-4">常见问题</Text>
-
-          <FAQItem 
-            question="如何取消订阅？"
-            answer="在 iPhone 的设置 → [您的姓名] → 订阅中管理，或点击上方【管理订阅】按钮"
-          />
-          <FAQItem 
-            question="可以退款吗？"
-            answer="我们提供 7 天无理由退款。请联系客服处理。"
-          />
-          <FAQItem 
-            question="订阅会自动续费吗？"
-            answer="是的，订阅会自动续费。您可以随时在设置中取消。"
-          />
+        {/* Management Options */}
+        <View className="px-6 mb-6">
+          <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            {isActive && (
+              <>
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      await showManageSubscriptions();
+                    } catch (error) {
+                      Alert.alert('Error', 'Unable to open subscription management. Please manage your subscription through your device settings.');
+                    }
+                  }}
+                  className="flex-row items-center justify-between py-4"
+                >
+                  <View className="flex-row items-center">
+                    <MaterialCommunityIcons name="cog" size={24} color="#3b82f6" />
+                    <Text className="text-lg font-semibold text-gray-900 ml-3">Manage Subscription</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
+                </TouchableOpacity>
+                
+                <View className="h-px bg-gray-200 my-2" />
+              </>
+            )}
+            
+            <TouchableOpacity
+              onPress={handleRestore}
+              disabled={restoring}
+              className="flex-row items-center justify-between py-4"
+            >
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons name="restore" size={24} color="#3b82f6" />
+                <Text className="text-lg font-semibold text-gray-900 ml-3">Restore Purchase</Text>
+              </View>
+              {restoring ? (
+                <ActivityIndicator color="#3b82f6" size="small" />
+              ) : (
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {/* Paywall Modal */}
-      {showPaywall && (
-        <View className="absolute inset-0 bg-white">
-          <Paywall
-            onClose={() => setShowPaywall(false)}
-            onPurchaseSuccess={() => {
-              setShowPaywall(false);
-              Alert.alert('欢迎加入 Pro！', '感谢您的支持！🎉');
-            }}
-          />
+        {/* Navigate to Credits */}
+        <View className="px-6 mb-6">
+          <TouchableOpacity
+            onPress={() => router.push('/tabs/my/credit')}
+            className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-orange-200"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <View className="flex-row items-center mb-2">
+                  <MaterialCommunityIcons name="star" size={24} color="#f59e0b" />
+                  <Text className="text-xl font-bold text-orange-900 ml-2">Buy Credits</Text>
+                </View>
+                <Text className="text-orange-700 text-sm">
+                  Get more AI credits to generate outfits
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#f59e0b" />
+            </View>
+          </TouchableOpacity>
         </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-function FeatureItem({ icon, text, locked = false }: { icon: string; text: string; locked?: boolean }) {
-  return (
-    <View className="flex-row items-center mb-3">
-      <MaterialCommunityIcons
-        name={icon as any}
-        size={20}
-        color={locked ? '#9ca3af' : '#10b981'}
-      />
-      <Text className={`ml-3 flex-1 ${locked ? 'text-gray-500' : 'text-gray-900'}`}>
-        {text}
-      </Text>
-      {locked && (
-        <MaterialCommunityIcons name="lock" size={16} color="#9ca3af" />
-      )}
-    </View>
-  );
-}
-
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  const [expanded, setExpanded] = React.useState(false);
-
-  return (
-    <TouchableOpacity
-      onPress={() => setExpanded(!expanded)}
-      className="mb-4 bg-gray-50 rounded-xl p-4"
-    >
-      <View className="flex-row justify-between items-center">
-        <Text className="font-semibold text-gray-900 flex-1 pr-2">{question}</Text>
-        <MaterialCommunityIcons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={24}
-          color="#666"
-        />
-      </View>
-      {expanded && (
-        <Text className="mt-3 text-gray-600 leading-6">{answer}</Text>
-      )}
-    </TouchableOpacity>
-  );
-}
-

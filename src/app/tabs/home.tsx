@@ -51,11 +51,11 @@ export default function HomeScreen() {
     try {
       // 清除图片缓存
       console.log('🧹 开始清除图片缓存...');
-      await Promise.all([
-        Image.clearMemoryCache(),  // 清除内存缓存
-        Image.clearDiskCache(),    // 清除磁盘缓存
-      ]);
-      console.log('✅ 图片缓存清除完成');
+      // await Promise.all([
+      //   Image.clearMemoryCache(),  // 清除内存缓存
+      //   Image.clearDiskCache(),    // 清除磁盘缓存
+      // ]);
+      // console.log('✅ 图片缓存清除完成');
       
       // 清空现有数据，强制重新渲染
       // setForyou([]);

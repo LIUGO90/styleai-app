@@ -101,7 +101,12 @@ export function AppleAuth() {
               console.log("🧐 用户已经上传全身照")
               onboardingData.fullBodyPhoto = userProfile.fullbodyphoto
               AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
-              router.replace("/");
+              if (userProfile?.images && userProfile?.images.length > 0) {
+                await AsyncStorage.setItem("newlook", JSON.stringify(userProfile.images));
+                router.replace("/");
+              }else{
+                router.replace("/onboarding");
+              }
             } else {
               router.replace("/onboarding");
             }

@@ -10,6 +10,7 @@ import { OnboardingData } from "@/components/types";
 import { aiRequestLookbook } from "@/services/aiReuest";
 import { useAuth } from "@/contexts/AuthContext";
 import { addImageLook } from "@/services/addLookBook";
+import { supabase } from "@/utils/supabase";
 
 
 export default function Five() {
@@ -127,6 +128,11 @@ export default function Five() {
           "newlook",
           JSON.stringify(imagesUrl),
         );
+
+        supabase.from('profiles').update({
+          images: imagesUrl,
+        }).eq('id', user?.id || '');
+        
         setIsUploading(false);
         router.push("/onboarding/BaseSix");
       }

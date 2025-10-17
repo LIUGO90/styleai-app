@@ -1,19 +1,30 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack } from "expo-router";
 
 export default function Layout() {
-  const pathname = usePathname();
-
   return (
     <Stack
       screenOptions={{
-        animation: pathname.startsWith("/second") ? "default" : "none",
+        headerShown: false,
+        animation: 'none', // 禁用所有动画
       }}
     >
-      <Stack.Screen name="index" options={{ title: "User Profile" }} />
-      <Stack.Screen name="nested" options={{ title: "Second Nested" }} />
-      <Stack.Screen
-        name="also-nested"
-        options={{ title: "Second Also Nested" }}
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
+        name="subscription" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
+        name="credit" 
+        options={{ 
+          animation: 'none',
+        }} 
       />
     </Stack>
   );

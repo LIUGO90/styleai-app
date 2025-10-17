@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import "../../../global.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -128,6 +128,7 @@ export default function RootLayout() {
             tabBarBadge: myBadge, // 动态徽章数字
             tabBarBadgeStyle: tabStyles.badgeStyle,
             title: "My",
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons
                 name="account-outline"
@@ -136,6 +137,29 @@ export default function RootLayout() {
               />
             ),
           }}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              // 获取当前导航状态
+              const state = navigation.getState();
+              const currentRoute = state.routes[state.index];
+              
+              // 检查是否已经在 my tab 的 index 页面
+              if (currentRoute.name === 'my') {
+                const myState = currentRoute.state;
+                
+                // 如果没有子路由或者在 index 页面，不做任何操作
+                if (!myState || myState.index === 0 || myState.routes[myState.index].name === 'index') {
+                  console.log('✅ 已经在 my/index，无需跳转');
+                  return; // 不做任何操作
+                }
+              }
+              
+              // 在子页面（如 subscription），阻止默认行为并跳转到 index
+              e.preventDefault();
+              console.log('🔄 从子页面跳转到 my/index');
+              router.replace('/tabs/my');
+            },
+          })}
         />
 
         <Tabs.Screen

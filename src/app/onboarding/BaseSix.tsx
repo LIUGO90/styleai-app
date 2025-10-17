@@ -15,6 +15,11 @@ import DotsContainer from "@/components/dotsContainer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import revenueCatService from "@/services/RevenueCatService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOfferings, usePurchase, useSubscription } from "@/hooks/useRevenueCat";
+import { PurchasesPackage } from "react-native-purchases";
+import { supabase } from "@/utils/supabase";
+import { useCreatePayment } from "@/hooks/usePayment";
+import { validatePurchaseResult, validateDatabaseSync, isUserCancelledError } from "@/utils/purchaseValidation";
 
 
 // RevenueCat 初始化组件
@@ -42,21 +47,35 @@ function RevenueCatInitializer() {
 
 
 const imagewidth = Dimensions.get("window").width * 0.4 > 180 ? 180 : Dimensions.get("window").width * 0.4;
+
 export default function BaseSix() {
   const router = useRouter();
   const [name, setName] = useState<string>("");
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [image, setImage] = useState<string[]>([]);
   const [loadingImage1, setLoadingImage1] = useState(true);
   const [loadingImage2, setLoadingImage2] = useState(true);
 
+  // RevenueCat hooks
+  const { currentOffering, loading: offeringsLoading } = useOfferings();
+  const { purchase, purchasing } = usePurchase();
+  const { refresh: refreshSubscription } = useSubscription();
+  const { createPaymentFromRevenueCat } = useCreatePayment();
+
   useEffect(() => {
     loadImagesUrl();
   }, []);
+
+  useEffect(() => {
+    // 自动选择第一个订阅选项
+    if (currentOffering?.availablePackages && currentOffering.availablePackages.length > 0 && !selectedPackage) {
+      setSelectedPackage(currentOffering.availablePackages[0]);
+    }
+  }, [currentOffering]);
+
   const loadImagesUrl = async () => {
     const imagesUrl = await AsyncStorage.getItem("newlook");
     if (imagesUrl) {
-
       setImage(JSON.parse(imagesUrl) as string[]);
     }
   }
@@ -69,13 +88,128 @@ export default function BaseSix() {
     });
   };
 
-  const handlePlanSelect = (planId: string) => {
-    setSelectedPlan(planId);
+  const handlePlanSelect = (pkg: PurchasesPackage) => {
+    setSelectedPackage(pkg);
+  };
+
+  const handlePurchase = async () => {
+    if (!selectedPackage) {
+      Alert.alert('提示', '请选择订阅计划');
+      return;
+    }
+
+    try {
+      console.log('🔄 Starting subscription purchase...');
+      
+      // 1. 通过 RevenueCat 购买
+      const result = await purchase(selectedPackage);
+      
+      // 验证购买结果
+      const purchaseValidation = validatePurchaseResult(result);
+      console.log(purchaseValidation.success ? '✅' : '❌', 'Phase 1:', purchaseValidation.message);
+      
+      if (!purchaseValidation.success) {
+        throw new Error(purchaseValidation.message);
+      }
+      
+      // 2. 同步到数据库
+      const payment = await createPaymentFromRevenueCat(
+        result.customerInfo,
+        selectedPackage
+      );
+      
+      // 验证数据库同步
+      const syncValidation = validateDatabaseSync(
+        payment,
+        selectedPackage.product.identifier
+      );
+      console.log(syncValidation.success ? '✅' : '⚠️', 'Phase 2:', syncValidation.message);
+      
+      if (payment) {
+        console.log('✅ Subscription payment saved to database:', payment.id);
+      } else {
+        console.warn('⚠️ Failed to save subscription payment to database');
+      }
+      
+      // 3. 刷新订阅状态
+      await refreshSubscription();
+      console.log('✅ Phase 3: Subscription status refreshed');
+
+      // 4. 成功处理
+      if (purchaseValidation.success) {
+        console.log('🎉 Subscription purchase completed successfully!');
+        
+        Alert.alert(
+          '订阅成功！',
+          `您的订阅已激活，现在可以使用所有高级功能了！\n\n${syncValidation.success ? '所有数据已同步完成' : '数据正在后台同步'}`,
+          [
+            {
+              text: 'OK',
+              onPress: handleNext,
+            },
+          ]
+        );
+      }
+      
+    } catch (error: any) {
+      if (isUserCancelledError(error)) {
+        console.log('ℹ️ User cancelled subscription purchase');
+        return;
+      }
+      
+      console.error('❌ Subscription error:', error);
+      Alert.alert(
+        '订阅失败',
+        '无法完成订阅，请稍后重试',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // 获取套餐标题
+  const getPackageTitle = (pkg: PurchasesPackage): string => {
+    const identifier = pkg.identifier.toLowerCase();
+    if (identifier.includes('annual') || identifier.includes('yearly')) {
+      return 'Yearly';
+    } else if (identifier.includes('monthly')) {
+      return 'Monthly';
+    } else if (identifier.includes('quarter')) {
+      return 'Quarterly';
+    }
+    return pkg.product.title;
+  };
+
+  // 计算每日价格
+  const getDailyPrice = (pkg: PurchasesPackage): string => {
+    const price = pkg.product.price;
+    const identifier = pkg.identifier.toLowerCase();
+
+    if (identifier.includes('annual') || identifier.includes('yearly')) {
+      return `$${(price / 365).toFixed(2)} per day`;
+    } else if (identifier.includes('quarter')) {
+      return `$${(price / 90).toFixed(2)} per day`;
+    } else if (identifier.includes('monthly')) {
+      return `$${(price / 30).toFixed(2)} per day`;
+    }
+    return pkg.product.priceString;
+  };
+
+  // 获取折扣标签
+  const getDiscountLabel = (pkg: PurchasesPackage, packages: PurchasesPackage[]): string | null => {
+    const identifier = pkg.identifier.toLowerCase();
+
+    if (identifier.includes('annual') || identifier.includes('yearly')) {
+      return `25% OFF`;
+    } else if (identifier.includes('quarter')) {
+      return `10% OFF`;
+    }
+
+    return null;
   };
 
   return (
     <View className="flex-1">
-      {/* <RevenueCatInitializer /> */}
+      <RevenueCatInitializer />
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -147,115 +281,97 @@ export default function BaseSix() {
           </Text>
         </View>
 
-        {/* <View className="flex-row justify-between h-40 px-5">
-          <Pressable
-            onPress={() => handlePlanSelect("monthly")}
-            className={`flex-1 rounded-3xl border-2 h-40 mx-2 overflow-hidden ${selectedPlan === "monthly"
-              ? "border-orange-500 bg-orange-50"
-              : "border-gray-300"
-              }`}
-            disabled={false}
-          >
-            <View className="flex-1 overflow-hidden bg-gray-300">
-              <View className="flex-1 bg-white rounded-t-3xl rounded-3xl">
-                <Text className={`text-center py-5 font-medium text-black`}>
-                  Monthly
-                </Text>
-                <Text
-                  className={`text-sm py-2 text-center font-medium text-gray-500`}
-                >
-                  $0.33 per day
-                </Text>
-              </View>
-              <Text
-                className={`text-center py-2 font-medium text-orange-500 h-10`}
-              >
-                $9.99
+        <View className="flex-row justify-between h-40 px-5">
+          {offeringsLoading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#f97316" />
+              <Text className="text-gray-600 mt-2">Loading plans...</Text>
+            </View>
+          ) : !currentOffering || currentOffering.availablePackages.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-gray-600 text-center">
+                No subscription plans available at the moment
               </Text>
             </View>
-          </Pressable>
+          ) : (
+            currentOffering.availablePackages.slice(0, 3).map((pkg, index) => {
+              const isSelected = selectedPackage?.identifier === pkg.identifier;
+              const discountLabel = getDiscountLabel(pkg, currentOffering.availablePackages);
 
-          <Pressable
-            onPress={() => handlePlanSelect("quarterly")}
-            className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative ${selectedPlan === "quarterly"
-              ? "border-orange-500 bg-orange-50"
-              : "border-gray-300 bg-gray-300"
-              }`}
-            disabled={false}
-          >
-
-            <View className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
-              <View className="bg-orange-500 rounded-2xl px-3 py-1">
-                <Text className="text-white text-xs font-bold">10% OFF</Text>
-              </View>
-            </View>
-            <View className="flex-1  overflow-hidden bg-gray-300 rounded-3xl">
-              <View className="flex-1 bg-white rounded-t-3xl rounded-3xl">
-                <Text className={`text-center py-5 font-medium text-black`}>
-                  Quarterly
-                </Text>
-                <Text
-                  className={`text-sm py-2 text-center font-medium text-gray-500`}
+              return (
+                <Pressable
+                  key={pkg.identifier}
+                  onPress={() => handlePlanSelect(pkg)}
+                  className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative overflow-hidden ${isSelected
+                    ? "border-orange-500 bg-orange-50"
+                    : "border-gray-300 bg-gray-300"
+                    }`}
+                  disabled={purchasing}
                 >
-                  $0.28 per day
-                </Text>
-              </View>
-              <Text
-                className={`text-center py-2 font-medium text-orange-500 h-10`}
-              >
-                $24.99
-              </Text>
-            </View>
-          </Pressable>
+                  {discountLabel && (
+                    <View className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
+                      <View className="bg-orange-500 rounded-2xl px-3 py-1">
+                        <Text className="text-white text-xs font-bold">{discountLabel}</Text>
+                      </View>
+                    </View>
+                  )}
 
-          <Pressable
-            onPress={() => handlePlanSelect("yearly")}
-            className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative ${selectedPlan === "yearly"
-              ? "border-orange-500 bg-orange-50"
-              : "border-gray-300 bg-gray-300"
-              }`}
-            disabled={false}
-          >
-            <View className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
-              <View className="bg-orange-500 rounded-2xl px-3 py-1">
-                <Text className="text-white text-xs font-bold">10% OFF</Text>
-              </View>
-            </View>
-            <View className="flex-1  overflow-hidden bg-gray-300 rounded-3xl">
-              <View className="flex-1 bg-white rounded-t-3xl rounded-3xl">
-                <Text className={`text-center py-5 font-medium text-black`}>
-                  Yearly
-                </Text>
-                <Text
-                  className={`text-sm py-2 text-center font-medium text-gray-500`}
-                >
-                  $0.23 per day
-                </Text>
-              </View>
-              <Text
-                className={`text-center py-2 font-medium text-orange-500 h-10`}
-              >
-                $84.99
-              </Text>
-            </View>
-          </Pressable>
-        </View> */}
+                  <View className="flex-1 overflow-hidden bg-gray-300 rounded-3xl">
+                    <View className="flex-1 bg-white rounded-t-3xl rounded-3xl">
+                      <Text className="text-center py-5 font-medium text-black">
+                        {getPackageTitle(pkg)}
+                      </Text>
+                      <Text className="text-sm py-2 text-center font-medium text-gray-500">
+                        {getDailyPrice(pkg)}
+                      </Text>
+                    </View>
+                    <Text className="text-center py-2 font-medium text-orange-500 h-10">
+                      {pkg.product.priceString}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
 
         <View className="p-5 mb-10">
-          <View className="flex-row space-x-4">
+          {/* 订阅按钮 */}
+          {currentOffering && currentOffering.availablePackages.length > 0 && (
             <Pressable
-              onPress={handleNext}
-              className={`flex-1 py-5 px-6 rounded-full bg-black `}
-              disabled={false}
+              onPress={handlePurchase}
+              className="py-5 px-6 rounded-full bg-orange-500 mb-3"
+              disabled={purchasing || !selectedPackage}
             >
-              {/* <Text className={`text-center font-medium text-white`}>
-                Start 3-days Free Trial
-              </Text> */}
-              <Text className={`text-center font-medium text-white`}>
-                Continue to App
-              </Text>
+              {purchasing ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-center font-bold text-white text-lg">
+                  {selectedPackage
+                    ? `Subscribe ${selectedPackage.product.priceString}`
+                    : 'Subscribe Now'}
+                </Text>
+              )}
             </Pressable>
-          </View>
+          )}
+
+          {/* 跳过按钮 */}
+          <Pressable
+            onPress={handleNext}
+            className="py-4 px-6"
+            disabled={purchasing}
+          >
+            <Text className="text-center font-semibold text-gray-600">
+              Start 3-days Free Trial
+            </Text>
+          </Pressable>
+
+          {/* 法律说明 */}
+          {currentOffering && currentOffering.availablePackages.length > 0 && (
+            <Text className="text-xs text-gray-500 text-center mt-4 px-4 leading-5">
+              Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
+            </Text>
+          )}
         </View>
 
       </View>

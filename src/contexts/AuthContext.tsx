@@ -140,11 +140,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 await AsyncStorage.setItem("userEmail", userEmail);
                 console.log("✅ 已保存 userEmail 到 AsyncStorage:", userEmail);
               }
-
+              if (profile?.images && profile.images.length > 0) {
+                await AsyncStorage.setItem("newlook", JSON.stringify(profile.images));
+                console.log("✅ 已保存 newlook 到 AsyncStorage:", JSON.stringify(profile.images));
+              }
               // 验证保存是否成功
               const savedName = await AsyncStorage.getItem("userName");
               const savedEmail = await AsyncStorage.getItem("userEmail");
-              console.log("🔍 验证 AsyncStorage - userName:", savedName, "email:", savedEmail);
+              const savedNewlook = await AsyncStorage.getItem("newlook");
+              console.log("🔍 验证 AsyncStorage - userName:", savedName, "email:", savedEmail, "newlook:", savedNewlook);
             } catch (error: any) {
               console.log("⚠️ Profile query failed (using fallback):", error.message);
               // 如果查询失败，使用 session 中的基本信息
