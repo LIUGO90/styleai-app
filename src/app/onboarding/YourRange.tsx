@@ -11,6 +11,7 @@ import {
 import { Image } from "expo-image";
 import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function YourRange() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function YourRange() {
   };
 
   return (
-    <View className="flex-1 ">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -57,6 +58,6 @@ export default function YourRange() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

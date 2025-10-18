@@ -13,6 +13,7 @@ import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
 import { OnboardingData } from "@/components/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function YourRangeThree() {
   // 身体量感结构选项数据
@@ -82,7 +83,7 @@ export default function YourRangeThree() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -153,6 +154,6 @@ export default function YourRangeThree() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

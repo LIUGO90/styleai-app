@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import DotsContainer from "@/components/dotsContainer";
@@ -78,7 +79,7 @@ export default function BaseThree() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -86,7 +87,7 @@ export default function BaseThree() {
         contentFit="cover"
         cachePolicy="memory-disk"
       />
-      <View className="mt-14">
+      <View className="">
         <DotsContainer activeIndex={3} indexNumber={6} />
       </View>
       {/* <ScrollView> */}
@@ -154,6 +155,6 @@ export default function BaseThree() {
           </View>
         </View>
       {/* </ScrollView> */}
-    </View>
+    </SafeAreaView>
   );
 }

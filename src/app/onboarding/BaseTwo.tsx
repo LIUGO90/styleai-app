@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -74,7 +75,7 @@ export default function BaseTwo() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -85,7 +86,7 @@ export default function BaseTwo() {
 
       {/* 内容层 */}
       <View className="flex-1">
-        <View className="mt-14">
+        <View className="">
           <DotsContainer activeIndex={2} indexNumber={6} />
         </View>
         {/* <ScrollView> */}
@@ -146,6 +147,6 @@ export default function BaseTwo() {
         </View>
         {/* </ScrollView> */}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -13,6 +13,7 @@ import DotsContainer from "@/components/dotsContainer";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function YourRangeTwo() {
   // 体型选项数据
@@ -87,7 +88,7 @@ export default function YourRangeTwo() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -97,8 +98,6 @@ export default function YourRangeTwo() {
       />
 
       {/* 内容层 */}
-      <View className="flex-1">
-        {/* 顶部部分 */}
         <View className="flex-1 px-5 py-10">
           <View className="flex-1 justify-center my-20">
             <Text className="text-2xl font-bold text-start mb-2 text-black">
@@ -157,7 +156,6 @@ export default function YourRangeTwo() {
             </Pressable>
           </View>
         </View>
-      </View>
-    </View>
+      </SafeAreaView>
   );
 }

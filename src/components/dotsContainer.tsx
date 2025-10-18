@@ -8,7 +8,7 @@ export default function DotsContainer({
   indexNumber: number;
 }) {
   return (
-    <View className="m-5" style={styles.dotsContainer}>
+    <View className="m-1" style={styles.dotsContainer}>
       {Array.from({ length: indexNumber }).map((_, index) => (
         <View
           key={index}

@@ -20,6 +20,7 @@ import { PurchasesPackage } from "react-native-purchases";
 import { supabase } from "@/utils/supabase";
 import { useCreatePayment } from "@/hooks/usePayment";
 import { validatePurchaseResult, validateDatabaseSync, isUserCancelledError } from "@/utils/purchaseValidation";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 // RevenueCat 初始化组件
@@ -292,7 +293,7 @@ export default function BaseSix() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       <RevenueCatInitializer />
       {/* 背景图片 */}
       <Image
@@ -304,7 +305,7 @@ export default function BaseSix() {
 
       {/* 内容层 */}
       <View className="flex-1">
-        <View className="mt-14">
+        <View className="">
           <DotsContainer activeIndex={5} indexNumber={6} />
         </View>
 
@@ -452,7 +453,7 @@ export default function BaseSix() {
 
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 // 从 Auth.native.tsx 复制的 fetchUserProfileWithRetry 函数

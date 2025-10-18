@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/utils/supabase";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BaseFive() {
   const router = useRouter();
@@ -295,7 +296,7 @@ export default function BaseFive() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -307,7 +308,7 @@ export default function BaseFive() {
       {/* 内容层 */}
       <View className="flex-1 ">
         {/* 顶部部分 */}
-        <View className={`mt-14 ${isUpdate ? "p-8" : ""}`}>
+        <View className="">
           {!isUpdate && (
             <DotsContainer activeIndex={5} indexNumber={6} />
           )}
@@ -398,6 +399,6 @@ export default function BaseFive() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

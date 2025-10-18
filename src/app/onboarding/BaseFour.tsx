@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import DotsContainer from "@/components/dotsContainer";
 import { getImagePath } from "@/config/imagePaths";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function BaseFour() {
@@ -54,7 +55,7 @@ export default function BaseFour() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -65,7 +66,7 @@ export default function BaseFour() {
 
       {/* 内容层 */}
       <View className="flex-1">
-        <View className="mt-14">
+        <View className="">
           <DotsContainer activeIndex={4} indexNumber={6} />
         </View>
 
@@ -173,6 +174,6 @@ export default function BaseFour() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

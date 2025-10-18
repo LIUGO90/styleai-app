@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DotsContainer from "@/components/dotsContainer";
 import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -159,7 +160,7 @@ export default function Five() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView edges={['top']} className="flex-1">
       {/* 背景图片 */}
       <Image
         source={require("../../../assets/background.png")}
@@ -168,7 +169,7 @@ export default function Five() {
         cachePolicy="memory-disk"
       />
 
-      <View className="mt-14">
+      <View className="">
         <DotsContainer activeIndex={5} indexNumber={6} />
       </View>
       <ScrollView>
@@ -289,7 +290,7 @@ export default function Five() {
           )}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 function initializeUserCredits(arg0: string) {
