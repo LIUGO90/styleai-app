@@ -122,11 +122,12 @@ export const aiRequestLookbook = async (
 };
 
 export const aiRequestForYou = async (
+  requestId: string,
   userId: string,
   imageUrl: string[],
   prompt: string,
 ): Promise<string[]> => {
-  return await webWorkerAIService.aiRequestForYou(userId, imageUrl, prompt, {
+  return await webWorkerAIService.aiRequestForYou(requestId, userId, imageUrl, prompt, {
     onProgress: (progress) => {
 
     },

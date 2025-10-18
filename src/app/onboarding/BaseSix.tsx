@@ -358,10 +358,10 @@ export default function BaseSix() {
           {/* 跳过按钮 */}
           <Pressable
             onPress={handleNext}
-            className="py-4 px-6"
+            className="py-4 px-6 bg-black rounded-full"
             disabled={purchasing}
           >
-            <Text className="text-center font-semibold text-gray-600">
+            <Text className="text-center font-semibold text-white">
               Start 3-days Free Trial
             </Text>
           </Pressable>

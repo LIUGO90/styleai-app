@@ -52,7 +52,7 @@ class WebWorkerAIService {
     data: any,
     abortController: AbortController,
   ): Promise<any> {
-
+    console.log("🧐 执行请求", url, data)
     const response = await fetch(url, {
       method: "POST",
       body: JSON.stringify(data),
@@ -61,7 +61,7 @@ class WebWorkerAIService {
         "Content-Type": "application/json",
       },
     });
-
+    console.log("🧐 执行请求响应", response)
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -593,6 +593,7 @@ class WebWorkerAIService {
     options.onProgress?.(40);
 
     for (let i = 0; i < 3; i++) {
+      console.log("🧐 执行Lookbook请求", userId, imageUrl, styleOptions, numImages)
       const response = await this.makeRequest(
         `${process.env.EXPO_PUBLIC_API_URL}/api/apple/lookbook`,
         { userId, imageUrl, styleOptions, numImages },
@@ -602,7 +603,7 @@ class WebWorkerAIService {
       if (response.data.images && response.data.images.length > 0) {
         return response.data.images;
       }
-
+      console.log("🧐 执行Lookbook请求失败", response)
     }
     return [];
   }

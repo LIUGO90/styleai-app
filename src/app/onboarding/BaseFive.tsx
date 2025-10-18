@@ -43,15 +43,24 @@ export default function BaseFive() {
   useEffect(() => {
     // 记录接收到的路由参数
     const loadOnboardingData = async () => {
+      console.log("🧐 加载 BaseFive - isUpdate:", isUpdate, "user?.id:", user?.id)
+      
+      if (!user?.id) {
+        console.log("⚠️ User ID not available yet");
+        return;
+      }
+
       const onboardingData = await AsyncStorage.getItem("onboardingData");
 
       if (onboardingData) {
         const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
         // 读取本地缓存
         if (onboardingDataObj.fullBodyPhoto.length > 0) {
+          console.log("✅ 从本地缓存加载图片");
           setSelectedImage(onboardingDataObj.fullBodyPhoto);
         } else {
           // 读取远程
+          console.log("📡 从远程加载图片");
           const profilePromise = supabase
             .from('profiles')
             .select('name, fullbodyphoto')
@@ -67,18 +76,21 @@ export default function BaseFive() {
           ]) as any;
 
           if (userProfile?.fullbodyphoto && userProfile?.fullbodyphoto.length > 0) {
+            console.log("✅ 从远程加载图片成功");
             setSelectedImage(userProfile.fullbodyphoto);
             onboardingDataObj.fullBodyPhoto = userProfile.fullbodyphoto
             AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingDataObj));
+          } else {
+            console.log("⚠️ 远程没有找到图片");
           }
         }
+      } else {
+        console.log("⚠️ 没有找到 onboardingData");
       }
     };
 
-    if (isUpdate) {
       loadOnboardingData();
-    }
-  }, []);
+  }, [isUpdate, user?.id]);
 
   // 防抖函数
   const debounce = (func: Function, delay: number) => {

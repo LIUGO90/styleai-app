@@ -85,7 +85,7 @@ export function AppleAuth() {
             // 读取远程
             const profilePromise = supabase
               .from('profiles')
-              .select('name, fullbodyphoto')
+              .select('name, fullbodyphoto,images')
               .eq('id', userId)
               .single();
 
@@ -102,9 +102,10 @@ export function AppleAuth() {
               onboardingData.fullBodyPhoto = userProfile.fullbodyphoto
               AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
               if (userProfile?.images && userProfile?.images.length > 0) {
+                console.log("🧐 用户存在订阅lookbook图片", userProfile.images)
                 await AsyncStorage.setItem("newlook", JSON.stringify(userProfile.images));
                 router.replace("/");
-              }else{
+              } else {
                 router.replace("/onboarding");
               }
             } else {

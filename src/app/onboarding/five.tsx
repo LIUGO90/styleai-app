@@ -117,6 +117,7 @@ export default function Five() {
         // for (let i = 0; i < 2; i++) {
         try {
           const resultLookbook = await aiRequestLookbook(user?.id || '', onboardingDataObj.fullBodyPhoto, selectedStyles.slice(0, 2), 1);
+          // const resultLookbook = ["https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/users/6a4465c8-1970-4398-a271-a747b8aff9a0/gemini_gemini_1760746610422_0.png", "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/users/6a4465c8-1970-4398-a271-a747b8aff9a0/gemini_gemini_1760746610652_1.png"];
 
           imagesUrl.push(...resultLookbook);
           addImageLook(user?.id || "", selectedStyles[0], imagesUrl.slice(0, 1));
@@ -129,10 +130,17 @@ export default function Five() {
           JSON.stringify(imagesUrl),
         );
 
-        supabase.from('profiles').update({
-          images: imagesUrl,
+        console.log("🧐 执行更新数据库", imagesUrl);
+        const { data, error } = await supabase.from('profiles').update({
+          images: JSON.stringify(imagesUrl), // 转换为 JSON 字符串存储
         }).eq('id', user?.id || '');
-        
+        console.log("🧐 执行更新数据库响应", data, error);
+        if (error) {
+          console.error("❌ 更新数据库失败:", error);
+        } else {
+          console.log("✅ 更新数据库成功");
+        }
+
         setIsUploading(false);
         router.push("/onboarding/BaseSix");
       }
