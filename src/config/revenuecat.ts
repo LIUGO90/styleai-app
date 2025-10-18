@@ -21,14 +21,20 @@ export const REVENUECAT_CONFIG = {
     PREMIUM: 'premium',
   },
 
-  // Product identifiers (must match App Store Connect)
+  // Product identifiers (must match App Store Connect and RevenueCat Dashboard)
   products: {
-    // Monthly subscriptions
-    PRO_MONTHLY: 'pro_monthly',
-    PRO_YEARLY: 'pro_yearly',
-
-    // One-time purchases
-    LIFETIME: 'lifetime_access',
+    // Auto-renewable subscriptions (使用 StoreKit 文件中的 ID)
+    SUBSCRIPTION_MONTHLY: 'StylaPy2025',
+    SUBSCRIPTION_QUARTERLY: 'StylaPay2025Quarterly',
+    SUBSCRIPTION_YEARLY: 'StylaPay2025Yearly',
+    
+    // Consumable AI Points
+    AI_POINTS_100: 'AIPoints_100',
+    AI_POINTS_600: 'AIPoints_600',
+    AI_POINTS_1200: 'AIPoints_1200',
+    AI_POINTS_2000: 'AIPoints_2000',
+    AI_POINTS_3800: 'AIPoints_3800',
+    AI_POINTS_10000: 'AIPoints_10000',
   },
 
   // Offering identifiers

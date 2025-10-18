@@ -162,7 +162,7 @@ export default function MyProfile() {
       color: "#3b82f6",
       onPress: () => {
         router.replace({
-          pathname: '/onboarding/BaseFive',
+          pathname: '/tabs/my/BaseFive',
           params: { isUpdate: "true" }
         });
       },
@@ -192,7 +192,7 @@ export default function MyProfile() {
       title: "测试订阅页面",
       icon: "star" as const,
       color: "#fbbf24",
-      onPress: () => router.replace("/onboarding/BaseSix"),
+      onPress: () => router.replace("/tabs/my/BaseSix"),
     },
     {
       id: 'credits',
