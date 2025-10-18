@@ -36,14 +36,17 @@ class RevenueCatService {
         default: REVENUECAT_CONFIG.apiKeys.apple,
       });
 
-      if (!apiKey || apiKey.includes('appl_')) {
+      // Check if API key is configured (not empty and not the placeholder)
+      if (!apiKey || apiKey === 'appl_your_api_key_here' || apiKey.includes('your_api_key_here')) {
         console.warn('⚠️ [RevenueCat] API key not configured - subscription features disabled');
+        console.warn('💡 To enable subscriptions, add EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY to your .env file');
         return;
       }
 
       // Validate API key format
       if (!apiKey.startsWith('appl_') && !apiKey.startsWith('goog_')) {
         console.warn(`⚠️ [RevenueCat] Invalid API key format (starts with: ${apiKey.substring(0, 5)})`);
+        console.warn('💡 Apple keys should start with "appl_", Google keys with "goog_"');
         return;
       }
 
@@ -112,6 +115,19 @@ class RevenueCatService {
    * Get subscription status
    */
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
+    // Return default status if not initialized
+    if (!this.initialized) {
+      console.warn('[RevenueCat] SDK not initialized, returning default subscription status');
+      return {
+        isActive: false,
+        isPro: false,
+        isPremium: false,
+        expirationDate: null,
+        willRenew: false,
+        productIdentifier: null,
+      };
+    }
+
     try {
       const customerInfo = await this.getCustomerInfo();
       const entitlements = customerInfo.entitlements.active;
@@ -184,6 +200,12 @@ class RevenueCatService {
    * Get current offering
    */
   async getCurrentOffering() {
+    // Return null if not initialized
+    if (!this.initialized) {
+      console.warn('[RevenueCat] SDK not initialized, returning null offering');
+      return null;
+    }
+
     try {
       const offerings = await this.getOfferings();
       return offerings.current;

@@ -11,6 +11,7 @@ import {
   validateDatabaseSync, 
   isUserCancelledError
 } from '@/utils/purchaseValidation';
+import revenueCatService from '@/services/RevenueCatService';
 
 interface PurchaseItem {
   id: string;
@@ -32,11 +33,63 @@ interface CreditPackage {
 export default function CreditManagement() {
   const { restore, restoring, purchase, purchasing } = usePurchase();
   const { customerInfo, loading, refresh } = useSubscription();
-  const { currentOffering, loading: offeringsLoading } = useOfferings();
+  const { currentOffering, loading: offeringsLoading, error: offeringsError, refresh: refreshOfferings } = useOfferings();
   const { createPaymentFromRevenueCat } = useCreatePayment();
   const { credits, refresh: refreshCredits } = useCredits();
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
+
+  // Debug: 输出 offerings 信息
+  useEffect(() => {
+    console.log('🔍 [Credit Page] RevenueCat 初始化状态:', revenueCatService.isInitialized());
+    console.log('🔍 [Credit Page] Current Offering:', currentOffering);
+    console.log('🔍 [Credit Page] Offerings Loading:', offeringsLoading);
+    console.log('🔍 [Credit Page] Offerings Error:', offeringsError);
+    
+    if (currentOffering) {
+      console.log('🔍 [Credit Page] Offering ID:', currentOffering.identifier);
+      console.log('🔍 [Credit Page] Offering Description:', currentOffering.serverDescription);
+      console.log('🔍 [Credit Page] Available Packages:', currentOffering.availablePackages.length);
+      
+      currentOffering.availablePackages.forEach((pkg, index) => {
+        console.log(`  ${index + 1}. Product ID: ${pkg.product.identifier}`);
+        console.log(`     Title: ${pkg.product.title}`);
+        console.log(`     Price: ${pkg.product.priceString}`);
+        console.log(`     Type: ${pkg.product.productType}`);
+        console.log(`     Package Type: ${pkg.packageType}`);
+        console.log('     ---');
+      });
+    } else {
+      console.log('🔍 [Credit Page] No current offering available');
+    }
+  }, [currentOffering, offeringsLoading, offeringsError]);
+
+  // 强制刷新 RevenueCat 数据（调试用）
+  useEffect(() => {
+    const forceRefresh = async () => {
+      console.log('🔄 [Credit Page] 强制刷新 RevenueCat 数据...');
+      try {
+        // 检查初始化状态
+        const isInit = revenueCatService.isInitialized();
+        console.log('🔄 [Credit Page] RevenueCat 初始化状态:', isInit);
+        
+        if (!isInit) {
+          console.log('🔄 [Credit Page] RevenueCat 未初始化，尝试重新初始化...');
+          await revenueCatService.initialize();
+        }
+        
+        // 重新加载积分包
+        await loadCreditPackages();
+      } catch (error) {
+        console.error('🔄 [Credit Page] 强制刷新失败:', error);
+        console.error('🔄 [Credit Page] 错误详情:', (error as Error).message);
+      }
+    };
+    
+    // 延迟 3 秒后执行，确保 RevenueCat 已初始化
+    const timer = setTimeout(forceRefresh, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 从 RevenueCat 加载购买历史
   useEffect(() => {
@@ -47,34 +100,95 @@ export default function CreditManagement() {
 
   // 加载可购买的积分包
   useEffect(() => {
-    if (currentOffering) {
-      loadCreditPackages();
-    }
-  }, [currentOffering]);
+    loadCreditPackages();
+  }, []);
 
-  const loadCreditPackages = () => {
-    if (!currentOffering) return;
-
-    const packages: CreditPackage[] = [];
+  const loadCreditPackages = async () => {
+    console.log('📦 [Credit Page] Loading credit packages from ALL offerings...');
     
-    currentOffering.availablePackages.forEach((pkg) => {
-      // 只显示积分产品（非订阅）
-      const productId = pkg.product.identifier;
-      if (productId.includes('AIPoints') || productId.includes('credit')) {
-        const credits = extractCreditsFromProductId(productId);
-        const discount = getPackageDiscount(pkg);
+    try {
+      // 获取所有 Offerings，而不是只从 Current Offering
+      const allOfferings = await revenueCatService.getOfferings();
+      console.log('📦 [Credit Page] All Offerings:', Object.keys(allOfferings.all));
+      console.log('📦 [Credit Page] Total Offerings count:', Object.keys(allOfferings.all).length);
+      
+      // 检查是否包含 AIPoints_100 Offering
+      const aiPointsOfferings = Object.keys(allOfferings.all).filter(key => key.includes('AIPoints'));
+      console.log('📦 [Credit Page] AIPoints Offerings:', aiPointsOfferings);
+      
+      const packages: CreditPackage[] = [];
+      
+      // 遍历所有 Offerings 寻找积分产品
+      Object.values(allOfferings.all).forEach((offering, offeringIndex) => {
+        console.log(`📦 [Credit Page] Checking Offering ${offeringIndex + 1}: ${offering.identifier}`);
+        console.log(`📦 [Credit Page] Packages in ${offering.identifier}:`, offering.availablePackages.length);
         
-        packages.push({
-          package: pkg,
-          credits,
-          discount,
+        offering.availablePackages.forEach((pkg, index) => {
+          const productId = pkg.product.identifier;
+          const productTitle = pkg.product.title;
+          const productType = pkg.product.productType;
+          
+          console.log(`🔍 [Credit Page] Package ${index + 1}:`, {
+            id: productId,
+            title: productTitle,
+            price: pkg.product.priceString,
+            type: productType,
+            packageType: pkg.packageType,
+          });
+          
+          // 特别检查 AIPoints_100
+          if (productId === 'AIPoints_100') {
+            console.log('🎯 [Credit Page] Found AIPoints_100!', {
+              productId,
+              productType,
+              packageType: pkg.packageType,
+              price: pkg.product.priceString,
+              title: pkg.product.title
+            });
+          }
+          
+          // 只添加积分产品（AIPoints）
+          if (productId.includes('AIPoints')) {
+            const credits = extractCreditsFromProductId(productId);
+            const discount = getPackageDiscount(pkg);
+            
+            console.log(`  ✅ Added AIPoints product: ${productId} (${credits} credits, ${pkg.product.priceString})`);
+            console.log(`  ✅ Discount: ${discount || 'none'}`);
+            
+            packages.push({
+              package: pkg,
+              credits,
+              discount,
+            });
+          } else {
+            console.log(`  ⏭️ Skipped (not AIPoints): ${productId}`);
+          }
+        });
+      });
+
+      console.log('📦 [Credit Page] Total AIPoints packages found:', packages.length);
+      console.log('📦 [Credit Page] Package IDs:', packages.map(p => p.package.product.identifier).join(', '));
+      
+      // 检查是否包含 AIPoints_100
+      const hasAIPoints100 = packages.some(p => p.package.product.identifier === 'AIPoints_100');
+      console.log('📦 [Credit Page] Contains AIPoints_100:', hasAIPoints100);
+      
+      if (hasAIPoints100) {
+        const aiPoints100 = packages.find(p => p.package.product.identifier === 'AIPoints_100');
+        console.log('📦 [Credit Page] AIPoints_100 details:', {
+          credits: aiPoints100?.credits,
+          discount: aiPoints100?.discount,
+          price: aiPoints100?.package.product.priceString
         });
       }
-    });
-
-    // 按积分数量排序
-    packages.sort((a, b) => a.credits - b.credits);
-    setCreditPackages(packages);
+      
+      // 按积分数量排序
+      packages.sort((a, b) => a.credits - b.credits);
+      setCreditPackages(packages);
+      
+    } catch (error) {
+      console.error('📦 [Credit Page] Failed to load credit packages:', error);
+    }
   };
 
   // 从产品ID提取积分数量
@@ -93,7 +207,7 @@ export default function CreditManagement() {
     if (productId.includes('3800')) return '35% off';
     if (productId.includes('10000')) return '50% off';
     
-    return null;
+    return '';
   };
 
   const loadPurchaseHistory = () => {
@@ -378,7 +492,7 @@ export default function CreditManagement() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView edges={['top']} className="flex-1 bg-white">
       {/* Header */}
       <View className="px-6 pt-4 pb-2">
         <View className="flex-row items-center justify-between">
@@ -451,9 +565,9 @@ export default function CreditManagement() {
                       disabled={purchasing}
                       className="w-[32%] bg-white border border-gray-200 rounded-xl p-4 mb-4"
                     >
-                      {creditPkg.discount && (
+
                         <Text className="text-orange-500 text-xs font-semibold mb-2">{creditPkg.discount}</Text>
-                      )}
+
                       
                       <View className="flex-row items-center mb-3">
                         <MaterialCommunityIcons name="star" size={20} color="#fbbf24" />
@@ -481,6 +595,57 @@ export default function CreditManagement() {
                 <View className="bg-gray-50 rounded-xl p-6 items-center">
                   <ActivityIndicator size="large" color="#3b82f6" />
                   <Text className="text-gray-600 mt-3">Loading credit packages...</Text>
+                </View>
+              </View>
+            )}
+
+            {/* No Products Error */}
+            {!offeringsLoading && creditPackages.length === 0 && (
+              <View className="px-6 mb-6">
+                <View className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <View className="flex-row items-center mb-2">
+                    <MaterialCommunityIcons name="alert-circle" size={24} color="#f97316" />
+                    <Text className="text-lg font-bold text-orange-900 ml-2">
+                      未找到积分产品
+                    </Text>
+                  </View>
+                  <Text className="text-orange-800 text-sm mb-3">
+                    {currentOffering 
+                      ? `Offering 中有 ${currentOffering.availablePackages.length} 个产品，但没有 AIPoints 产品`
+                      : 'RevenueCat Offering 为空'}
+                  </Text>
+                  <Text className="text-orange-700 text-xs mb-2">
+                    请检查：{'\n'}
+                    1. RevenueCat 控制台是否创建了 Offerings{'\n'}
+                    2. Offering 中是否包含 AIPoints 产品{'\n'}
+                    3. 产品 ID 是否正确匹配
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      console.log('🔄 手动刷新 offerings...');
+                      refreshOfferings();
+                    }}
+                    className="bg-orange-500 py-2 px-4 rounded-lg mt-2"
+                  >
+                    <Text className="text-white font-bold text-center">重新加载产品</Text>
+                  </TouchableOpacity>
+                  
+                  {/* Debug 按钮 */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        'Debug Info',
+                        `初始化: ${revenueCatService.isInitialized()}\n` +
+                        `Offering: ${currentOffering ? '有' : '无'}\n` +
+                        `Packages: ${currentOffering?.availablePackages.length || 0}\n` +
+                        `Error: ${offeringsError?.message || '无'}`,
+                        [{ text: '确定' }]
+                      );
+                    }}
+                    className="border border-orange-300 py-2 px-4 rounded-lg mt-2"
+                  >
+                    <Text className="text-orange-700 font-bold text-center">查看调试信息</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -561,7 +726,7 @@ export default function CreditManagement() {
             </View>
 
             {/* Quick Actions */}
-            <View className="px-6 mb-6">
+            {/* <View className="px-6 mb-6">
               <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
                 <TouchableOpacity
                   onPress={handleRestore}
@@ -581,7 +746,7 @@ export default function CreditManagement() {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </View> */}
 
             {/* Information */}
             <View className="px-6 mb-6">

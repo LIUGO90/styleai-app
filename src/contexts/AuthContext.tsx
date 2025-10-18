@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 console.log("✅ 已保存 userEmail 到 AsyncStorage:", userEmail);
               }
               if (profile?.images && profile.images.length > 0) {
-                await AsyncStorage.setItem("newlook", JSON.stringify(profile.images));
+                await AsyncStorage.setItem("newlook", profile.images);
                 console.log("✅ 已保存 newlook 到 AsyncStorage:", JSON.stringify(profile.images));
               }
               // 验证保存是否成功

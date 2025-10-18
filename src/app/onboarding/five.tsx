@@ -132,7 +132,7 @@ export default function Five() {
 
         console.log("🧐 执行更新数据库", imagesUrl);
         const { data, error } = await supabase.from('profiles').update({
-          images: JSON.stringify(imagesUrl), // 转换为 JSON 字符串存储
+          images: imagesUrl.join(','), // 转换为 JSON 字符串存储
         }).eq('id', user?.id || '');
         console.log("🧐 执行更新数据库响应", data, error);
         if (error) {

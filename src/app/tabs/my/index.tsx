@@ -164,13 +164,6 @@ export default function MyProfile() {
         });
       },
     },
-    // {
-    //   id: "Physical Profile",
-    //   title: "Physical Profile",
-    //   icon: "hanger" as const,
-    //   color: "#10b981",
-    //   onPress: () => ,
-    // },
     {
       id: "Style Preference",
       title: "Style Preference",
@@ -191,6 +184,12 @@ export default function MyProfile() {
       icon: "star" as const,
       color: "#fbbf24",
       onPress: () => router.push("/tabs/my/credit"),
+    },{
+      id: "test",
+      title: "测试订阅页面",
+      icon: "star" as const,
+      color: "#fbbf24",
+      onPress: () => router.replace("/onboarding/BaseSix"),
     },
 
 
@@ -231,6 +230,7 @@ export default function MyProfile() {
           try {
             // Clear avatar
             await AsyncStorage.removeItem('userAvatar');
+            await AsyncStorage.removeItem('newlook');
             await AsyncStorage.removeItem("onboardingData");
             setUserAvatar("");
 
@@ -273,34 +273,35 @@ export default function MyProfile() {
           text: "Revoke Authorization",
           style: "destructive",
           onPress: async () => {
-            try {
+            // Show alert first, then clear data after user confirms
+            Alert.alert(
+              "✅ Authorization Disconnected",
+              "Apple Sign-In has been disconnected.\n\nPlease remember to revoke authorization in iPhone Settings so Apple will provide your information again on next sign-in.",
+              [
+                {
+                  text: "Got it",
+                  onPress: async () => {
+                    try {
+                      // 1. Clear all local data
+                      await AsyncStorage.removeItem('userAvatar');
+                      await AsyncStorage.removeItem("onboardingData");
+                      await AsyncStorage.removeItem("name");
+                      await AsyncStorage.removeItem("userEmail");
+                      setUserAvatar("");
 
-              // 1. Clear all local data
-              await AsyncStorage.removeItem('userAvatar');
-              await AsyncStorage.removeItem("onboardingData");
-              await AsyncStorage.removeItem("name");
-              await AsyncStorage.removeItem("userEmail");
-              setUserAvatar("");
-
-              // 2. Clear all user data and sign out
-              await clearAllUserData();
-
-              Alert.alert(
-                "✅ Authorization Disconnected",
-                "Apple Sign-In has been disconnected.\n\nPlease remember to revoke authorization in iPhone Settings so Apple will provide your information again on next sign-in.",
-                [
-                  {
-                    text: "Got it",
-                    onPress: () => {
-
-                    },
+                      // 2. Clear all user data and sign out
+                      // Use setTimeout to ensure UI updates complete before navigation
+                      setTimeout(async () => {
+                        await clearAllUserData();
+                      }, 100);
+                    } catch (error) {
+                      console.error("❌ Error revoking authorization:", error);
+                      Alert.alert("Error", "Failed to revoke authorization. Please try again.");
+                    }
                   },
-                ]
-              );
-            } catch (error) {
-              console.error("❌ Error revoking authorization:", error);
-              Alert.alert("Error", "Failed to revoke authorization. Please try again.");
-            }
+                },
+              ]
+            );
           },
         },
       ],
@@ -380,7 +381,7 @@ export default function MyProfile() {
             <Pressable
               key={item.id}
               onPress={item.onPress}
-              className="flex-row items-center p-4 my-2 rounded-xl bg-gray-50"
+              className="flex-row items-center px-4 py-3 my-2 rounded-xl bg-gray-50"
             >
               <View
                 className="w-10 h-10 rounded-full items-center justify-center mr-4"

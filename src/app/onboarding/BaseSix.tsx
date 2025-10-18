@@ -49,12 +49,14 @@ function RevenueCatInitializer() {
 const imagewidth = Dimensions.get("window").width * 0.4 > 180 ? 180 : Dimensions.get("window").width * 0.4;
 
 export default function BaseSix() {
+  const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState<string>("");
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [image, setImage] = useState<string[]>([]);
   const [loadingImage1, setLoadingImage1] = useState(true);
   const [loadingImage2, setLoadingImage2] = useState(true);
+  const [allSubscriptionPackages, setAllSubscriptionPackages] = useState<PurchasesPackage[]>([]);
 
   // RevenueCat hooks
   const { currentOffering, loading: offeringsLoading } = useOfferings();
@@ -66,6 +68,12 @@ export default function BaseSix() {
     loadImagesUrl();
   }, []);
 
+  // 监听 image 状态变化
+  useEffect(() => {
+    console.log('🔍Image state changed:', image);
+    console.log('🔍Image length:', image.length);
+  }, [image]);
+
   useEffect(() => {
     // 自动选择第一个订阅选项
     if (currentOffering?.availablePackages && currentOffering.availablePackages.length > 0 && !selectedPackage) {
@@ -73,10 +81,88 @@ export default function BaseSix() {
     }
   }, [currentOffering]);
 
+  // 加载所有订阅产品
+  useEffect(() => {
+    const loadAllSubscriptionPackages = async () => {
+      try {
+        console.log('🔍Loading all subscription packages...');
+        const offerings = await revenueCatService.getOfferings();
+        console.log('🔍All offerings:', Object.keys(offerings.all));
+        
+        const allPackages: PurchasesPackage[] = [];
+        
+        // 遍历所有 Offerings 寻找订阅产品
+        Object.values(offerings.all).forEach((offering) => {
+          console.log(`🔍Checking offering: ${offering.identifier}`);
+          offering.availablePackages.forEach((pkg) => {
+            if (pkg.product.productType === 'AUTO_RENEWABLE_SUBSCRIPTION' && 
+                !pkg.product.identifier.includes('AIPoints')) {
+              console.log(`🔍Found subscription: ${pkg.identifier}`);
+              allPackages.push(pkg);
+            }
+          });
+        });
+        
+        console.log('🔍Total subscription packages found:', allPackages.length);
+        
+        // 按价格排序（从低到高）
+        const sortedPackages = allPackages.sort((a, b) => {
+          const priceA = a.product.price;
+          const priceB = b.product.price;
+          console.log(`🔍Sorting: ${a.identifier} ($${priceA}) vs ${b.identifier} ($${priceB})`);
+          return priceA - priceB;
+        });
+        
+        console.log('🔍Sorted packages by price:', sortedPackages.map(p => `${p.identifier}: $${p.product.price}`));
+        setAllSubscriptionPackages(sortedPackages);
+        
+        // 自动选择第一个订阅选项（最便宜的）
+        if (sortedPackages.length > 0 && !selectedPackage) {
+          setSelectedPackage(sortedPackages[0]);
+        }
+      } catch (error) {
+        console.error('🔍Error loading subscription packages:', error);
+      }
+    };
+    
+    loadAllSubscriptionPackages();
+  }, []);
+
   const loadImagesUrl = async () => {
-    const imagesUrl = await AsyncStorage.getItem("newlook");
-    if (imagesUrl) {
-      setImage(JSON.parse(imagesUrl) as string[]);
+    console.log('🔍loadImagesUrl');
+    try {
+      const imagesUrl = await AsyncStorage.getItem("newlook");
+      console.log('🔍imagesUrl', imagesUrl);
+      if (imagesUrl) {
+        const images = imagesUrl.split(',');
+        setImage(images);
+      } else {
+        console.log('🔍No imagesUrl found, trying user profile...');
+        // 如果没有本地图片，从用户配置获取
+        if (user?.id) {
+          try {
+            console.log('🔍Fetching user profile for user:', user.id);
+            const { data: userProfile, error } = await fetchUserProfileWithRetry(user.id, 3, 8000);
+            if (error) {
+              console.warn('Failed to fetch user profile:', error);
+              setImage([]);
+            } else {
+              console.log('🔍User profile images:', userProfile?.images);
+              const images = userProfile?.images?.split(',') || [];
+              setImage(images);
+            }
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+            setImage([]);
+          }
+        } else {
+          console.log('🔍No user ID, setting empty array');
+          setImage([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading images:', error);
+      setImage([]);
     }
   }
 
@@ -173,7 +259,7 @@ export default function BaseSix() {
       return 'Yearly';
     } else if (identifier.includes('monthly')) {
       return 'Monthly';
-    } else if (identifier.includes('quarter')) {
+    } else if (identifier.includes('three_month')) {
       return 'Quarterly';
     }
     return pkg.product.title;
@@ -197,10 +283,10 @@ export default function BaseSix() {
   // 获取折扣标签
   const getDiscountLabel = (pkg: PurchasesPackage, packages: PurchasesPackage[]): string | null => {
     const identifier = pkg.identifier.toLowerCase();
-
+    console.log('🖼️ identifier', identifier, packages);
     if (identifier.includes('annual') || identifier.includes('yearly')) {
       return `25% OFF`;
-    } else if (identifier.includes('quarter')) {
+    } else if (identifier.includes('three_month')) {
       return `10% OFF`;
     }
 
@@ -229,44 +315,37 @@ export default function BaseSix() {
             className="flex-row justify-center px-2 gap-6 "
             style={{ height: 220 }}
           >
-            {image.map((item, index) => (
-              <View key={index} style={{ width: imagewidth }}
-                className="overflow-hidden rounded-2xl"
-              >
-                <Image
-                  source={{ uri: item }}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  onLoadStart={() => setLoadingImage1(true)}
-                  onLoad={() => setLoadingImage1(false)}
-                  style={{
+            {(image && image.length > 0) && image.map((item, index) => {
 
-                    width: imagewidth,
-                    height: '120%',
-                    // borderRadius: 12,
-                    // backgroundColor: "#f0f0f0",
-                  }}
-                />
-                {loadingImage1 && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      // backgroundColor: 'rgba(0,0,0,0.1)',
-                      borderRadius: 12,
+              return (
+                <View key={index} style={{ width: imagewidth }}
+                  className="overflow-hidden rounded-2xl"
+                >
+                  <Image
+                    source={{ uri: item }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    onLoadStart={() => {
+                      // console.log(`🖼️ Image ${index} loading started`);
+                      setLoadingImage1(true);
                     }}
-                  >
-                    <ActivityIndicator size="large" color="#007AFF" />
-                    <Text className="text-gray-600 mt-2 text-sm">Loading...</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+                    onLoad={() => {
+                      // console.log(`🖼️ Image ${index} loaded successfully`);
+                      setLoadingImage1(false);
+                    }}
+                    onError={(error) => {
+                      console.error(`🖼️ Image ${index} failed to load:`, error);
+                      setLoadingImage1(false);
+                    }}
+                    style={{
+                      width: imagewidth,
+                      height: '120%',
+                      backgroundColor: "#f0f0f0", // 添加背景色以便调试
+                    }}
+                  />
+                </View>
+              );
+            })}
 
           </View>
         </View>
@@ -287,22 +366,23 @@ export default function BaseSix() {
               <ActivityIndicator size="large" color="#f97316" />
               <Text className="text-gray-600 mt-2">Loading plans...</Text>
             </View>
-          ) : !currentOffering || currentOffering.availablePackages.length === 0 ? (
+          ) : allSubscriptionPackages.length === 0 ? (
             <View className="flex-1 items-center justify-center">
               <Text className="text-gray-600 text-center">
                 No subscription plans available at the moment
               </Text>
             </View>
           ) : (
-            currentOffering.availablePackages.slice(0, 3).map((pkg, index) => {
+            allSubscriptionPackages.slice(0, 3).map((pkg, index) => {
+              console.log(`🔍Rendering subscription ${index}: ${pkg.identifier}`);
               const isSelected = selectedPackage?.identifier === pkg.identifier;
-              const discountLabel = getDiscountLabel(pkg, currentOffering.availablePackages);
+              const discountLabel = getDiscountLabel(pkg, currentOffering?.availablePackages || []);
 
               return (
                 <Pressable
                   key={pkg.identifier}
                   onPress={() => handlePlanSelect(pkg)}
-                  className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative overflow-hidden ${isSelected
+                  className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative overflow-visible ${isSelected
                     ? "border-orange-500 bg-orange-50"
                     : "border-gray-300 bg-gray-300"
                     }`}
@@ -378,3 +458,52 @@ export default function BaseSix() {
     </View>
   );
 }
+// 从 Auth.native.tsx 复制的 fetchUserProfileWithRetry 函数
+async function fetchUserProfileWithRetry(
+  userId: string, 
+  maxRetries: number = 3,
+  timeout: number = 8000
+): Promise<{ data: any; error: any }> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📡 尝试获取用户配置 (${attempt}/${maxRetries})...`);
+      
+      const profilePromise = supabase
+        .from('profiles')
+        .select('name, fullbodyphoto, images')
+        .eq('id', userId)
+        .single();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), timeout)
+      );
+
+      const result = await Promise.race([profilePromise, timeoutPromise]) as any;
+      
+      if (result.error) {
+        console.warn(`⚠️ 第 ${attempt} 次查询返回错误:`, result.error);
+        if (attempt < maxRetries) {
+          // 等待后重试（递增延迟）
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        return result;
+      }
+      
+      console.log(`✅ 成功获取用户配置 (尝试 ${attempt} 次)`);
+      return result;
+    } catch (error) {
+      console.warn(`⚠️ 第 ${attempt} 次查询失败:`, error);
+      if (attempt < maxRetries) {
+        const delay = 1000 * attempt;
+        console.log(`⏳ 等待 ${delay}ms 后重试...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error(`❌ 查询失败，已重试 ${maxRetries} 次`);
+        return { data: null, error };
+      }
+    }
+  }
+  return { data: null, error: new Error('Max retries exceeded') };
+}
+

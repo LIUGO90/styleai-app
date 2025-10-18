@@ -28,6 +28,7 @@ export default function BaseFive() {
   // 防抖相关状态
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProcessingRef = useRef<boolean>(false);
+  const [isRemoveLoading, setIsRemoveLoading] = useState<boolean>(false);
 
   const { isUpdate } = useLocalSearchParams();
 
@@ -58,6 +59,7 @@ export default function BaseFive() {
         if (onboardingDataObj.fullBodyPhoto.length > 0) {
           console.log("✅ 从本地缓存加载图片");
           setSelectedImage(onboardingDataObj.fullBodyPhoto);
+          setIsRemoveLoading(true);
         } else {
           // 读取远程
           console.log("📡 从远程加载图片");
@@ -78,6 +80,7 @@ export default function BaseFive() {
           if (userProfile?.fullbodyphoto && userProfile?.fullbodyphoto.length > 0) {
             console.log("✅ 从远程加载图片成功");
             setSelectedImage(userProfile.fullbodyphoto);
+            setIsRemoveLoading(true);
             onboardingDataObj.fullBodyPhoto = userProfile.fullbodyphoto
             AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingDataObj));
           } else {
@@ -134,9 +137,15 @@ export default function BaseFive() {
       const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
 
       try {
+        
         if (isUpdate === "true" && onboardingDataObj.fullBodyPhoto == selectedImage) {
-
           router.replace("/");
+          return;
+        }
+        // 如果已经上传过图片，直接跳转到五步
+        if (isRemoveLoading) {
+          setIsRemoveLoading(false);
+          router.push("/onboarding/five");
           return;
         }
 
