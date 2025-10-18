@@ -45,6 +45,11 @@ class PaymentService {
       if (params.product_type === 'credits' && params.credits_amount && params.credits_amount > 0) {
         await this.addCreditsFromPayment(params.user_id, params.credits_amount, data.id);
       }
+      
+      // 如果是订阅购买，设置月度积分
+      if (params.is_subscription && params.product_type === 'subscription') {
+        await this.setupSubscriptionCredits(params.user_id, data.id);
+      }
 
       return data;
     } catch (error) {
@@ -388,9 +393,14 @@ class PaymentService {
           .eq('user_id', userId)
           .eq('product_id', entitlement.productIdentifier)
           .eq('is_subscription', true)
+          .order('purchase_date', { ascending: false })
+          .limit(1)
           .single();
 
         if (existingPayment) {
+          const wasActive = existingPayment.is_active;
+          const isNowActive = entitlement.isActive;
+          
           // 更新现有记录
           await supabase
             .from('payments')
@@ -398,15 +408,223 @@ class PaymentService {
               is_active: entitlement.isActive,
               will_renew: entitlement.willRenew,
               expiration_date: entitlement.expirationDate,
-              status: entitlement.isActive ? 'completed' : 'expired',
+              status: entitlement.isActive ? 'completed' : 'cancelled',
+              updated_at: new Date().toISOString(),
             })
             .eq('id', existingPayment.id);
+
+          // 处理订阅状态变化
+          await this.handleSubscriptionStatusChange(
+            userId,
+            existingPayment,
+            wasActive,
+            isNowActive,
+            entitlement
+          );
         }
       }
 
       console.log('✅ [PaymentService] RevenueCat subscription synced');
     } catch (error) {
       console.error('[PaymentService] Error syncing RevenueCat subscription:', error);
+    }
+  }
+
+  /**
+   * 处理订阅状态变化
+   */
+  private async handleSubscriptionStatusChange(
+    userId: string,
+    payment: any,
+    wasActive: boolean,
+    isNowActive: boolean,
+    entitlement: any
+  ): Promise<void> {
+    try {
+      // 订阅被取消
+      if (wasActive && !isNowActive) {
+        console.log('🔄 [PaymentService] Subscription cancelled for user:', userId);
+        await this.handleSubscriptionCancellation(userId, payment);
+      }
+      
+      // 订阅被激活（续费）
+      if (!wasActive && isNowActive) {
+        console.log('🔄 [PaymentService] Subscription reactivated for user:', userId);
+        await this.handleSubscriptionReactivation(userId, payment);
+      }
+      
+      // 检查是否需要发放月度积分
+      if (isNowActive) {
+        await this.checkAndDistributeMonthlyCredits(userId, payment);
+      }
+    } catch (error) {
+      console.error('[PaymentService] Error handling subscription status change:', error);
+    }
+  }
+
+  /**
+   * 处理订阅取消
+   */
+  private async handleSubscriptionCancellation(
+    userId: string,
+    payment: any
+  ): Promise<void> {
+    try {
+      // 记录订阅取消交易
+      await supabase.rpc('add_credits', {
+        p_user_id: userId,
+        p_amount: 0, // 不添加积分，只是记录
+        p_transaction_type: 'subscription_monthly',
+        p_payment_id: payment.id,
+        p_description: 'Subscription cancelled'
+      });
+
+      // 更新用户积分表中的订阅状态
+      await supabase
+        .from('user_credits')
+        .update({
+          subscription_credits_monthly: 0,
+          subscription_credits_used: 0,
+          subscription_credits_reset_date: null,
+        })
+        .eq('user_id', userId);
+
+      console.log('✅ [PaymentService] Subscription cancellation handled');
+    } catch (error) {
+      console.error('[PaymentService] Error handling subscription cancellation:', error);
+    }
+  }
+
+  /**
+   * 处理订阅重新激活
+   */
+  private async handleSubscriptionReactivation(
+    userId: string,
+    payment: any
+  ): Promise<void> {
+    try {
+      // 重置月度积分
+      await supabase
+        .from('user_credits')
+        .update({
+          subscription_credits_monthly: 1000, // 每月1000积分
+          subscription_credits_used: 0,
+          subscription_credits_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天后重置
+        })
+        .eq('user_id', userId);
+
+      // 立即发放当月积分
+      await this.distributeMonthlyCredits(userId, payment);
+
+      console.log('✅ [PaymentService] Subscription reactivation handled');
+    } catch (error) {
+      console.error('[PaymentService] Error handling subscription reactivation:', error);
+    }
+  }
+
+  /**
+   * 检查并发放月度积分
+   */
+  private async checkAndDistributeMonthlyCredits(
+    userId: string,
+    payment: any
+  ): Promise<void> {
+    try {
+      // 获取用户积分信息
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('subscription_credits_reset_date, subscription_credits_used')
+        .eq('user_id', userId)
+        .single();
+
+      if (!userCredits) {
+        console.warn('[PaymentService] User credits not found for monthly distribution');
+        return;
+      }
+
+      const now = new Date();
+      const resetDate = userCredits.subscription_credits_reset_date 
+        ? new Date(userCredits.subscription_credits_reset_date) 
+        : null;
+
+      // 如果重置日期为空或已过期，发放新的月度积分
+      if (!resetDate || resetDate <= now) {
+        await this.distributeMonthlyCredits(userId, payment);
+      }
+    } catch (error) {
+      console.error('[PaymentService] Error checking monthly credits:', error);
+    }
+  }
+
+  /**
+   * 设置订阅积分（首次订阅时）
+   */
+  private async setupSubscriptionCredits(
+    userId: string,
+    paymentId: string
+  ): Promise<void> {
+    try {
+      const monthlyCredits = 1000; // 每月1000积分
+      
+      // 立即发放第一个月的积分
+      await supabase.rpc('add_credits', {
+        p_user_id: userId,
+        p_amount: monthlyCredits,
+        p_transaction_type: 'subscription_monthly',
+        p_payment_id: paymentId,
+        p_description: `Initial subscription credits - ${monthlyCredits} credits`
+      });
+
+      // 设置月度积分重置日期（30天后）
+      const nextResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await supabase
+        .from('user_credits')
+        .update({
+          subscription_credits_monthly: monthlyCredits,
+          subscription_credits_used: 0,
+          subscription_credits_reset_date: nextResetDate.toISOString(),
+        })
+        .eq('user_id', userId);
+
+      console.log(`✅ [PaymentService] Setup subscription credits: ${monthlyCredits} credits for user`);
+    } catch (error) {
+      console.error('[PaymentService] Error setting up subscription credits:', error);
+    }
+  }
+
+  /**
+   * 发放月度积分
+   */
+  private async distributeMonthlyCredits(
+    userId: string,
+    payment: any
+  ): Promise<void> {
+    try {
+      const monthlyCredits = 1000; // 每月1000积分
+      
+      // 添加积分
+      await supabase.rpc('add_credits', {
+        p_user_id: userId,
+        p_amount: monthlyCredits,
+        p_transaction_type: 'subscription_monthly',
+        p_payment_id: payment.id,
+        p_description: `Monthly subscription credits - ${monthlyCredits} credits`
+      });
+
+      // 更新下次重置日期
+      const nextResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await supabase
+        .from('user_credits')
+        .update({
+          subscription_credits_monthly: monthlyCredits,
+          subscription_credits_used: 0,
+          subscription_credits_reset_date: nextResetDate.toISOString(),
+        })
+        .eq('user_id', userId);
+
+      console.log(`✅ [PaymentService] Distributed ${monthlyCredits} monthly credits to user`);
+    } catch (error) {
+      console.error('[PaymentService] Error distributing monthly credits:', error);
     }
   }
 }

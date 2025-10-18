@@ -10,6 +10,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useImagePicker } from "@/hooks/useImagePicker";
 import { supabase } from "@/utils/supabase";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useCredit } from "@/contexts/CreditContext";
 
 
 export default function MyProfile() {
@@ -151,7 +152,17 @@ export default function MyProfile() {
     );
   };
 
+  const { showCreditModal } = useCredit();
+
   const menuItems = [
+    {
+      id: 'credits',
+      icon: 'star',
+      title: '我的积分',
+      subtitle: '查看积分余额和用途',
+      onPress: showCreditModal,
+      color: '#f97316',
+    },
     {
       id: "Profile Photo",
       title: "Profile Photo",
@@ -310,7 +321,7 @@ export default function MyProfile() {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-white">
-      <View className="bg-white mt-12 px-6">
+      <View className="bg-white mt-6 px-6">
         {/* User Info Card */}
         <View className="flex-row items-center">
           <TouchableOpacity
@@ -371,7 +382,7 @@ export default function MyProfile() {
       </View>
 
      {/* Menu Items */}
-      <View className=" flex-1 bg-white rounded-2xl p-4 m-6"
+      <View className=" flex-1 bg-white rounded-2xl p-4 m-2"
       >
         <Text className="text-lg font-semibold text-gray-800 mb-4">
           Settings & Preferences
@@ -388,7 +399,7 @@ export default function MyProfile() {
                 style={{ backgroundColor: `${item.color}20` }}
               >
                 <MaterialCommunityIcons
-                  name={item.icon}
+                  name={item.icon as any}
                   size={20}
                   color={item.color}
                 />
@@ -430,7 +441,7 @@ export default function MyProfile() {
       {(session?.access_token === "apple_dev_token" ||
         user?.user_metadata?.provider === "apple" ||
         user?.app_metadata?.provider === "apple") && (
-          <View style={{ marginHorizontal: 20, marginBottom: 32 }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
             <Pressable
               onPress={revokeAppleAuthorization}
               style={{

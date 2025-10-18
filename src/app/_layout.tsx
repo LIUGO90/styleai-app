@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import "../utils/reanimated-config";
 import { Alert, LogBox } from "react-native";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CreditProvider } from "@/contexts/CreditContext";
 import "../utils/authTest"; // 导入认证测试工具
 import "../utils/clearUserData"; // 导入清除数据工具
 import { appInitializationService } from "@/services/AppInitializationService";
@@ -161,8 +162,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ToastProvider>
-        <Drawer
+      <CreditProvider>
+        <ToastProvider>
+          <Drawer
         screenOptions={{
           headerShown: false,
           drawerActiveTintColor: '#007AFF',
@@ -252,7 +254,8 @@ export default function RootLayout() {
           }}
         />
       </Drawer>
-      </ToastProvider>
+        </ToastProvider>
+      </CreditProvider>
     </AuthProvider>
   );
 }

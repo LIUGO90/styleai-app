@@ -17,6 +17,9 @@ import { StyleTemplate } from "@/types/styleTemplate.types";
 import { useTemplateGenerationStore } from "@/stores/templateGenerationStore";
 import { useGlobalToast } from "@/utils/globalToast";
 import { usePersistentRequests } from "@/hooks/usePersistentRequests";
+import { useCredits } from "@/hooks/usePayment";
+import { useCredit } from "@/contexts/CreditContext";
+import paymentService from "@/services/PaymentService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -28,6 +31,10 @@ export default function ForYouScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [reloadKey, setReloadKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    
+    // 积分相关状态
+    const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
+    const { showCreditModal } = useCredit();
 
     // 使用全局 Toast
     const { showToast } = useGlobalToast();
@@ -115,7 +122,7 @@ export default function ForYouScreen() {
 
     const handleNext = async () => {
         try {
-            // 安全检查：确保数据已加载
+            // 安全检查：确保攒据已加载
             if (!foryou || foryou.length === 0) {
                 showToast({ message: "Loading templates, please wait...", type: "info" });
                 return;
@@ -135,6 +142,24 @@ export default function ForYouScreen() {
             // 检查当前 template 是否正在生成
             if (isTemplateGenerating(currentTemplateId)) {
                 showToast({ message: "This look is already being generated...", type: "info" });
+                return;
+            }
+
+            // 检查用户积分
+            const requiredCredits = 10;
+            const availableCredits = credits?.available_credits || 0;
+            
+            if (availableCredits < requiredCredits) {
+                showToast({ 
+                    message: `需要 ${requiredCredits} 积分才能生成图片，当前积分不足`, 
+                    type: "warning",
+                    duration: 3000
+                });
+                
+                // 延迟显示积分购买弹窗，让用户看到提示信息
+                setTimeout(() => {
+                    showCreditModal();
+                }, 1500);
                 return;
             }
 
@@ -165,6 +190,27 @@ export default function ForYouScreen() {
             );
 
             if (resultLookbook && resultLookbook.length > 0) {
+                // 图片生成成功，扣除积分
+                try {
+                    const deductSuccess = await paymentService.useCredits(
+                        user?.id || '',
+                        requiredCredits,
+                        'image_generation',
+                        currentTemplateId,
+                        `Generated ${selectedStyles} lookbook`
+                    );
+
+                    if (deductSuccess) {
+                        console.log(`✅ [ForYou] 成功扣除 ${requiredCredits} 积分`);
+                        // 刷新积分信息
+                        await refreshCredits();
+                    } else {
+                        console.warn('⚠️ [ForYou] 积分扣除失败，但图片已生成');
+                    }
+                } catch (creditError) {
+                    console.error('❌ [ForYou] 积分扣除异常:', creditError);
+                }
+
                 // 显示成功消息
                 showToast({
                     message: `Your ${selectedStyles} lookbook has been saved!`,
