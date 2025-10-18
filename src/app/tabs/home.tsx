@@ -4,7 +4,7 @@ import { ChatHeader } from "@/components/Chat";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { Image } from "expo-image";
-import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform, RefreshControl } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform, RefreshControl, FlatList } from "react-native";
 import { BACKGROUNDS } from "@/config/imagePaths";
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -23,7 +23,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<FlatList>(null);
 
   // 加载数据函数
   const loadForYouData = useCallback(async () => {
@@ -34,7 +34,7 @@ export default function HomeScreen() {
   // 页面获得焦点时滚动到顶部并刷新数据
   useFocusEffect(
     useCallback(() => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      scrollViewRef.current?.scrollToOffset({ offset: 0, animated: false });
       
       // 清空现有数据，避免显示旧内容
       // setForyou([]);
@@ -231,10 +231,12 @@ export default function HomeScreen() {
             </View>
 
             {/* 可滚动内容 */}
-            <View className="flex-1 items-start justify-center ">
-              <ScrollView
+            <View className="flex-1">
+              <FlatList
                 ref={scrollViewRef}
-                className="flex-1"
+                data={foryou}
+                numColumns={2}
+                keyExtractor={(item, index) => `${refreshKey}-${index}-${item.id}`}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{
@@ -248,49 +250,45 @@ export default function HomeScreen() {
                     tintColor="#000000" // iOS 颜色
                   />
                 }
-              >
-                {/* 显示所有图片 */}
-                <View className="flex-row flex-wrap justify-between items-center w-full">
-                  {foryou.map((image, index) => (
-                    <TouchableOpacity
-                      key={`${refreshKey}-${index}`}
-                      className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
-                      style={{ aspectRatio: 712 / 1247 }}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        const imageData = {
-                          id: image.id,
-                          name: image.name,
-                          url: image.url
-                        };
-                        router.push({
-                          pathname: "/foryou",
-                          params: {
-                            image: JSON.stringify(imageData)
-                          }
-                        });
-                      }}
-                    >
-                      <Image
-                        key={`style-image-${refreshKey}-${index}-${image.id}`}
-                        source={image.url}
-                        style={{ width: '100%', height: '100%' }}
-                        contentFit="cover"
-                        placeholder="Loading..."
-                        cachePolicy="memory-disk"
-                        priority="high"
-                        recyclingKey={`home-style-${refreshKey}-${index}`}
-                      />
-                      {/* 图片名称标签 */}
-                      <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
-                        <Text className="text-white text-sm font-semibold text-center">
-                          {image.name}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+                columnWrapperStyle={{ justifyContent: 'space-between' }}
+                renderItem={({ item: image, index }) => (
+                  <TouchableOpacity
+                    className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
+                    style={{ aspectRatio: 712 / 1247 }}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      const imageData = {
+                        id: image.id,
+                        name: image.name,
+                        url: image.url
+                      };
+                      router.push({
+                        pathname: "/foryou",
+                        params: {
+                          image: JSON.stringify(imageData)
+                        }
+                      });
+                    }}
+                  >
+                    <Image
+                      key={`style-image-${refreshKey}-${index}-${image.id}`}
+                      source={image.url}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      placeholder="Loading..."
+                      cachePolicy="memory-disk"
+                      priority="high"
+                      recyclingKey={`home-style-${refreshKey}-${index}`}
+                    />
+                    {/* 图片名称标签 */}
+                    <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
+                      <Text className="text-white text-sm font-semibold text-center">
+                        {image.name}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
             </View>
 
           </View>

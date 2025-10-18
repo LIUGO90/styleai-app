@@ -6,13 +6,16 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as BackgroundFetch from 'expo-background-fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { aiRequest, aiRequestGemini, aiRequestKling, aisuggest, chatRequest } from '@/services/aiReuest';
+import { aiRequest, aiRequestGemini, aisuggest, chatRequest } from '@/services/aiReuest';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { ChatSessionService, ChatSession } from '@/services/ChatSessionService';
 import { uploadImageWithFileSystem } from '@/services/FileUploadService';
 import { useAuth } from '@/contexts/AuthContext';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { addImageLook } from '@/services/addLookBook';
+import { useCredits } from '@/hooks/usePayment';
+import { useCredit } from '@/contexts/CreditContext';
+import paymentService from '@/services/PaymentService';
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = '') => {
@@ -135,6 +138,10 @@ export default function StyleAnItemScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [jobId, setJobId] = useState<string>("");
   const [canInput, setCanInput] = useState<boolean>(false);
+
+  // 积分相关状态
+  const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
+  const { showCreditModal } = useCredit();
   // 加载当前会话
   useEffect(() => {
     loadCurrentSession();
@@ -399,6 +406,28 @@ export default function StyleAnItemScreen() {
           updateMessage(newMessage);
         }
 
+        // 检查用户积分是否足够（第一次AI请求）
+        const requiredCreditsFirst = 20; // 第一次AI请求需要10积分
+        const availableCreditsFirst = credits?.available_credits || 0;
+
+        if (availableCreditsFirst < requiredCreditsFirst) {
+          Alert.alert(
+            '积分不足',
+            `分析搭配需要 ${requiredCreditsFirst} 积分，您当前只有 ${availableCreditsFirst} 积分。请购买更多积分后再试。`,
+            [
+              {
+                text: '购买积分',
+                onPress: () => showCreditModal()
+              },
+              {
+                text: '取消',
+                style: 'cancel'
+              }
+            ]
+          );
+          return;
+        }
+
         progressMessage1.progress = {
           current: 5,
           total: 10,
@@ -419,8 +448,29 @@ export default function StyleAnItemScreen() {
             data.skinTone,
             selectedButtons,
             "",
-            images, currentSession?.id || '').then(({ status, message, images }) => {
+            images, currentSession?.id || '').then(async ({ status, message, images }) => {
               if (status == "success") {
+                // 成功生成图片后，扣除积分
+                try {
+                  const deductSuccess = await paymentService.useCredits(
+                    user?.id || '',
+                    requiredCreditsFirst,
+                    'style_analysis',
+                    currentSession?.id || '',
+                    `Style analysis for occasion: ${selectedButtons}`
+                  );
+
+                  if (deductSuccess) {
+                    console.log(`✅ [StyleAnItem] 成功扣除 ${requiredCreditsFirst} 积分`);
+                    // 刷新积分信息
+                    await refreshCredits();
+                  } else {
+                    console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+                  }
+                } catch (creditError) {
+                  console.error('❌ [StyleAnItem] 积分扣除异常:', creditError);
+                }
+
                 dateleMessage(progressMessage1.id);
                 addMessage({
                   id: Date.now().toString(),
@@ -486,6 +536,28 @@ export default function StyleAnItemScreen() {
 
         addMessage(progressMessage2);
 
+        // 检查用户积分是否足够
+        const requiredCredits = 20; // 需要20积分
+        const availableCredits = credits?.available_credits || 0;
+
+        if (availableCredits < requiredCredits) {
+          Alert.alert(
+            '积分不足',
+            `生成搭配需要 ${requiredCredits} 积分，您当前只有 ${availableCredits} 积分。请购买更多积分后再试。`,
+            [
+              {
+                text: '购买积分',
+                onPress: () => showCreditModal()
+              },
+              {
+                text: '取消',
+                style: 'cancel'
+              }
+            ]
+          );
+          return;
+        }
+
         const resultGemini2 = await aiRequestGemini(user?.id || '', jobId2, 1);
         if (resultGemini2.length === 0) {
           Alert.alert('AI request failed');
@@ -501,29 +573,36 @@ export default function StyleAnItemScreen() {
           showAvatars: true,
           images: []
         };
+
+        // 成功生成图片后，扣除积分
+        try {
+          const deductSuccess = await paymentService.useCredits(
+            user?.id || '',
+            requiredCredits,
+            'outfit_generation',
+            jobId2 || null,
+            `Generated outfit for occasion: ${selectedButtons}`
+          );
+
+          if (deductSuccess) {
+            console.log(`✅ [StyleAnItem] 成功扣除 ${requiredCredits} 积分`);
+            // 刷新积分信息
+            await refreshCredits();
+          } else {
+            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+          }
+        } catch (creditError) {
+          console.error('❌ [StyleAnItem] 积分扣除异常:', creditError);
+        }
+
         for (const image of resultGemini2) {
           GeminiMessage2.images!.push({
             id: generateUniqueId('img_'),
             url: image,
-            // alt: 'Kling Image',
           });
         }
         dateleMessage(progressMessage2.id)
         addMessage(GeminiMessage2);
-
-        // addMessage({
-        //   id: generateUniqueId('msg_'),
-        //   text: "Would you like to generate another look for this item? If you'd like me to tweak this outfit, just let me know.",
-        //   sender: 'ai',
-        //   timestamp: new Date(),
-        //   buttons: [
-        //     {
-        //       id: generateUniqueId('btn_'),
-        //       text: 'change accessories',
-        //       action: 'change_accessories'
-        //     }
-        //   ],
-        // });
 
         break;
 

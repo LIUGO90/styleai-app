@@ -156,14 +156,6 @@ export default function MyProfile() {
 
   const menuItems = [
     {
-      id: 'credits',
-      icon: 'star',
-      title: '我的积分',
-      subtitle: '查看积分余额和用途',
-      onPress: showCreditModal,
-      color: '#f97316',
-    },
-    {
       id: "Profile Photo",
       title: "Profile Photo",
       icon: "account-edit" as const,
@@ -201,6 +193,14 @@ export default function MyProfile() {
       icon: "star" as const,
       color: "#fbbf24",
       onPress: () => router.replace("/onboarding/BaseSix"),
+    },
+    {
+      id: 'credits',
+      icon: 'star',
+      title: '我的积分',
+      subtitle: '查看积分余额和用途',
+      onPress: showCreditModal,
+      color: '#f97316',
     },
 
 

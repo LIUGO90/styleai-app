@@ -240,11 +240,20 @@ class PaymentService {
     description?: string
   ): Promise<boolean> {
     try {
+      // 验证 relatedEntityId 是否为有效的 UUID 格式
+      const isValidUUID = (uuid: string): boolean => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+      };
+
+      // 如果 relatedEntityId 不是有效的 UUID，则设为 null
+      const validRelatedEntityId = relatedEntityId && isValidUUID(relatedEntityId) ? relatedEntityId : null;
+
       const { data, error } = await supabase.rpc('use_credits', {
         p_user_id: userId,
         p_amount: amount,
         p_related_entity_type: relatedEntityType,
-        p_related_entity_id: relatedEntityId,
+        p_related_entity_id: validRelatedEntityId,
         p_description: description,
       });
 

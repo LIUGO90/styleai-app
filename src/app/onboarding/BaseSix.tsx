@@ -54,8 +54,6 @@ export default function BaseSix() {
   const [name, setName] = useState<string>("");
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [image, setImage] = useState<string[]>([]);
-  const [loadingImage1, setLoadingImage1] = useState(true);
-  const [loadingImage2, setLoadingImage2] = useState(true);
   const [allSubscriptionPackages, setAllSubscriptionPackages] = useState<PurchasesPackage[]>([]);
 
   // RevenueCat hooks
@@ -327,15 +325,13 @@ export default function BaseSix() {
                     cachePolicy="memory-disk"
                     onLoadStart={() => {
                       // console.log(`🖼️ Image ${index} loading started`);
-                      setLoadingImage1(true);
                     }}
                     onLoad={() => {
                       // console.log(`🖼️ Image ${index} loaded successfully`);
-                      setLoadingImage1(false);
+
                     }}
                     onError={(error) => {
                       console.error(`🖼️ Image ${index} failed to load:`, error);
-                      setLoadingImage1(false);
                     }}
                     style={{
                       width: imagewidth,
