@@ -661,11 +661,11 @@ export default function CreditManagement() {
               
               <View className="bg-white rounded-xl border border-gray-200">
                 {purchaseHistory.length > 0 ? (
-                  purchaseHistory.map((purchase, index) => (
+                  purchaseHistory.slice(0, 5).map((purchase, index) => (
                     <TouchableOpacity
                       key={purchase.id}
                       onPress={() => handleViewDetails(purchase)}
-                      className={`p-4 ${index < purchaseHistory.length - 1 ? 'border-b border-gray-100' : ''}`}
+                      className={`p-4 ${index < Math.min(5, purchaseHistory.length) - 1 ? 'border-b border-gray-100' : ''}`}
                     >
                       <View className="flex-row justify-between items-start">
                         <View className="flex-1 mr-3">
@@ -719,6 +719,15 @@ export default function CreditManagement() {
                     <Text className="text-gray-500 mt-3 text-center font-semibold">No Credits Purchased Yet</Text>
                     <Text className="text-gray-400 text-sm mt-1 text-center">
                       Purchase credits above to start using AI features
+                    </Text>
+                  </View>
+                )}
+                
+                {/* 显示记录数量提示 */}
+                {purchaseHistory.length > 5 && (
+                  <View className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                    <Text className="text-xs text-gray-500 text-center">
+                      显示最近 5 条记录，共 {purchaseHistory.length} 条购买记录
                     </Text>
                   </View>
                 )}

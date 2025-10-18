@@ -1,24 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSubscription, usePurchase, useManageSubscription } from '@/hooks/useRevenueCat';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 
 export default function SubscriptionScreen() {
   const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
   const { restore, restoring } = usePurchase();
   const { showManageSubscriptions } = useManageSubscription();
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
+  const [productInfo, setProductInfo] = useState<any>(null);
+
+  // 检查是否为订阅产品（而非积分包）
+  const isSubscriptionProduct = (productId: string): boolean => {
+    // 积分包通常包含 AIPoints 关键词
+    // 订阅产品通常包含 monthly, yearly, pro, premium 等关键词
+    const subscriptionKeywords = ['monthly', 'yearly', 'pro', 'premium', 'subscription'];
+    const creditKeywords = ['aipoints', 'credits', 'points'];
+    
+    const lowerProductId = productId.toLowerCase();
+    
+    // 如果包含积分包关键词，则不是订阅
+    if (creditKeywords.some(keyword => lowerProductId.includes(keyword))) {
+      return false;
+    }
+    
+    // 如果包含订阅关键词，则是订阅
+    if (subscriptionKeywords.some(keyword => lowerProductId.includes(keyword))) {
+      return true;
+    }
+    
+    // 默认为订阅产品
+    return true;
+  };
+
+  // 格式化产品名称
+  const formatProductName = (productId: string): string => {
+    // 移除下划线，首字母大写
+    return productId
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   // 获取详细的订阅信息
   useEffect(() => {
-    if (customerInfo && isActive) {
+    console.log('📊 [Subscription] Customer Info:', customerInfo);
+    console.log('📊 [Subscription] isActive:', isActive);
+    
+    if (customerInfo) {
       const activeEntitlements = customerInfo.entitlements.active;
+      const allEntitlements = customerInfo.entitlements.all;
+      const activeSubscriptions = customerInfo.activeSubscriptions;
+      
+      console.log('📊 [Subscription] Active Entitlements:', Object.keys(activeEntitlements));
+      console.log('📊 [Subscription] All Entitlements:', Object.keys(allEntitlements));
+      console.log('📊 [Subscription] Active Subscriptions:', activeSubscriptions);
+      
+      // 尝试从所有权益中获取订阅信息（过滤掉积分包）
       const entitlementKeys = Object.keys(activeEntitlements);
       
-      if (entitlementKeys.length > 0) {
-        const activeEntitlement = activeEntitlements[entitlementKeys[0]];
+      // 过滤出真正的订阅产品
+      const subscriptionEntitlements = entitlementKeys.filter(key => {
+        const entitlement = activeEntitlements[key];
+        return isSubscriptionProduct(entitlement.productIdentifier);
+      });
+      
+      console.log('📊 [Subscription] All Entitlements:', entitlementKeys);
+      console.log('📊 [Subscription] Subscription Entitlements (filtered):', subscriptionEntitlements);
+      
+      if (subscriptionEntitlements.length > 0) {
+        const activeEntitlement = activeEntitlements[subscriptionEntitlements[0]];
+        console.log('📊 [Subscription] Active Subscription Entitlement Details:', activeEntitlement);
+        
         setSubscriptionDetails({
           productIdentifier: activeEntitlement.productIdentifier,
           expirationDate: activeEntitlement.expirationDate,
@@ -30,9 +86,75 @@ export default function SubscriptionScreen() {
           billingIssueDetectedAt: activeEntitlement.billingIssueDetectedAt,
           unsubscribeDetectedAt: activeEntitlement.unsubscribeDetectedAt,
         });
+        
+        // 获取产品详细信息
+        setProductInfo({
+          id: activeEntitlement.productIdentifier,
+          name: formatProductName(activeEntitlement.productIdentifier),
+          period: activeEntitlement.periodType,
+          isSubscription: true,
+        });
+      } else if (activeSubscriptions.length > 0) {
+        // 如果有活跃订阅但没有权益，尝试从所有权益中查找
+        console.log('📊 [Subscription] No active entitlements, checking all entitlements...');
+        const allEntitlementKeys = Object.keys(allEntitlements);
+        
+        // 过滤出真正的订阅产品
+        const allSubscriptionEntitlements = allEntitlementKeys.filter(key => {
+          const entitlement = allEntitlements[key];
+          return isSubscriptionProduct(entitlement.productIdentifier);
+        });
+        
+        console.log('📊 [Subscription] All Subscription Entitlements (filtered):', allSubscriptionEntitlements);
+        
+        if (allSubscriptionEntitlements.length > 0) {
+          const latestEntitlement = allEntitlements[allSubscriptionEntitlements[0]];
+          console.log('📊 [Subscription] Latest Subscription Entitlement Details:', latestEntitlement);
+          
+          setSubscriptionDetails({
+            productIdentifier: latestEntitlement.productIdentifier,
+            expirationDate: latestEntitlement.expirationDate,
+            purchaseDate: latestEntitlement.latestPurchaseDate,
+            originalPurchaseDate: latestEntitlement.originalPurchaseDate,
+            willRenew: latestEntitlement.willRenew,
+            periodType: latestEntitlement.periodType,
+            isSandbox: latestEntitlement.isSandbox,
+            billingIssueDetectedAt: latestEntitlement.billingIssueDetectedAt,
+            unsubscribeDetectedAt: latestEntitlement.unsubscribeDetectedAt,
+          });
+          
+          setProductInfo({
+            id: latestEntitlement.productIdentifier,
+            name: formatProductName(latestEntitlement.productIdentifier),
+            period: latestEntitlement.periodType,
+            isSubscription: true,
+          });
+        } else {
+          // 如果没有订阅产品，过滤 activeSubscriptions 中的订阅产品
+          const subscriptionProductIds = activeSubscriptions.filter(id => isSubscriptionProduct(id));
+          
+          if (subscriptionProductIds.length > 0) {
+            const subscriptionId = subscriptionProductIds[0];
+            setSubscriptionDetails(null);
+            setProductInfo({
+              id: subscriptionId,
+              name: formatProductName(subscriptionId),
+              period: 'unknown',
+              isSubscription: true,
+            });
+          } else {
+            // 没有真正的订阅产品
+            setSubscriptionDetails(null);
+            setProductInfo(null);
+          }
+        }
+      } else {
+        setSubscriptionDetails(null);
+        setProductInfo(null);
       }
     } else {
       setSubscriptionDetails(null);
+      setProductInfo(null);
     }
   }, [customerInfo, isActive]);
 
@@ -43,6 +165,66 @@ export default function SubscriptionScreen() {
     } catch (error) {
       Alert.alert('失败', '无法恢复购买，请稍后重试');
     }
+  };
+
+  // 处理取消订阅
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      '取消订阅',
+      '您可以通过以下方式管理您的订阅：\n\n• 在 App Store 中管理订阅\n• 通过设备设置管理订阅\n\n取消订阅后，您将在当前计费周期结束前继续享受服务。',
+      [
+        {
+          text: '在 App Store 中管理',
+          onPress: () => {
+            if (customerInfo?.managementURL) {
+              Linking.openURL(customerInfo.managementURL);
+            } else {
+              // 如果没有 managementURL，引导用户到 App Store
+              if (Platform.OS === 'ios') {
+                Linking.openURL('https://apps.apple.com/account/subscriptions');
+              }
+            }
+          }
+        },
+        {
+          text: '设备设置',
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Alert.alert(
+                '设备设置',
+                '请按以下步骤操作：\n\n1. 打开"设置"应用\n2. 点击您的 Apple ID\n3. 选择"订阅"\n4. 找到并管理您的订阅',
+                [{ text: '确定' }]
+              );
+            }
+          }
+        },
+        { text: '取消', style: 'cancel' }
+      ]
+    );
+  };
+
+  // 处理继续订阅
+  const handleContinueSubscription = () => {
+    Alert.alert(
+      '继续订阅',
+      '您的订阅将自动续订。如需修改订阅设置，请使用"管理订阅"功能。',
+      [
+        {
+          text: '管理订阅',
+          onPress: () => {
+            if (customerInfo?.managementURL) {
+              Linking.openURL(customerInfo.managementURL);
+            } else {
+              // 如果没有 managementURL，引导用户到 App Store
+              if (Platform.OS === 'ios') {
+                Linking.openURL('https://apps.apple.com/account/subscriptions');
+              }
+            }
+          }
+        },
+        { text: '确定', style: 'default' }
+      ]
+    );
   };
 
   // 查看完整订阅信息（开发调试用）
@@ -117,27 +299,42 @@ export default function SubscriptionScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-3xl font-bold text-orange-800 mb-1">
-                  {isActive ? 'Premium' : 'Free'}
+                  {(productInfo && productInfo.isSubscription) ? 'Premium' : 'Free'}
                 </Text>
                 <Text className="text-orange-700 text-lg mb-2">
-                  {isActive ? '1000 Free Credits/Month' : 'Upgrade to Premium'}
+                  {(productInfo && productInfo.isSubscription)
+                    ? '1000 Free Credits/Month' 
+                    : 'Upgrade to Premium'}
                 </Text>
                 <Text className="text-gray-500 text-sm">
-                  {isActive && expirationDate 
+                  {expirationDate 
                     ? `${willRenew ? 'Renew' : 'Expires'} on ${new Date(expirationDate).toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric', 
                         year: 'numeric' 
                       })}`
-                    : isActive 
-                      ? 'Active subscription'
-                      : 'No active subscription'
+                    : (subscriptionDetails?.expirationDate)
+                      ? `${subscriptionDetails.willRenew ? 'Renew' : 'Expires'} on ${new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}`
+                      : (customerInfo && customerInfo.activeSubscriptions.length > 0)
+                        ? 'Active subscription'
+                        : 'No active subscription'
                   }
                 </Text>
-                {productIdentifier && (
-                  <Text className="text-gray-400 text-xs mt-1">
-                    Plan: {productIdentifier}
-                  </Text>
+                {productInfo && (
+                  <View className="mt-2">
+                    <Text className="text-gray-600 text-sm font-semibold">
+                      {productInfo.name}
+                    </Text>
+                    {productInfo.period && productInfo.period !== 'unknown' && (
+                      <Text className="text-gray-400 text-xs mt-0.5 capitalize">
+                        {productInfo.period} billing
+                      </Text>
+                    )}
+                  </View>
                 )}
               </View>
               <View className="w-16 h-16 bg-orange-200 rounded-full items-center justify-center">
@@ -147,107 +344,47 @@ export default function SubscriptionScreen() {
           </View>
         </View>
 
-        {/* Subscription Details - 当前订阅详情 */}
-        {isActive && subscriptionDetails && (
+
+        {/* Subscription Actions */}
+        {(productInfo && productInfo.isSubscription) && (
           <View className="px-6 mb-6">
-            <Text className="text-lg font-bold text-gray-900 mb-3">Current Subscription Details</Text>
-            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              {/* Subscription Status */}
-              <View className="mb-3">
-                <Text className="text-xs text-gray-500 mb-1">Status</Text>
-                <View className="flex-row items-center">
-                  <MaterialCommunityIcons 
-                    name={willRenew ? "check-circle" : "alert-circle"} 
-                    size={16} 
-                    color={willRenew ? "#22c55e" : "#f59e0b"} 
-                  />
-                  <Text className="text-sm font-semibold text-gray-900 ml-2">
-                    {willRenew ? 'Active - Will Renew' : subscriptionDetails.unsubscribeDetectedAt ? 'Canceled' : 'Active'}
+            <Text className="text-lg font-bold text-gray-900 mb-3">Subscription Management</Text>
+            
+            {/* Cancel/Continue Subscription Buttons */}
+            <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-4">
+              {/* Cancel Subscription Button */}
+              <TouchableOpacity
+                onPress={handleCancelSubscription}
+                className="flex-row items-center justify-center py-4 px-6 bg-red-50 rounded-lg border border-red-200 mb-3"
+              >
+                <MaterialCommunityIcons name="cancel" size={20} color="#dc2626" />
+                <Text className="text-red-700 font-semibold text-base ml-2">Cancel Subscription</Text>
+              </TouchableOpacity>
+              
+              {/* Continue Subscription Button */}
+              <TouchableOpacity
+                onPress={handleContinueSubscription}
+                className="flex-row items-center justify-center py-4 px-6 bg-green-50 rounded-lg border border-green-200"
+              >
+                <MaterialCommunityIcons name="check-circle" size={20} color="#16a34a" />
+                <Text className="text-green-700 font-semibold text-base ml-2">Continue Subscription</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Important Notice */}
+            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <View className="flex-row items-start">
+                <MaterialCommunityIcons name="information" size={20} color="#2563eb" />
+                <View className="flex-1 ml-2">
+                  <Text className="text-blue-900 font-semibold text-sm mb-1">Important Notice</Text>
+                  <Text className="text-blue-700 text-xs leading-relaxed">
+                    • Cancellation takes effect at the end of your current billing period{'\n'}
+                    • You'll continue to have access until then{'\n'}
+                    • No refunds for unused time{'\n'}
+                    • You can resubscribe anytime
                   </Text>
                 </View>
               </View>
-
-              {/* Purchase Date */}
-              {subscriptionDetails.purchaseDate && (
-                <View className="mb-3">
-                  <Text className="text-xs text-gray-500 mb-1">Purchase Date</Text>
-                  <Text className="text-sm text-gray-900">
-                    {new Date(subscriptionDetails.purchaseDate).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </Text>
-                </View>
-              )}
-
-              {/* Next Billing Date - 下一次续订日期 */}
-              {subscriptionDetails.expirationDate && willRenew && (
-                <View className="mb-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <Text className="text-xs text-blue-600 mb-1 font-semibold">Next Billing Date</Text>
-                  <Text className="text-sm font-bold text-blue-900">
-                    {new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </Text>
-                  <Text className="text-xs text-blue-700 mt-1">
-                    Your subscription will automatically renew on this date
-                  </Text>
-                </View>
-              )}
-
-              {/* Expiration Date (if not renewing) */}
-              {subscriptionDetails.expirationDate && !willRenew && (
-                <View className="mb-3 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                  <Text className="text-xs text-amber-600 mb-1 font-semibold">Expires On</Text>
-                  <Text className="text-sm font-bold text-amber-900">
-                    {new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </Text>
-                  <Text className="text-xs text-amber-700 mt-1">
-                    Your subscription will not renew. Reactivate before expiration to continue.
-                  </Text>
-                </View>
-              )}
-
-              {/* Period Type */}
-              {subscriptionDetails.periodType && (
-                <View className="mb-3">
-                  <Text className="text-xs text-gray-500 mb-1">Billing Period</Text>
-                  <Text className="text-sm text-gray-900 capitalize">
-                    {subscriptionDetails.periodType}
-                  </Text>
-                </View>
-              )}
-
-              {/* Billing Issues */}
-              {subscriptionDetails.billingIssueDetectedAt && (
-                <View className="mb-3 bg-red-50 p-3 rounded-lg border border-red-200">
-                  <View className="flex-row items-center mb-1">
-                    <MaterialCommunityIcons name="alert" size={16} color="#ef4444" />
-                    <Text className="text-xs text-red-600 ml-1 font-semibold">Billing Issue Detected</Text>
-                  </View>
-                  <Text className="text-xs text-red-700">
-                    Please update your payment method to avoid service interruption
-                  </Text>
-                </View>
-              )}
-
-              {/* Sandbox Mode */}
-              {subscriptionDetails.isSandbox && (
-                <View className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-300">
-                  <Text className="text-xs text-yellow-700 text-center">
-                    🧪 Test Mode - This is a sandbox subscription
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
         )}
@@ -255,7 +392,7 @@ export default function SubscriptionScreen() {
         {/* Management Options */}
         <View className="px-6 mb-6">
           <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            {isActive && (
+            {(productInfo && productInfo.isSubscription) && (
               <>
                 <TouchableOpacity
                   onPress={async () => {
@@ -296,26 +433,6 @@ export default function SubscriptionScreen() {
           </View>
         </View>
 
-        {/* Navigate to Credits */}
-        <View className="px-6 mb-6">
-          <TouchableOpacity
-            onPress={() => router.push('/tabs/my/credit')}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-orange-200"
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <View className="flex-row items-center mb-2">
-                  <MaterialCommunityIcons name="star" size={24} color="#f59e0b" />
-                  <Text className="text-xl font-bold text-orange-900 ml-2">Buy Credits</Text>
-                </View>
-                <Text className="text-orange-700 text-sm">
-                  Get more AI credits to generate outfits
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#f59e0b" />
-            </View>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
