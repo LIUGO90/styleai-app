@@ -122,6 +122,12 @@ export default function Five() {
           imagesUrl.push(...resultLookbook);
           addImageLook(user?.id || "", selectedStyles[0], imagesUrl.slice(0, 1));
           addImageLook(user?.id || "", selectedStyles[1], imagesUrl.slice(1, 2));
+
+          // 尝试初始化用户积分账户
+          if (user?.id) {
+            await initializeUserCredits(user.id);
+          }
+          
         } catch (error) {
           // console.error(`Error generating ${i} lookbook:`, error);
         }
@@ -286,3 +292,7 @@ export default function Five() {
     </View>
   );
 }
+function initializeUserCredits(arg0: string) {
+  throw new Error("Function not implemented.");
+}
+
