@@ -99,16 +99,18 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
     try {
       // 获取所有 Offerings
       const allOfferings = await revenueCatService.getOfferings();
-      // console.log('📦 [CreditModal] 所有 Offerings:', Object.keys(allOfferings.all));
+      console.log('🔍 [TestFlight Debug] Current Offering:', allOfferings.current?.identifier || 'null');
+      console.log('🔍 [TestFlight Debug] All Offerings:', Object.keys(allOfferings.all));
       
       const products: CreditProduct[] = [];
       
       // 遍历所有 Offerings 查找积分产品
-      Object.values(allOfferings.all).forEach((offering) => {
-        // console.log(`📦 [CreditModal] 检查 Offering: ${offering.identifier}`);
+      Object.values(allOfferings.all).forEach((offering: any) => {
+        console.log(`📦 [TestFlight Debug] 检查 Offering: ${offering.identifier}, 产品数量: ${offering.availablePackages.length}`);
         
-        offering.availablePackages.forEach((pkg) => {
+        offering.availablePackages.forEach((pkg: any) => {
           const productId = pkg.product.identifier;
+          console.log(`   - 产品: ${productId} (${pkg.product.title})`);
           
           // 只添加 AIPoints 产品
           if (productId.includes('AIPoints')) {
@@ -130,8 +132,13 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
       // 按积分数量排序（从少到多）
       products.sort((a, b) => a.credits - b.credits);
       
-      console.log('📦 [CreditModal] 共找到', products.length, '个积分产品');
-      console.log('📦 [CreditModal] 产品列表:', products.map(p => `${p.productId}(${p.credits}积分-${p.price})`));
+      console.log('🔍 [TestFlight Debug] 共找到', products.length, '个积分产品');
+      if (products.length === 0) {
+        console.error('❌ [TestFlight Debug] 没有找到任何 AIPoints 产品！');
+        console.log('💡 解决方案: 在 RevenueCat Dashboard 中将包含 AIPoints 产品的 Offering 设置为 Current');
+      } else {
+        console.log('✅ [TestFlight Debug] 产品列表:', products.map(p => `${p.productId}(${p.credits}积分-${p.price})`));
+      }
       
       setCreditProducts(products);
     } catch (error) {

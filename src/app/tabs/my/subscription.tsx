@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Lin
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSubscription, usePurchase, useManageSubscription } from '@/hooks/useRevenueCat';
+import { useActiveSubscriptions } from '@/hooks/usePayment';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
 
@@ -10,6 +11,7 @@ export default function SubscriptionScreen() {
   const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
   const { restore, restoring } = usePurchase();
   const { showManageSubscriptions } = useManageSubscription();
+  const { subscriptions, loading: subscriptionsLoading, refresh: refreshSubscriptions } = useActiveSubscriptions();
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
 
@@ -45,12 +47,55 @@ export default function SubscriptionScreen() {
       .join(' ');
   };
 
-  // 获取详细的订阅信息
+  // 获取详细的订阅信息（从 Supabase 加载）
   useEffect(() => {
+    console.log('📊 [Subscription] Supabase subscriptions:', subscriptions);
+    console.log('📊 [Subscription] subscriptionsLoading:', subscriptionsLoading);
     console.log('📊 [Subscription] Customer Info:', customerInfo);
     console.log('📊 [Subscription] isActive:', isActive);
     
+    // 优先使用 Supabase 数据
+    if (!subscriptionsLoading && subscriptions.length > 0) {
+      console.log('📊 [Subscription] 使用 Supabase 数据加载订阅信息');
+      
+      // 获取第一个活跃订阅（按过期日期排序，最晚的在前）
+      const activeSubscription = subscriptions[0];
+      
+      console.log('📊 [Subscription] Active Subscription from Supabase:', {
+        productId: activeSubscription.product_id,
+        productName: activeSubscription.product_name,
+        expirationDate: activeSubscription.expiration_date,
+        willRenew: activeSubscription.will_renew,
+        isActive: activeSubscription.is_active,
+        status: activeSubscription.status,
+      });
+      
+      setSubscriptionDetails({
+        productIdentifier: activeSubscription.product_id,
+        expirationDate: activeSubscription.expiration_date,
+        purchaseDate: activeSubscription.purchase_date,
+        originalPurchaseDate: activeSubscription.purchase_date,
+        willRenew: activeSubscription.will_renew,
+        periodType: activeSubscription.subscription_period || 'monthly',
+        isSandbox: false,
+        billingIssueDetectedAt: null,
+        unsubscribeDetectedAt: null,
+      });
+      
+      setProductInfo({
+        id: activeSubscription.product_id,
+        name: activeSubscription.product_name || formatProductName(activeSubscription.product_id),
+        period: activeSubscription.subscription_period || 'monthly',
+        isSubscription: true,
+      });
+      
+      return;
+    }
+    
+    // 如果 Supabase 没有数据，回退到 RevenueCat
     if (customerInfo) {
+      console.log('📊 [Subscription] 使用 RevenueCat 数据加载订阅信息');
+      
       const activeEntitlements = customerInfo.entitlements.active;
       const allEntitlements = customerInfo.entitlements.all;
       const activeSubscriptions = customerInfo.activeSubscriptions;
@@ -152,15 +197,28 @@ export default function SubscriptionScreen() {
         setSubscriptionDetails(null);
         setProductInfo(null);
       }
-    } else {
+    } else if (!subscriptionsLoading && subscriptions.length === 0) {
+      // 没有订阅数据
+      console.log('📊 [Subscription] 没有找到任何订阅');
       setSubscriptionDetails(null);
       setProductInfo(null);
     }
-  }, [customerInfo, isActive]);
+  }, [subscriptions, subscriptionsLoading, customerInfo, isActive]);
+
+  // 强制刷新订阅数据
+  const handleRefresh = async () => {
+    try {
+      console.log('🔄 [Subscription] 强制刷新订阅数据...');
+      await refreshSubscriptions(); // 刷新 Supabase 订阅数据
+    } catch (error) {
+      console.error('❌ [Subscription] 刷新失败:', error);
+    }
+  };
 
   const handleRestore = async () => {
     try {
       await restore();
+      await refreshSubscriptions(); // 刷新 Supabase 订阅数据
       Alert.alert('成功', '已恢复购买');
     } catch (error) {
       Alert.alert('失败', '无法恢复购买，请稍后重试');
@@ -229,13 +287,27 @@ export default function SubscriptionScreen() {
 
   // 查看完整订阅信息（开发调试用）
   const handleViewFullDetails = () => {
+    const details: any = {
+      supabaseSubscriptions: subscriptions.length,
+      supabaseData: subscriptions.map(sub => ({
+        productId: sub.product_id,
+        productName: sub.product_name,
+        status: sub.status,
+        isActive: sub.is_active,
+        expirationDate: sub.expiration_date,
+        willRenew: sub.will_renew,
+      })),
+      subscriptionDetails: subscriptionDetails,
+      productInfo: productInfo,
+    };
+    
     if (customerInfo) {
       const activeEntitlements = customerInfo.entitlements.active;
       const allEntitlements = customerInfo.entitlements.all;
       const activeSubscriptions = customerInfo.activeSubscriptions;
       const allPurchaseDates = customerInfo.allPurchaseDates;
       
-      const details = {
+      details.revenueCat = {
         userId: customerInfo.originalAppUserId,
         activeSubscriptions,
         allPurchaseDates,
@@ -244,29 +316,27 @@ export default function SubscriptionScreen() {
         requestDate: customerInfo.requestDate,
         firstSeen: customerInfo.firstSeen,
         managementURL: customerInfo.managementURL,
-        subscriptionDetails: subscriptionDetails,
       };
-      
-      console.log('📊 Complete Subscription Info:', JSON.stringify(details, null, 2));
-      
-      Alert.alert(
-        'Subscription Information',
-        `User ID: ${customerInfo.originalAppUserId}\n\n` +
-        `Active Subscriptions: ${activeSubscriptions.length}\n` +
-        `${activeSubscriptions.join(', ')}\n\n` +
-        `Active Entitlements: ${Object.keys(activeEntitlements).join(', ') || 'None'}\n\n` +
-        `Full details logged to console.`,
-        [{ text: 'OK' }]
-      );
-    } else {
-      Alert.alert('No Subscription Data', 'No subscription information available');
     }
+    
+    console.log('📊 Complete Subscription Info:', JSON.stringify(details, null, 2));
+    
+    Alert.alert(
+      'Subscription Information',
+      `数据源: ${subscriptions.length > 0 ? 'Supabase' : 'RevenueCat'}\n\n` +
+      `Supabase 订阅数: ${subscriptions.length}\n` +
+      `${subscriptions.length > 0 ? `产品: ${subscriptions[0].product_name}\n状态: ${subscriptions[0].status}` : ''}\n\n` +
+      `${customerInfo ? `RevenueCat User: ${customerInfo.originalAppUserId}\n` : ''}` +
+      `Full details logged to console.`,
+      [{ text: 'OK' }]
+    );
   };
 
-  if (loading) {
+  if (loading || subscriptionsLoading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
         <ActivityIndicator size="large" color="#000" />
+        <Text className="text-gray-600 mt-4">Loading subscription...</Text>
       </View>
     );
   }
@@ -283,12 +353,25 @@ export default function SubscriptionScreen() {
             <MaterialCommunityIcons name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
           <Text className="text-black text-xl font-bold">Subscription</Text>
-          <TouchableOpacity
-            onPress={handleViewFullDetails}
-            className="p-2"
-          >
-            <MaterialCommunityIcons name="information-outline" size={24} color="black" />
-          </TouchableOpacity>
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={handleRefresh}
+              disabled={subscriptionsLoading}
+              className="p-2"
+            >
+              {subscriptionsLoading ? (
+                <ActivityIndicator size="small" color="#3b82f6" />
+              ) : (
+                <MaterialCommunityIcons name="refresh" size={24} color="#3b82f6" />
+              )}
+            </TouchableOpacity>
+            {/* <TouchableOpacity
+              onPress={handleViewFullDetails}
+              className="p-2"
+            >
+              <MaterialCommunityIcons name="information-outline" size={24} color="black" />
+            </TouchableOpacity> */}
+          </View>
         </View>
       </View>
 
@@ -306,7 +389,7 @@ export default function SubscriptionScreen() {
                     ? '1000 Free Credits/Month' 
                     : 'Upgrade to Premium'}
                 </Text>
-                <Text className="text-gray-500 text-sm">
+                {/* <Text className="text-gray-500 text-sm">
                   {expirationDate 
                     ? `${willRenew ? 'Renew' : 'Expires'} on ${new Date(expirationDate).toLocaleDateString('en-US', { 
                         month: 'short', 
@@ -323,7 +406,7 @@ export default function SubscriptionScreen() {
                         ? 'Active subscription'
                         : 'No active subscription'
                   }
-                </Text>
+                </Text> */}
                 {productInfo && (
                   <View className="mt-2">
                     <Text className="text-gray-600 text-sm font-semibold">

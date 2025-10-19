@@ -244,28 +244,8 @@ export default function ForYouScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            {/* 待恢复请求提示 */}
-            {/* {pendingRequests.length > 0 && (
-                <View className="absolute top-2 left-4 right-4 z-20 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="restore" size={20} color="#d97706" />
-                            <Text className="text-amber-700 text-sm ml-2 flex-1">
-                                {isRestoring 
-                                    ? "Restoring interrupted requests..." 
-                                    : `${pendingRequests.length} request(s) will be restored automatically`
-                                }
-                            </Text>
-                        </View>
-                        {isRestoring && (
-                            <ActivityIndicator size="small" color="#d97706" />
-                        )}
-                    </View>
-                </View>
-            )} */}
-
             {/* Header */}
-            <View className="absolute top-10 left-0 right-0 z-12 flex-row justify-between items-center px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+            <View className="left-0 right-0 flex-row justify-between items-center px-4 bg-white/95 backdrop-blur-sm border-b border-gray-200">
                 <TouchableOpacity
                     onPress={() => {
                         if (router.canGoBack()) {
@@ -302,7 +282,7 @@ export default function ForYouScreen() {
             </View>
 
             {/* 水平滑动图片列表 */}
-            <View className="flex-1 bg-gray-50 mt-8" key={`container-${reloadKey}`}>
+            <View className="min-h-[200px] bg-gray-50 mt-1" key={`container-${reloadKey}`}>
                 {foryou.length === 0 ? (
                     <View className="flex-1 justify-center items-center">
                         <ActivityIndicator size="large" color="#000" />
@@ -326,7 +306,7 @@ export default function ForYouScreen() {
                                     <Image
                                         source={{ uri: item.post }}
                                         style={styles.mainImage}
-                                        contentFit="contain"
+                                        contentFit="cover"
                                         placeholder="Loading..."
                                         cachePolicy="memory-disk"
                                         priority="high"
@@ -364,7 +344,7 @@ export default function ForYouScreen() {
             </View>
 
             {/* Bottom Info Card */}
-            <View className="bg-white border-t border-gray-200 p-6 mx-2 rounded-3xl shadow-lg">
+            <View className="bg-white border-t border-gray-200 p-2 mx-2 rounded-3xl shadow-lg">
                 <View className="items-center">
                     {/* 显示当前选择的图片信息 */}
                     <View className="bg-gray-100 px-4 py-2 rounded-full mb-4">
@@ -424,9 +404,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mainImage: {
-        width: SCREEN_WIDTH * 0.9,
+        // width: SCREEN_WIDTH * 0.8,
+        height: SCREEN_HEIGHT * 0.65,
         aspectRatio: 712 / 1247,  // 使用实际图片的宽高比
         maxHeight: SCREEN_HEIGHT * 0.65,  // 最大高度限制
+        borderRadius: 16,
+        overflow: 'hidden',
     },
     indicator: {
         height: 8,

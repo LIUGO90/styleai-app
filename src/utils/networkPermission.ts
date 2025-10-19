@@ -82,7 +82,15 @@ export const showNetworkPermissionAlert = (
  * 在登录前请求网络权限
  * @returns Promise<boolean> - true 表示有网络权限，可以继续登录；false 表示没有权限，阻止登录
  */
-export const requestNetworkPermissionForLogin = async (): Promise<boolean> => {
+export const requestNetworkPermissionForLogin = async (retryCount: number = 0): Promise<boolean> => {
+  const MAX_RETRIES = 3; // 最大重试次数
+  
+  // 临时禁用网络检查（开发调试用）
+  if (typeof window !== 'undefined' && (window as any).tempDisableNetworkCheck) {
+    console.log('⚠️ 网络检查已临时禁用');
+    return Promise.resolve(true);
+  }
+  
   return new Promise(async (resolve) => {
     // 首先检查网络状态
     const networkStatus = await checkNetworkConnection();
@@ -104,6 +112,8 @@ export const requestNetworkPermissionForLogin = async (): Promise<boolean> => {
       }
     };
 
+    const buttonText = retryCount >= MAX_RETRIES ? '确定' : '重试';
+    
     Alert.alert(
       '需要网络连接',
       getMessage() + '\n\n没有网络连接将无法登录。',
@@ -125,11 +135,16 @@ export const requestNetworkPermissionForLogin = async (): Promise<boolean> => {
           },
         },
         {
-          text: '重试',
+          text: buttonText,
           onPress: async () => {
-            // 递归重试
-            const canLogin = await requestNetworkPermissionForLogin();
-            resolve(canLogin);
+            if (retryCount >= MAX_RETRIES) {
+              // 达到最大重试次数，停止递归
+              resolve(false);
+            } else {
+              // 递归重试，增加重试计数
+              const canLogin = await requestNetworkPermissionForLogin(retryCount + 1);
+              resolve(canLogin);
+            }
           },
         },
       ],

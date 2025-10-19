@@ -5,13 +5,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePurchase, useSubscription, useOfferings } from '@/hooks/useRevenueCat';
 import { PurchasesPackage } from 'react-native-purchases';
-import { useCreatePayment, useCredits } from '@/hooks/usePayment';
+import { useCreatePayment, useCredits, usePayments } from '@/hooks/usePayment';
 import { 
   validatePurchaseResult, 
   validateDatabaseSync, 
   isUserCancelledError
 } from '@/utils/purchaseValidation';
 import revenueCatService from '@/services/RevenueCatService';
+import { Payment } from '@/types/payment';
 
 interface PurchaseItem {
   id: string;
@@ -36,6 +37,7 @@ export default function CreditManagement() {
   const { currentOffering, loading: offeringsLoading, error: offeringsError, refresh: refreshOfferings } = useOfferings();
   const { createPaymentFromRevenueCat } = useCreatePayment();
   const { credits, refresh: refreshCredits } = useCredits();
+  const { payments, loading: paymentsLoading, refresh: refreshPayments } = usePayments(); // 从 Supabase 加载
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
 
@@ -91,12 +93,16 @@ export default function CreditManagement() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 从 RevenueCat 加载购买历史
+  // 从 Supabase 加载购买历史
   useEffect(() => {
-    if (customerInfo) {
-      loadPurchaseHistory();
+    console.log('🔄 [Credit Page] Supabase payments 更新');
+    console.log('🔄 [Credit Page] payments 数量:', payments.length);
+    console.log('🔄 [Credit Page] paymentsLoading:', paymentsLoading);
+    
+    if (!paymentsLoading && payments.length >= 0) {
+      loadPurchaseHistoryFromSupabase();
     }
-  }, [customerInfo]);
+  }, [payments, paymentsLoading]);
 
   // 加载可购买的积分包
   useEffect(() => {
@@ -210,25 +216,47 @@ export default function CreditManagement() {
     return '';
   };
 
-  const loadPurchaseHistory = () => {
-    if (!customerInfo) return;
+  // 从 Supabase 数据库加载购买历史
+  const loadPurchaseHistoryFromSupabase = () => {
+    console.log('📜 [Credit Page] 从 Supabase 加载购买历史...');
+    console.log('📜 [Credit Page] payments 数量:', payments.length);
+    
+    if (payments.length === 0) {
+      console.log('📜 [Credit Page] 没有找到任何支付记录');
+      setPurchaseHistory([]);
+      return;
+    }
 
     const purchases: PurchaseItem[] = [];
-    let index = 0;
 
-    // 只加载积分购买历史（非订阅购买）
-    const nonSubscriptions = customerInfo.nonSubscriptionTransactions || [];
-    nonSubscriptions.forEach((transaction) => {
-      // 只添加积分产品
-      if (isCreditsProduct(transaction.productIdentifier)) {
+    console.log('📜 [Credit Page] 所有支付记录:');
+    payments.forEach((payment, idx) => {
+      console.log(`  ${idx + 1}. Product ID: ${payment.product_id}`);
+      console.log(`     Product Type: ${payment.product_type}`);
+      console.log(`     Credits: ${payment.credits_amount}`);
+      console.log(`     Status: ${payment.status}`);
+      console.log(`     Purchase Date: ${payment.purchase_date}`);
+      console.log(`     Is Subscription: ${payment.is_subscription}`);
+      
+      // 只添加积分产品（非订阅产品）
+      const isCreditProduct = payment.product_type === 'credits' || 
+                             (payment.credits_amount > 0 && !payment.is_subscription);
+      
+      console.log(`     是积分产品: ${isCreditProduct}`);
+      
+      if (isCreditProduct) {
         purchases.push({
-          id: `credit_${index++}`,
-          item: getProductName(transaction.productIdentifier),
-          productId: transaction.productIdentifier,
-          date: formatDate(transaction.purchaseDate),
-          status: 'Completed',
+          id: payment.id,
+          item: payment.product_name || getProductName(payment.product_id),
+          productId: payment.product_id,
+          price: payment.price_string,
+          date: formatDate(payment.purchase_date),
+          status: mapPaymentStatus(payment.status),
           type: 'Credits',
         });
+        console.log(`     ✅ 已添加到购买历史 (${payment.credits_amount} 积分)`);
+      } else {
+        console.log(`     ⏭️ 跳过（订阅产品或非积分产品）`);
       }
     });
 
@@ -237,7 +265,31 @@ export default function CreditManagement() {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
+    console.log('📜 [Credit Page] 最终购买历史数量:', purchases.length);
+    if (purchases.length > 0) {
+      console.log('📜 [Credit Page] 购买记录详情:', purchases.map(p => 
+        `${p.productId} - ${p.price || 'N/A'} - ${p.date}`
+      ));
+    }
+
     setPurchaseHistory(purchases);
+  };
+
+  // 映射支付状态到显示状态
+  const mapPaymentStatus = (status: string): 'Active' | 'Expired' | 'Completed' | 'Pending' => {
+    switch (status) {
+      case 'completed':
+        return 'Completed';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+      case 'cancelled':
+        return 'Expired';
+      case 'refunded':
+        return 'Expired';
+      default:
+        return 'Completed';
+    }
   };
 
   // 产品名称映射
@@ -253,14 +305,6 @@ export default function CreditManagement() {
     };
     
     return nameMap[productId] || productId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  // 判断是否是积分产品
-  const isCreditsProduct = (productId: string): boolean => {
-    return productId.includes('credit') || 
-           productId.includes('coin') || 
-           productId.includes('AIPoints') ||
-           productId.includes('point');
   };
 
   // 格式化日期
@@ -328,6 +372,7 @@ export default function CreditManagement() {
                 // 3. 刷新数据
                 await refresh(); // 刷新 RevenueCat 数据
                 await refreshCredits(); // 刷新积分余额
+                await refreshPayments(); // 刷新购买记录
                 
                 // 等待一小段时间让数据更新
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -350,7 +395,7 @@ export default function CreditManagement() {
                       {
                         text: 'OK',
                         onPress: () => {
-                          loadPurchaseHistory();
+                          refreshPayments();
                         }
                       }
                     ]
@@ -366,7 +411,7 @@ export default function CreditManagement() {
                       {
                         text: 'OK',
                         onPress: () => {
-                          loadPurchaseHistory();
+                          refreshPayments();
                         }
                       }
                     ]
@@ -395,28 +440,6 @@ export default function CreditManagement() {
     }
   };
 
-  const handleRestore = async () => {
-    try {
-      const customerInfo = await restore();
-      await refresh(); // 刷新订阅状态
-      
-      // 检查是否有购买记录
-      const hasSubscriptions = Object.keys(customerInfo.entitlements.all).length > 0;
-      const hasNonSubscriptions = (customerInfo.nonSubscriptionTransactions || []).length > 0;
-      
-      if (hasSubscriptions || hasNonSubscriptions) {
-        Alert.alert(
-          'Success', 
-          `Purchases restored successfully!\n\nFound ${Object.keys(customerInfo.entitlements.all).length} subscriptions and ${(customerInfo.nonSubscriptionTransactions || []).length} other purchases.`
-        );
-        loadPurchaseHistory(); // 重新加载购买历史
-      } else {
-        Alert.alert('No Purchases Found', 'We could not find any previous purchases for this account.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
-    }
-  };
 
   // 查看购买详情
   const handleViewDetails = (purchase: PurchaseItem) => {
@@ -508,7 +531,7 @@ export default function CreditManagement() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Loading State */}
-        {loading ? (
+        {(loading || paymentsLoading) ? (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#3b82f6" />
             <Text className="text-gray-600 mt-4">Loading purchase history...</Text>
@@ -654,7 +677,7 @@ export default function CreditManagement() {
             <View className="px-6 mb-6">
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-lg font-semibold text-gray-900">Credits Purchase History</Text>
-                <TouchableOpacity onPress={() => refresh()}>
+                <TouchableOpacity onPress={() => refreshPayments()}>
                   <MaterialCommunityIcons name="refresh" size={20} color="#f59e0b" />
                 </TouchableOpacity>
               </View>
@@ -734,28 +757,6 @@ export default function CreditManagement() {
               </View>
             </View>
 
-            {/* Quick Actions */}
-            {/* <View className="px-6 mb-6">
-              <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-                <TouchableOpacity
-                  onPress={handleRestore}
-                  disabled={restoring}
-                  className="flex-row items-center justify-between py-3"
-                >
-                  <View className="flex-row items-center">
-                    <MaterialCommunityIcons name="restore" size={24} color="#f59e0b" />
-                    <Text className="text-base font-semibold text-gray-900 ml-3">
-                      Restore Credits Purchases
-                    </Text>
-                  </View>
-                  {restoring ? (
-                    <ActivityIndicator color="#f59e0b" size="small" />
-                  ) : (
-                    <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View> */}
 
             {/* Information */}
             <View className="px-6 mb-6">

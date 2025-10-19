@@ -26,6 +26,18 @@ export default function Layout() {
           animation: 'none',
         }} 
       />
+      <Stack.Screen 
+        name="BaseFive" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
+        name="BaseSix" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
     </Stack>
   );
 }

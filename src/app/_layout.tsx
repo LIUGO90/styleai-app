@@ -3,7 +3,7 @@ import "../../global.css";
 import React, { useCallback, useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import "../utils/reanimated-config";
-import { Alert, LogBox } from "react-native";
+import { Alert, LogBox, Platform } from "react-native";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CreditProvider } from "@/contexts/CreditContext";
 import "../utils/authTest"; // 导入认证测试工具
@@ -42,7 +42,10 @@ export default function RootLayout() {
       }
     };
 
-    initializeApp();
+    // Web 端不支持 RevenueCat，只初始化 iOS 平台
+    if(Platform.OS === 'ios') {
+      initializeApp();
+    } 
 
     // 清理函数
     return () => {

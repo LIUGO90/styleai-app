@@ -14,28 +14,42 @@ export function AppleAuth() {
   const handleAppleSignIn = async () => {
     setIsLoading(true);
     try {
+      console.log('🍎 开始 Apple 登录...');
+      
+      const redirectUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback`
+        : 'http://localhost:8081/auth/callback';
+      
+      console.log('🔗 重定向 URL:', redirectUrl);
+      
       // Web 平台使用 Supabase OAuth
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: typeof window !== 'undefined' 
-            ? `${window.location.origin}/auth/callback`
-            : 'http://localhost:19006/auth/callback',
+          redirectTo: redirectUrl,
           scopes: 'name email',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
+      console.log('📤 OAuth 响应:', { data, error });
+
       if (error) {
-        console.error('Apple Sign In Error:', error);
+        console.error('❌ Apple Sign In Error:', error);
         Alert.alert('登录失败', error.message || '无法连接到 Apple 服务器');
         setIsLoading(false);
+        return;
       }
       
+      console.log('✅ Apple OAuth 请求成功');
       // OAuth 会自动重定向，不需要手动处理
       // 成功后会跳转到 /auth/callback 页面
       
     } catch (error: any) {
-      console.error('Apple Sign In Exception:', error);
+      console.error('❌ Apple Sign In Exception:', error);
       Alert.alert('登录错误', error.message || '发生未知错误');
       setIsLoading(false);
     }
