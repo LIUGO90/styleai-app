@@ -1,4 +1,4 @@
-import { AppleAuth } from "@/components/Auth.native";
+import { AppleAuth } from "@/components/Auth";
 import { GuestGuard } from "@/components/AuthGuard";
 import { View, Text, Dimensions, ScrollView } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,17 +67,15 @@ const initMessages: Message[] = [
 ];
 
 export default function Login() {
-
-
   return (
     <GuestGuard>
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white items-center">
         {/* <View className="mt-14">
                     <DotsContainer activeIndex={0} indexNumber={6} />
                 </View> */}
 
         <ScrollView className="flex-1 bg-white">
-          <View className={cn("bg-white rounded-xl mx-5 my-2")}>
+          <View className="bg-white rounded-xl mx-5 my-2 max-w-[500px]">
             {initMessages.map((message) => (
               <OptimizedRenderMessage key={message.id} item={message} />
             ))}
