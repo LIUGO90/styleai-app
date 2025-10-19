@@ -11,10 +11,27 @@ export const checkNetworkConnection = async (): Promise<{
 }> => {
   try {
     const state = await NetInfo.fetch();
+    
+    console.log('🌐 [Network Check] 网络状态:', {
+      isConnected: state.isConnected,
+      isInternetReachable: state.isInternetReachable,
+      type: state.type,
+      details: state.details,
+    });
 
     const isConnected = state.isConnected === true;
     const isInternetReachable = state.isInternetReachable;
+    
+    // 更宽松的网络判断：
+    // - 如果 isInternetReachable 为 null（未知状态），只要设备连接了网络就认为可以尝试
+    // - 只有在明确知道无法访问互联网时（isInternetReachable === false）才阻止
     const canMakeRequests = isConnected && isInternetReachable !== false;
+    
+    console.log('🌐 [Network Check] 判断结果:', {
+      isConnected,
+      isInternetReachable,
+      canMakeRequests,
+    });
 
     return {
       isConnected,
@@ -22,11 +39,12 @@ export const checkNetworkConnection = async (): Promise<{
       canMakeRequests,
     };
   } catch (error) {
-    console.error('Error checking network connection:', error);
+    console.error('❌ [Network Check] 检查失败:', error);
+    // 网络检查失败时，宽松处理：允许尝试登录
     return {
-      isConnected: false,
-      isInternetReachable: false,
-      canMakeRequests: false,
+      isConnected: true,  // 改为 true，允许用户尝试
+      isInternetReachable: null,
+      canMakeRequests: true,  // 改为 true，允许用户尝试
     };
   }
 };
@@ -83,6 +101,11 @@ export const showNetworkPermissionAlert = (
  * @returns Promise<boolean> - true 表示有网络权限，可以继续登录；false 表示没有权限，阻止登录
  */
 export const requestNetworkPermissionForLogin = async (retryCount: number = 0): Promise<boolean> => {
+  // 🚨 临时完全禁用网络检查，直接允许登录
+  console.log('⚠️ [Login Network Check] 网络检查已禁用，直接允许登录');
+  return Promise.resolve(true);
+  
+  /* 暂时注释掉网络检查逻辑
   const MAX_RETRIES = 3; // 最大重试次数
   
   // 临时禁用网络检查（开发调试用）
@@ -92,6 +115,8 @@ export const requestNetworkPermissionForLogin = async (retryCount: number = 0): 
   }
   
   return new Promise(async (resolve) => {
+    console.log(`🔍 [Login Network Check] 开始检查网络状态 (重试次数: ${retryCount})`);
+    
     // 首先检查网络状态
     let networkStatus;
     try {
@@ -99,13 +124,21 @@ export const requestNetworkPermissionForLogin = async (retryCount: number = 0): 
 
       if (networkStatus.canMakeRequests) {
         // 网络正常，允许登录
-        console.log('✅ 网络状态正常，可以继续登录');
+        console.log('✅ [Login Network Check] 网络状态正常，可以继续登录');
+        resolve(true);
+        return;
+      }
+      
+      // 如果 isInternetReachable 为 null（未知状态），也允许尝试
+      if (networkStatus.isConnected && networkStatus.isInternetReachable === null) {
+        console.log('⚠️ [Login Network Check] 网络状态未知，但设备已连接，允许尝试登录');
         resolve(true);
         return;
       }
     } catch (error) {
-      console.error('❌ 网络检查失败:', error);
+      console.error('❌ [Login Network Check] 网络检查失败:', error);
       // 网络检查失败时，仍然允许登录（避免阻塞）
+      console.log('⚠️ [Login Network Check] 检查失败，允许用户尝试登录');
       resolve(true);
       return;
     }
@@ -160,6 +193,7 @@ export const requestNetworkPermissionForLogin = async (retryCount: number = 0): 
       { cancelable: false } // 防止点击外部关闭
     );
   });
+  */
 };
 
 /**

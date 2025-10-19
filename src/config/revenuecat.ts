@@ -12,7 +12,7 @@
 export const REVENUECAT_CONFIG = {
   // Get these from https://app.revenuecat.com/settings/api-keys
   apiKeys: {
-    apple: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY || 'appl_your_api_key_here',
+    apple: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY || 'test_hkGwSwiUEYTIhNICJqAKjtUMsdg',
   },
 
   // Entitlement identifiers
@@ -24,7 +24,7 @@ export const REVENUECAT_CONFIG = {
   // Product identifiers (must match App Store Connect and RevenueCat Dashboard)
   products: {
     // Auto-renewable subscriptions (使用 StoreKit 文件中的 ID)
-    SUBSCRIPTION_MONTHLY: 'StylaPy2025',
+    SUBSCRIPTION_MONTHLY: 'SubscriptionMonThly',
     SUBSCRIPTION_QUARTERLY: 'StylaPay2025Quarterly',
     SUBSCRIPTION_YEARLY: 'StylaPay2025Yearly',
     

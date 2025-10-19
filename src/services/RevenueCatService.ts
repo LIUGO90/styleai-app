@@ -44,9 +44,9 @@ class RevenueCatService {
       }
 
       // Validate API key format
-      if (!apiKey.startsWith('appl_') && !apiKey.startsWith('goog_')) {
+      if (!apiKey.startsWith('appl_') && !apiKey.startsWith('goog_') && !apiKey.startsWith('test_')) {
         console.warn(`⚠️ [RevenueCat] Invalid API key format (starts with: ${apiKey.substring(0, 5)})`);
-        console.warn('💡 Apple keys should start with "appl_", Google keys with "goog_"');
+        console.warn('💡 Apple keys should start with "appl_", Google keys with "goog_", test keys with "test_"');
         return;
       }
 

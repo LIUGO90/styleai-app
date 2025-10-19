@@ -108,7 +108,7 @@ export function AppleAuth() {
           console.error("Apple sign in error:", error);
 
           // 检查是否是网络错误
-          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+          if (error.message?.includes('Network') && error.message?.includes('fetch')) {
             Alert.alert(
               "网络错误",
               "登录失败，请检查网络连接后重试。",

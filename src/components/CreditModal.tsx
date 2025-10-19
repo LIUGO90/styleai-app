@@ -102,6 +102,15 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
       console.log('🔍 [TestFlight Debug] Current Offering:', allOfferings.current?.identifier || 'null');
       console.log('🔍 [TestFlight Debug] All Offerings:', Object.keys(allOfferings.all));
       
+      // 检查是否有 Offerings
+      if (!allOfferings || Object.keys(allOfferings.all).length === 0) {
+        console.error('❌ [TestFlight Debug] 没有找到任何 Offerings');
+        console.error('💡 解决方案: 在 RevenueCat Dashboard 中配置 Offerings');
+        setCreditProducts([]);
+        setLoadingProducts(false);
+        return;
+      }
+      
       const products: CreditProduct[] = [];
       
       // 遍历所有 Offerings 查找积分产品

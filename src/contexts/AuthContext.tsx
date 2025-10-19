@@ -272,17 +272,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       console.log('🚪 开始退出登录...');
       
-      // 检查是否是Apple开发用户
-      if (session?.access_token === "apple_dev_token") {
-        console.log('🍎 Apple 开发用户退出');
-        setUser(null);
-        setSession(null);
-        await AsyncStorage.removeItem("supabase_session");
-        return;
-      }
-
       // 正常Supabase用户登出
-      console.log('👤 正常用户退出');
       await supabase.auth.signOut();
       await AsyncStorage.removeItem("supabase_session");
       
