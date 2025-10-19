@@ -93,19 +93,28 @@ export const requestNetworkPermissionForLogin = async (retryCount: number = 0): 
   
   return new Promise(async (resolve) => {
     // 首先检查网络状态
-    const networkStatus = await checkNetworkConnection();
+    let networkStatus;
+    try {
+      networkStatus = await checkNetworkConnection();
 
-    if (networkStatus.canMakeRequests) {
-      // 网络正常，允许登录
+      if (networkStatus.canMakeRequests) {
+        // 网络正常，允许登录
+        console.log('✅ 网络状态正常，可以继续登录');
+        resolve(true);
+        return;
+      }
+    } catch (error) {
+      console.error('❌ 网络检查失败:', error);
+      // 网络检查失败时，仍然允许登录（避免阻塞）
       resolve(true);
       return;
     }
 
     // 网络不可用，显示提示
     const getMessage = () => {
-      if (!networkStatus.isConnected) {
+      if (!networkStatus?.isConnected) {
         return '设备未连接到网络。请连接 WiFi 或移动数据后重试。';
-      } else if (networkStatus.isInternetReachable === false) {
+      } else if (networkStatus?.isInternetReachable === false) {
         return '无法访问互联网。请检查您的网络设置。';
       } else {
         return '网络连接异常。请检查您的网络设置或应用权限。';

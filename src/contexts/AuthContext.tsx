@@ -270,9 +270,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     try {
+      console.log('🚪 开始退出登录...');
+      
       // 检查是否是Apple开发用户
       if (session?.access_token === "apple_dev_token") {
-
+        console.log('🍎 Apple 开发用户退出');
         setUser(null);
         setSession(null);
         await AsyncStorage.removeItem("supabase_session");
@@ -280,10 +282,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // 正常Supabase用户登出
+      console.log('👤 正常用户退出');
       await supabase.auth.signOut();
       await AsyncStorage.removeItem("supabase_session");
+      
+      console.log('✅ 退出登录成功');
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("❌ 退出登录错误:", error);
+      // 即使出错也要清理本地状态
+      setUser(null);
+      setSession(null);
+      await AsyncStorage.removeItem("supabase_session");
     }
   };
 
@@ -298,7 +307,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const clearAllUserData = async () => {
     try {
-
+      console.log('🧹 开始清除所有用户数据...');
       isClearingRef.current = true;
 
       // 1. 先清除所有AsyncStorage数据
@@ -310,14 +319,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         "cached_data",
         "userName",
         "userEmail",
+        "newlook",
       ];
 
       for (const key of keysToRemove) {
         try {
           await AsyncStorage.removeItem(key);
-
+          console.log(`✅ 已清除: ${key}`);
         } catch (error) {
-
+          console.error(`❌ 清除失败: ${key}`, error);
         }
       }
 
@@ -325,21 +335,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const allKeys = await AsyncStorage.getAllKeys();
         await AsyncStorage.multiRemove(allKeys);
-
+        console.log('✅ 已清除所有 AsyncStorage 数据');
       } catch (error) {
-
+        console.error('❌ 清除 AsyncStorage 失败:', error);
       }
 
       // 3. 清除本地状态
       setUser(null);
       setSession(null);
+      console.log('✅ 已清除本地状态');
 
       // 4. 最后清除Supabase session（这可能会触发onAuthStateChange）
       await supabase.auth.signOut();
+      console.log('✅ 已清除 Supabase session');
 
-
+      console.log('🎉 所有用户数据清除完成');
     } catch (error) {
-      console.error("❌ Error clearing user data:", error);
+      console.error("❌ 清除用户数据错误:", error);
+      // 即使出错也要清理本地状态
+      setUser(null);
+      setSession(null);
     } finally {
       isClearingRef.current = false;
     }
