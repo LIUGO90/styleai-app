@@ -36,15 +36,21 @@ export default function RootLayout() {
     // 初始化应用服务
     const initializeApp = async () => {
       try {
+        console.log("🚀 [_layout] 开始初始化应用...");
         await appInitializationService.initialize();
+        console.log("✅ [_layout] 应用初始化完成");
       } catch (error) {
-        console.error("Failed to initialize app services:", error);
+        console.error("❌ [_layout] 应用初始化失败:", error);
+        // 不阻止应用启动
       }
     };
 
     // Web 端不支持 RevenueCat，只初始化 iOS 平台
     if(Platform.OS === 'ios') {
-      initializeApp();
+      // 延迟初始化，避免阻塞 UI
+      setTimeout(() => {
+        initializeApp();
+      }, 1000);
     } 
 
     // 清理函数

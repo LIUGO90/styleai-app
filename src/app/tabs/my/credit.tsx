@@ -629,19 +629,19 @@ export default function CreditManagement() {
                   <View className="flex-row items-center mb-2">
                     <MaterialCommunityIcons name="alert-circle" size={24} color="#f97316" />
                     <Text className="text-lg font-bold text-orange-900 ml-2">
-                      未找到积分产品
+                      No Credit Products Found
                     </Text>
                   </View>
                   <Text className="text-orange-800 text-sm mb-3">
                     {currentOffering 
-                      ? `Offering 中有 ${currentOffering.availablePackages.length} 个产品，但没有 AIPoints 产品`
-                      : 'RevenueCat Offering 为空'}
+                      ? `Offering has ${currentOffering.availablePackages.length} products, but no AIPoints products`
+                      : 'RevenueCat Offering is empty'}
                   </Text>
                   <Text className="text-orange-700 text-xs mb-2">
-                    请检查：{'\n'}
-                    1. RevenueCat 控制台是否创建了 Offerings{'\n'}
-                    2. Offering 中是否包含 AIPoints 产品{'\n'}
-                    3. 产品 ID 是否正确匹配
+                    Please check:{'\n'}
+                    1. Are Offerings created in RevenueCat Dashboard?{'\n'}
+                    2. Does the Offering include AIPoints products?{'\n'}
+                    3. Are product IDs correctly matched?
                   </Text>
                   <TouchableOpacity
                     onPress={() => {
@@ -650,7 +650,7 @@ export default function CreditManagement() {
                     }}
                     className="bg-orange-500 py-2 px-4 rounded-lg mt-2"
                   >
-                    <Text className="text-white font-bold text-center">重新加载产品</Text>
+                    <Text className="text-white font-bold text-center">Reload Products</Text>
                   </TouchableOpacity>
                   
                   {/* Debug 按钮 */}
@@ -658,16 +658,16 @@ export default function CreditManagement() {
                     onPress={() => {
                       Alert.alert(
                         'Debug Info',
-                        `初始化: ${revenueCatService.isInitialized()}\n` +
-                        `Offering: ${currentOffering ? '有' : '无'}\n` +
+                        `Initialized: ${revenueCatService.isInitialized()}\n` +
+                        `Offering: ${currentOffering ? 'Yes' : 'No'}\n` +
                         `Packages: ${currentOffering?.availablePackages.length || 0}\n` +
-                        `Error: ${offeringsError?.message || '无'}`,
-                        [{ text: '确定' }]
+                        `Error: ${offeringsError?.message || 'None'}`,
+                        [{ text: 'OK' }]
                       );
                     }}
                     className="border border-orange-300 py-2 px-4 rounded-lg mt-2"
                   >
-                    <Text className="text-orange-700 font-bold text-center">查看调试信息</Text>
+                    <Text className="text-orange-700 font-bold text-center">View Debug Info</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -750,7 +750,7 @@ export default function CreditManagement() {
                 {purchaseHistory.length > 5 && (
                   <View className="px-4 py-3 bg-gray-50 border-t border-gray-100">
                     <Text className="text-xs text-gray-500 text-center">
-                      显示最近 5 条记录，共 {purchaseHistory.length} 条购买记录
+                      Showing latest 5 records, {purchaseHistory.length} total purchase records
                     </Text>
                   </View>
                 )}

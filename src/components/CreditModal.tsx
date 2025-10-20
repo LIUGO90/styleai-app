@@ -170,7 +170,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
 
   const handlePurchaseSelectedProduct = async () => {
     if (!selectedProduct) {
-      Alert.alert('提示', '请先选择要购买的积分包');
+      Alert.alert('Notice', 'Please select a credit package to purchase');
       return;
     }
 
@@ -210,9 +210,9 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
       
       // 显示成功提示
       Alert.alert(
-        '购买成功',
-        `您已成功购买 ${selectedProduct.credits} 积分！`,
-        [{ text: '确定', style: 'default' }]
+        'Purchase Successful',
+        `You have successfully purchased ${selectedProduct.credits} credits!`,
+        [{ text: 'OK', style: 'default' }]
       );
       
     } catch (error: any) {
@@ -226,9 +226,9 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
       
       // 其他错误
       Alert.alert(
-        '购买失败',
-        error?.message || '购买过程中出现错误，请重试',
-        [{ text: '确定', style: 'default' }]
+        'Purchase Failed',
+        error?.message || 'An error occurred during purchase, please try again',
+        [{ text: 'OK', style: 'default' }]
       );
     } finally {
       setPurchasing(false);
@@ -283,7 +283,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                 <View className="flex-row items-center">
                   <Ionicons name="star" size={32} color="white" />
                   <Text className="text-white text-2xl font-bold ml-3">
-                    我的积分
+                    My Credits
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -296,12 +296,12 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
 
               {/* 积分数量 */}
               <View className="items-center py-2">
-                <Text className="text-white/80 text-sm mb-2">当前可用积分</Text>
+                <Text className="text-white/80 text-sm mb-2">Available Credits</Text>
                 <View className="flex-row items-baseline">
                   <Text className="text-white text-6xl font-bold">
                     {loading ? '...' : (credits?.available_credits || 0)}
                   </Text>
-                  <Text className="text-white/80 text-xl ml-2">积分</Text>
+                  <Text className="text-white/80 text-xl ml-2">Credits</Text>
                 </View>
                 {loading && (
                   <ActivityIndicator size="small" color="white" style={{ marginTop: 8 }} />
@@ -318,20 +318,20 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                 className="self-center bg-white/20 px-4 py-2 rounded-full flex-row items-center"
               >
                   <Ionicons name="refresh" size={16} color="white" />
-                <Text className="text-white text-sm ml-2">刷新</Text>
+                <Text className="text-white text-sm ml-2">Refresh</Text>
               </TouchableOpacity>
             </View>
 
             {/* 积分产品列表 */}
             <View className="px-2 py-2 bg-gray-50">
               <Text className="text-gray-900 font-semibold text-base mb-3">
-                可购买的积分包
+                Available Credit Packages
               </Text>
               
               {loadingProducts ? (
                 <View className="py-6 items-center">
                   <ActivityIndicator size="small" color="#f97316" />
-                  <Text className="text-gray-500 text-sm mt-2">加载中...</Text>
+                  <Text className="text-gray-500 text-sm mt-2">Loading...</Text>
                 </View>
               ) : creditProducts.length > 0 ? (
                 <View className="flex-row flex-wrap justify-between">
@@ -357,14 +357,14 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                             <Ionicons name="star" size={16} color="#f97316" />
                           </View>
                           <Text className={`font-medium text-sm text-center ${isSelected ? 'text-orange-900' : 'text-gray-900'}`}>
-                            {product.credits} 积分
+                            {product.credits} Credits
                           </Text>
                           <Text className={`font-bold text-sm mt-1 ${isSelected ? 'text-orange-700' : 'text-orange-600'}`}>
                             {product.price}
                           </Text>
                           {isSelected && (
                             <View className="mt-1 bg-orange-500 rounded-full px-2 py-1">
-                              <Text className="text-white text-xs font-medium">已选择</Text>
+                              <Text className="text-white text-xs font-medium">Selected</Text>
                             </View>
                           )}
                         </View>
@@ -376,10 +376,10 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                 <View className="py-6 items-center">
                   <Ionicons name="alert-circle-outline" size={40} color="#9ca3af" />
                   <Text className="text-gray-500 text-sm mt-2 text-center">
-                    暂无可购买的积分产品
+                    No credit products available
                   </Text>
                   <Text className="text-gray-400 text-xs mt-1 text-center">
-                    点击刷新重新加载
+                    Click refresh to reload
                   </Text>
                 </View>
               )}
@@ -428,14 +428,14 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                       <>
                         <ActivityIndicator size="small" color="white" />
                         <Text className="text-white text-lg font-bold ml-2">
-                          购买中...
+                          Purchasing...
                         </Text>
                       </>
                     ) : (
                       <>
                         <Ionicons name="card" size={20} color="white" />
                         <Text className="text-white text-lg font-bold ml-2">
-                          立即购买 {selectedProduct.price}
+                          Buy Now {selectedProduct.price}
                         </Text>
                       </>
                     )}
@@ -447,10 +447,10 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
                   <View className="bg-gray-50 rounded-xl py-6 items-center border-2 border-dashed border-gray-300">
                     <Ionicons name="hand-left-outline" size={32} color="#9ca3af" />
                     <Text className="text-gray-600 text-base font-medium mt-2 text-center">
-                      请选择要购买的积分包
+                      Please select a credit package
                     </Text>
                     <Text className="text-gray-400 text-sm text-center mt-1">
-                      点击上方的积分包进行选择
+                      Tap a credit package above to select
                     </Text>
                   </View>
                 </View>
@@ -458,7 +458,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
 
               {credits && credits.available_credits > 0 && (
                 <Text className="text-gray-400 text-xs text-center mt-3">
-                  积分永久有效，可随时使用
+                  Credits are valid forever and can be used anytime
                 </Text>
               )}
             </View>

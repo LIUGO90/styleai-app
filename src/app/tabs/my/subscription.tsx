@@ -21,19 +21,19 @@ export default function SubscriptionScreen() {
     // 订阅产品通常包含 monthly, yearly, pro, premium 等关键词
     const subscriptionKeywords = ['monthly', 'yearly', 'pro', 'premium', 'subscription'];
     const creditKeywords = ['aipoints', 'credits', 'points'];
-    
+
     const lowerProductId = productId.toLowerCase();
-    
+
     // 如果包含积分包关键词，则不是订阅
     if (creditKeywords.some(keyword => lowerProductId.includes(keyword))) {
       return false;
     }
-    
+
     // 如果包含订阅关键词，则是订阅
     if (subscriptionKeywords.some(keyword => lowerProductId.includes(keyword))) {
       return true;
     }
-    
+
     // 默认为订阅产品
     return true;
   };
@@ -53,14 +53,14 @@ export default function SubscriptionScreen() {
     console.log('📊 [Subscription] subscriptionsLoading:', subscriptionsLoading);
     console.log('📊 [Subscription] Customer Info:', customerInfo);
     console.log('📊 [Subscription] isActive:', isActive);
-    
+    // return;
     // 优先使用 Supabase 数据
     if (!subscriptionsLoading && subscriptions.length > 0) {
       console.log('📊 [Subscription] 使用 Supabase 数据加载订阅信息');
-      
+
       // 获取第一个活跃订阅（按过期日期排序，最晚的在前）
       const activeSubscription = subscriptions[0];
-      
+
       console.log('📊 [Subscription] Active Subscription from Supabase:', {
         productId: activeSubscription.product_id,
         productName: activeSubscription.product_name,
@@ -69,7 +69,7 @@ export default function SubscriptionScreen() {
         isActive: activeSubscription.is_active,
         status: activeSubscription.status,
       });
-      
+
       setSubscriptionDetails({
         productIdentifier: activeSubscription.product_id,
         expirationDate: activeSubscription.expiration_date,
@@ -81,45 +81,45 @@ export default function SubscriptionScreen() {
         billingIssueDetectedAt: null,
         unsubscribeDetectedAt: null,
       });
-      
+
       setProductInfo({
         id: activeSubscription.product_id,
         name: activeSubscription.product_name || formatProductName(activeSubscription.product_id),
         period: activeSubscription.subscription_period || 'monthly',
         isSubscription: true,
       });
-      
+
       return;
     }
-    
+
     // 如果 Supabase 没有数据，回退到 RevenueCat
     if (customerInfo) {
       console.log('📊 [Subscription] 使用 RevenueCat 数据加载订阅信息');
-      
+
       const activeEntitlements = customerInfo.entitlements.active;
       const allEntitlements = customerInfo.entitlements.all;
       const activeSubscriptions = customerInfo.activeSubscriptions;
-      
+
       console.log('📊 [Subscription] Active Entitlements:', Object.keys(activeEntitlements));
       console.log('📊 [Subscription] All Entitlements:', Object.keys(allEntitlements));
       console.log('📊 [Subscription] Active Subscriptions:', activeSubscriptions);
-      
+
       // 尝试从所有权益中获取订阅信息（过滤掉积分包）
       const entitlementKeys = Object.keys(activeEntitlements);
-      
+
       // 过滤出真正的订阅产品
       const subscriptionEntitlements = entitlementKeys.filter(key => {
         const entitlement = activeEntitlements[key];
         return isSubscriptionProduct(entitlement.productIdentifier);
       });
-      
+
       console.log('📊 [Subscription] All Entitlements:', entitlementKeys);
       console.log('📊 [Subscription] Subscription Entitlements (filtered):', subscriptionEntitlements);
-      
+
       if (subscriptionEntitlements.length > 0) {
         const activeEntitlement = activeEntitlements[subscriptionEntitlements[0]];
         console.log('📊 [Subscription] Active Subscription Entitlement Details:', activeEntitlement);
-        
+
         setSubscriptionDetails({
           productIdentifier: activeEntitlement.productIdentifier,
           expirationDate: activeEntitlement.expirationDate,
@@ -131,7 +131,7 @@ export default function SubscriptionScreen() {
           billingIssueDetectedAt: activeEntitlement.billingIssueDetectedAt,
           unsubscribeDetectedAt: activeEntitlement.unsubscribeDetectedAt,
         });
-        
+
         // 获取产品详细信息
         setProductInfo({
           id: activeEntitlement.productIdentifier,
@@ -143,19 +143,19 @@ export default function SubscriptionScreen() {
         // 如果有活跃订阅但没有权益，尝试从所有权益中查找
         console.log('📊 [Subscription] No active entitlements, checking all entitlements...');
         const allEntitlementKeys = Object.keys(allEntitlements);
-        
+
         // 过滤出真正的订阅产品
         const allSubscriptionEntitlements = allEntitlementKeys.filter(key => {
           const entitlement = allEntitlements[key];
           return isSubscriptionProduct(entitlement.productIdentifier);
         });
-        
+
         console.log('📊 [Subscription] All Subscription Entitlements (filtered):', allSubscriptionEntitlements);
-        
+
         if (allSubscriptionEntitlements.length > 0) {
           const latestEntitlement = allEntitlements[allSubscriptionEntitlements[0]];
           console.log('📊 [Subscription] Latest Subscription Entitlement Details:', latestEntitlement);
-          
+
           setSubscriptionDetails({
             productIdentifier: latestEntitlement.productIdentifier,
             expirationDate: latestEntitlement.expirationDate,
@@ -167,7 +167,7 @@ export default function SubscriptionScreen() {
             billingIssueDetectedAt: latestEntitlement.billingIssueDetectedAt,
             unsubscribeDetectedAt: latestEntitlement.unsubscribeDetectedAt,
           });
-          
+
           setProductInfo({
             id: latestEntitlement.productIdentifier,
             name: formatProductName(latestEntitlement.productIdentifier),
@@ -177,7 +177,7 @@ export default function SubscriptionScreen() {
         } else {
           // 如果没有订阅产品，过滤 activeSubscriptions 中的订阅产品
           const subscriptionProductIds = activeSubscriptions.filter(id => isSubscriptionProduct(id));
-          
+
           if (subscriptionProductIds.length > 0) {
             const subscriptionId = subscriptionProductIds[0];
             setSubscriptionDetails(null);
@@ -219,20 +219,20 @@ export default function SubscriptionScreen() {
     try {
       await restore();
       await refreshSubscriptions(); // 刷新 Supabase 订阅数据
-      Alert.alert('成功', '已恢复购买');
+      Alert.alert('Success', 'Purchase restored successfully');
     } catch (error) {
-      Alert.alert('失败', '无法恢复购买，请稍后重试');
+      Alert.alert('Failed', 'Unable to restore purchase, please try again later');
     }
   };
 
   // 处理取消订阅
   const handleCancelSubscription = () => {
     Alert.alert(
-      '取消订阅',
-      '您可以通过以下方式管理您的订阅：\n\n• 在 App Store 中管理订阅\n• 通过设备设置管理订阅\n\n取消订阅后，您将在当前计费周期结束前继续享受服务。',
+      'Cancel Subscription',
+      'You can manage your subscription through the following ways:\n\n• Manage subscription in App Store\n• Manage subscription through device settings\n\nAfter cancellation, you will continue to enjoy the service until the end of your current billing cycle.',
       [
         {
-          text: '在 App Store 中管理',
+          text: 'Manage in App Store',
           onPress: () => {
             if (customerInfo?.managementURL) {
               Linking.openURL(customerInfo.managementURL);
@@ -245,18 +245,18 @@ export default function SubscriptionScreen() {
           }
         },
         {
-          text: '设备设置',
+          text: 'Device Settings',
           onPress: () => {
             if (Platform.OS === 'ios') {
               Alert.alert(
-                '设备设置',
-                '请按以下步骤操作：\n\n1. 打开"设置"应用\n2. 点击您的 Apple ID\n3. 选择"订阅"\n4. 找到并管理您的订阅',
-                [{ text: '确定' }]
+                'Device Settings',
+                'Please follow these steps:\n\n1. Open the "Settings" app\n2. Tap your Apple ID\n3. Select "Subscriptions"\n4. Find and manage your subscription',
+                [{ text: 'OK' }]
               );
             }
           }
         },
-        { text: '取消', style: 'cancel' }
+        { text: 'Cancel', style: 'cancel' }
       ]
     );
   };
@@ -264,11 +264,11 @@ export default function SubscriptionScreen() {
   // 处理继续订阅
   const handleContinueSubscription = () => {
     Alert.alert(
-      '继续订阅',
-      '您的订阅将自动续订。如需修改订阅设置，请使用"管理订阅"功能。',
+      'Continue Subscription',
+      'Your subscription will automatically renew. To modify subscription settings, please use the "Manage Subscription" feature.',
       [
         {
-          text: '管理订阅',
+          text: 'Manage Subscription',
           onPress: () => {
             if (customerInfo?.managementURL) {
               Linking.openURL(customerInfo.managementURL);
@@ -280,7 +280,7 @@ export default function SubscriptionScreen() {
             }
           }
         },
-        { text: '确定', style: 'default' }
+        { text: 'OK', style: 'default' }
       ]
     );
   };
@@ -300,13 +300,13 @@ export default function SubscriptionScreen() {
       subscriptionDetails: subscriptionDetails,
       productInfo: productInfo,
     };
-    
+
     if (customerInfo) {
       const activeEntitlements = customerInfo.entitlements.active;
       const allEntitlements = customerInfo.entitlements.all;
       const activeSubscriptions = customerInfo.activeSubscriptions;
       const allPurchaseDates = customerInfo.allPurchaseDates;
-      
+
       details.revenueCat = {
         userId: customerInfo.originalAppUserId,
         activeSubscriptions,
@@ -318,14 +318,14 @@ export default function SubscriptionScreen() {
         managementURL: customerInfo.managementURL,
       };
     }
-    
+
     console.log('📊 Complete Subscription Info:', JSON.stringify(details, null, 2));
-    
+
     Alert.alert(
       'Subscription Information',
-      `数据源: ${subscriptions.length > 0 ? 'Supabase' : 'RevenueCat'}\n\n` +
-      `Supabase 订阅数: ${subscriptions.length}\n` +
-      `${subscriptions.length > 0 ? `产品: ${subscriptions[0].product_name}\n状态: ${subscriptions[0].status}` : ''}\n\n` +
+      `Data Source: ${subscriptions.length > 0 ? 'Supabase' : 'RevenueCat'}\n\n` +
+      `Supabase Subscriptions: ${subscriptions.length}\n` +
+      `${subscriptions.length > 0 ? `Product: ${subscriptions[0].product_name}\nStatus: ${subscriptions[0].status}` : ''}\n\n` +
       `${customerInfo ? `RevenueCat User: ${customerInfo.originalAppUserId}\n` : ''}` +
       `Full details logged to console.`,
       [{ text: 'OK' }]
@@ -386,7 +386,7 @@ export default function SubscriptionScreen() {
                 </Text>
                 <Text className="text-orange-700 text-lg mb-2">
                   {(productInfo && productInfo.isSubscription)
-                    ? '1000 Free Credits/Month' 
+                    ? '1000 Free Credits/Month'
                     : 'Upgrade to Premium'}
                 </Text>
                 {/* <Text className="text-gray-500 text-sm">
@@ -432,7 +432,7 @@ export default function SubscriptionScreen() {
         {(productInfo && productInfo.isSubscription) && (
           <View className="px-6 mb-6">
             <Text className="text-lg font-bold text-gray-900 mb-3">Subscription Management</Text>
-            
+
             {/* Cancel/Continue Subscription Buttons */}
             <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-4">
               {/* Cancel Subscription Button */}
@@ -443,7 +443,7 @@ export default function SubscriptionScreen() {
                 <MaterialCommunityIcons name="cancel" size={20} color="#dc2626" />
                 <Text className="text-red-700 font-semibold text-base ml-2">Cancel Subscription</Text>
               </TouchableOpacity>
-              
+
               {/* Continue Subscription Button */}
               <TouchableOpacity
                 onPress={handleContinueSubscription}
@@ -453,7 +453,7 @@ export default function SubscriptionScreen() {
                 <Text className="text-green-700 font-semibold text-base ml-2">Continue Subscription</Text>
               </TouchableOpacity>
             </View>
-            
+
             {/* Important Notice */}
             <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
               <View className="flex-row items-start">
@@ -475,7 +475,7 @@ export default function SubscriptionScreen() {
         {/* Management Options */}
         <View className="px-6 mb-6">
           <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            {(productInfo && productInfo.isSubscription) && (
+            {(productInfo && productInfo.isSubscription) ? (
               <>
                 <TouchableOpacity
                   onPress={async () => {
@@ -493,11 +493,27 @@ export default function SubscriptionScreen() {
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
                 </TouchableOpacity>
-                
+
                 <View className="h-px bg-gray-200 my-2" />
               </>
+            ) : (<>
+              <TouchableOpacity
+                onPress={async () => {
+                  router.replace("/tabs/my/BaseSix");
+                }}
+                className="flex-row items-center justify-between py-4"
+              >
+                <View className="flex-row items-center">
+                  <MaterialCommunityIcons name="cog" size={24} color="#3b82f6" />
+                  <Text className="text-lg font-semibold text-gray-900 ml-3">Pay Subscription</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <View className="h-px bg-gray-200 my-2" />
+            </>
             )}
-            
+
             <TouchableOpacity
               onPress={handleRestore}
               disabled={restoring}

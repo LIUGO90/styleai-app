@@ -78,14 +78,14 @@ export function AppleAuth() {
       return;
     }
 
-    // 在登录前检查网络权限
-    const hasNetworkPermission = await requestNetworkPermissionForLogin();
+    // // 在登录前检查网络权限
+    // const hasNetworkPermission = await requestNetworkPermissionForLogin();
 
-    if (!hasNetworkPermission) {
-      // 用户拒绝或网络不可用，阻止登录
+    // if (!hasNetworkPermission) {
+    //   // 用户拒绝或网络不可用，阻止登录
 
-      return;
-    }
+    //   return;
+    // }
 
     setIsLoading(true);
     try {
@@ -110,11 +110,11 @@ export function AppleAuth() {
           // 检查是否是网络错误
           if (error.message?.includes('Network') && error.message?.includes('fetch')) {
             Alert.alert(
-              "网络错误",
-              "登录失败，请检查网络连接后重试。",
+              "Network Error",
+              "Login failed, please check your network connection and try again.",
               [
-                { text: "取消", style: "cancel" },
-                { text: "重试", onPress: handleAppleSignIn },
+                { text: "Cancel", style: "cancel" },
+                { text: "Retry", onPress: handleAppleSignIn },
               ]
             );
           } else {
@@ -131,7 +131,7 @@ export function AppleAuth() {
           if (!onboardingDataStr) {
             // 新用户：需要创建数据并查询远程配置
             console.log("🆕 新用户登录");
-            setLoadingMessage("正在加载您的配置...");
+            setLoadingMessage("Loading data...");
 
             const onboardingData: OnboardingData = {
               userId: userId || "",
@@ -154,15 +154,15 @@ export function AppleAuth() {
               console.error("❌ 无法获取用户配置:", error);
 
               Alert.alert(
-                "网络连接问题",
-                "无法加载您的配置信息，请检查网络连接。\n\n您可以：\n1. 重试连接\n2. 继续使用（需要重新设置）",
+                "Network Connection Problem",
+                "Cannot load your configuration information, please check your network connection.\n\nYou can:\n1. Retry connection\n2. Continue using (need to re-set)",
                 [
                   {
-                    text: "重试",
+                    text: "Retry",
                     onPress: () => handleAppleSignIn(),
                   },
                   {
-                    text: "继续",
+                    text: "Continue",
                     onPress: () => {
                       // 允许用户继续，但需要重新引导
                       console.log("⚠️ 用户选择继续，跳转到引导页");
@@ -209,7 +209,7 @@ export function AppleAuth() {
               router.replace("/");
 
               // 后台同步远程数据（不阻塞登录）
-              setLoadingMessage("");
+              setLoadingMessage("Loading data...");
               fetchUserProfileWithRetry(userId || "", 2, 5000)
                 .then(({ data }) => {
                   if (data?.images && data.images.length > 0) {
@@ -228,18 +228,18 @@ export function AppleAuth() {
             } catch (parseError) {
               // 本地数据损坏，重新查询
               console.error("❌ 本地数据损坏，重新查询:", parseError);
-              setLoadingMessage("数据异常，正在修复...");
+              setLoadingMessage("Loading data...");
 
               const { data: userProfile, error } = await fetchUserProfileWithRetry(userId || "", 3, 8000);
 
               if (error || !userProfile) {
                 Alert.alert(
-                  "数据异常",
-                  "本地数据损坏且无法连接服务器，是否重新引导？",
+                  "Data Error",
+                  "Local data is corrupted and cannot connect to the server, do you want to re-guide?",
                   [
-                    { text: "取消", style: "cancel" },
+                    { text: "Cancel", style: "cancel" },
                     {
-                      text: "重新引导",
+                      text: "Re-guide",
                       onPress: () => {
                         // 清除损坏的数据
                         AsyncStorage.removeItem("onboardingData");
