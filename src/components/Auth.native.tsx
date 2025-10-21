@@ -88,6 +88,7 @@ export function AppleAuth() {
     // }
 
     setIsLoading(true);
+    setLoadingMessage("Authenticating with Apple...");
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [

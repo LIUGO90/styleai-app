@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               // 添加超时控制：最多等待3秒
               const profilePromise = supabase
                 .from('profiles')
-                .select('name, email')
+                .select('name, email, avatar_url')
                 .eq('id', session?.user?.id)
                 .single();
 
@@ -141,6 +141,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               if (profile?.images && profile.images.length > 0) {
                 await AsyncStorage.setItem("newlook", profile.images);
                 console.log("✅ 已保存 newlook 到 AsyncStorage:", JSON.stringify(profile.images));
+              }
+              console.log("🎈profile?.avatar_url", profile?.avatar_url);
+              if (profile?.avatar_url) {
+                await AsyncStorage.setItem("userAvatar", profile.avatar_url);
+                console.log("✅ 已保存 userAvatar 到 AsyncStorage:", profile.avatar_url);
               }
               // 验证保存是否成功
               const savedName = await AsyncStorage.getItem("userName");
@@ -262,6 +267,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         "userEmail",
         "newlook",
         "access_token",
+        "userAvatar",
       ];
 
       for (const key of keysToRemove) {

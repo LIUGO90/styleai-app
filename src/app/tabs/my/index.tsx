@@ -11,6 +11,7 @@ import { useImagePicker } from "@/hooks/useImagePicker";
 import { supabase } from "@/utils/supabase";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCredit } from "@/contexts/CreditContext";
+import { uploadImageWithFileSystem } from "@/services/FileUploadService";
 
 
 export default function MyProfile() {
@@ -76,20 +77,18 @@ export default function MyProfile() {
         }
       );
 
-      // 2. Read file as base64
-
-      const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
-        encoding: 'base64',
-      });
-
+      // 2. Read file as base6
       // 3. Save to local AsyncStorage
-
-      const avatarData = `data:image/jpeg;base64,${base64}`;
-      await AsyncStorage.setItem('userAvatar', avatarData);
+      const imageUrl = await uploadImageWithFileSystem(user?.id || "", manipResult.uri);
+      console.log("🎈imageUrl", imageUrl);
+      await AsyncStorage.setItem('userAvatar', imageUrl || ""); ;
+      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', user?.id || "");
+      if (updateError) {
+        console.log("error ", updateError)
+      }
 
       // 4. Update local state
-
-      setUserAvatar(avatarData);
+      setUserAvatar(imageUrl || "");
 
 
       Alert.alert("✅ Success", "Avatar updated successfully!");

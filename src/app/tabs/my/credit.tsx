@@ -229,8 +229,8 @@ export default function CreditManagement() {
 
     const purchases: PurchaseItem[] = [];
 
-    console.log('📜 [Credit Page] 所有支付记录:');
-    payments.forEach((payment, idx) => {
+    console.log('📜 [Credit Page] 所有支付记录(只打印5个记录):');
+    payments.slice(0,5).forEach((payment, idx) => {
       console.log(`  ${idx + 1}. Product ID: ${payment.product_id}`);
       console.log(`     Product Type: ${payment.product_type}`);
       console.log(`     Credits: ${payment.credits_amount}`);
