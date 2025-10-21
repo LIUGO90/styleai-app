@@ -53,17 +53,19 @@ class WebWorkerAIService {
     abortController: AbortController,
   ): Promise<any> {
     console.log("🧐 执行请求", url, data)
+    const access_token = await AsyncStorage.getItem("access_token");
     const response = await fetch(url, {
       method: "POST",
       body: JSON.stringify(data),
       signal: abortController.signal,
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${access_token}`,
       },
     });
     console.log("🧐 执行请求响应", response)
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`${response.status}`);
     }
 
     const result = await response.json();
@@ -217,12 +219,12 @@ class WebWorkerAIService {
   }
 
 
-  aiRequestForYou(requestId: string,userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
+  aiRequestForYou(requestId: string, userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
     return new Promise((resolve, reject) => {
       const task: RequestTask = {
         id: `foryou_${Date.now()}`,
         type: "foryou",
-        args: [requestId,userId, imageUrl, prompt],
+        args: [requestId, userId, imageUrl, prompt],
         options,
         resolve,
         reject,
@@ -295,19 +297,26 @@ class WebWorkerAIService {
   ): Promise<AIRequestResponse> {
 
     for (var i = 0; i < 3; i++) {
-      const controller = new AbortController()
-      const response = await this.makeRequest(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
-        { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
-        controller
-      );
-      setTimeout(() => {
-        controller.abort()
-      }, 3000 * 10)
-      return { status: "success", jobId: response.jobId, message: response.message.text, images: response.message.images };
+      try {
+        const controller = new AbortController()
+        const response = await this.makeRequest(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
+          { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
+          controller
+        );
+        setTimeout(() => {
+          controller.abort()
+        }, 3000 * 10)
+        return { status: "success", jobId: response.jobId, message: response.message.text, images: response.message.images };
+      } catch (error ) {
+        console.log("🧐 执行Chat请求错误", error)
+        if (error instanceof Error && error.message === '401') {
+          return { status: "success", jobId: "", message: "unauthorized, please ask for help", images: [] };
+        }
+        return { status: 'error', jobId: "", message: "request failed, please try again", images: [] };
+      }
     }
-    
-    return { status: 'error', jobId: "", message: "", images: [] };
+    return { status: 'error', jobId: "", message: "request failed, please try again", images: [] };
   }
 
 
@@ -536,13 +545,13 @@ class WebWorkerAIService {
     return response.data.analysis;
   }
 
-  async executeForYouRequest(requestId: string,userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions, abortController: AbortController): Promise<string[]> {
+  async executeForYouRequest(requestId: string, userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions, abortController: AbortController): Promise<string[]> {
     options.onStatusChange?.("processing");
     options.onProgress?.(40);
 
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/foryou`,
-      { requestId,userId, imageUrl, prompt },
+      { requestId, userId, imageUrl, prompt },
       abortController,
     );
 

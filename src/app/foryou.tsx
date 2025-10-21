@@ -51,7 +51,7 @@ export default function ForYouScreen() {
     const { pendingRequests, isRestoring, isInitialized, setAutoRestore } = usePersistentRequests({
         autoRestore: true, // 启用自动恢复
         onRequestRestored: (request) => {
-            console.log('🔄 ForYou 请求正在恢复:', request);
+            console.log('🔄 [ForYou] 请求正在恢复:', request);
             showToast({ 
                 message: "Restoring interrupted request...", 
                 type: "info" 
@@ -64,7 +64,7 @@ export default function ForYouScreen() {
         if (imageData?.name) {
             try {
                 const templates = await StyleTemplateService.getTemplateByName(imageData.name);
-                console.log(`✅ 获取到 ${templates?.length || 0} 个 ${imageData.name} 模板`);
+                console.log(`✅ [ForYou] 获取到 ${templates?.length || 0} 个 ${imageData.name} 模板`);
 
                 if (templates && templates.length > 0) {
                     setForyou(templates);
@@ -78,7 +78,7 @@ export default function ForYouScreen() {
                     }, 200);
                 }
             } catch (error) {
-                console.error('❌ 加载模板失败:', error);
+                console.error('❌ [ForYou] 加载模板失败:', error);
             }
         }
     };

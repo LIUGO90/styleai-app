@@ -85,7 +85,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       switch (event) {
         case "SIGNED_OUT":
           console.log("🎈user signed out:", session);
-          await AsyncStorage.removeItem("supabase_session");
           setSession(null);
           setUser(null);
           setLoading(false);
@@ -93,7 +92,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         case "SIGNED_IN":
           console.log("🎈user signed in:", event, session?.user?.id);
           setSession(session);
-
+          await AsyncStorage.setItem("access_token", session?.access_token || "");
           if (session?.user?.id) {
             try {
               // 添加超时控制：最多等待3秒
@@ -130,7 +129,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 email: userEmail,
                 role: profile?.role || "",
               } as AuthUser);
-
               // 保存到本地存储（保存 userName 而不是 profile?.name，因为 userName 已经包含了 fallback 逻辑）
               if (userName) {
                 await AsyncStorage.setItem("userName", userName);
@@ -159,9 +157,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 ...session.user,
                 name: userName,
                 email: userEmail,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
               } as AuthUser);
             }
           }
+
           setLoading(false);
           // 设置 loading 为 false，否则应用会一直显示加载状态
           // ⚠️ 非常重要：必须有 break，否则代码会继续执行到下一个 case！
@@ -170,6 +171,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         case "TOKEN_REFRESHED":
         case "USER_UPDATED":
           console.log("🎈user", event, session?.user?.id);
+          await AsyncStorage.setItem("access_token", session?.access_token || "");
           break;
 
       }
@@ -213,55 +215,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         provider: "apple",
         token: appleCredential.identityToken,
       });
-      // console.log("🎈supabase sign in with apple data:", user, session, error);
-      const userInfo = {
-        id: user?.id,
-        email: user?.email || "",
-        user_metadata: {
-          full_name: appleCredential.fullName
-            ? `${appleCredential.fullName.givenName || ""} ${appleCredential.fullName.familyName || ""}`.trim()
-            : "Apple User",
-          provider: "apple",
-          avatar_url: null,
-          apple_user_id: appleCredential.user,
-          real_user_status: appleCredential.realUserStatus,
-        },
-        app_metadata: {
-          provider: "apple",
-          providers: ["apple"],
-        },
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-
-      //   // 直接设置用户状态
-      setUser(userInfo as unknown as AuthUser);
-      setSession({
-        user: userInfo as unknown as User,
-        access_token: "apple_dev_token",
-        refresh_token: "apple_dev_refresh_token",
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: "bearer",
-      } as unknown as Session);
-
-      // 保存到AsyncStorage
-      await AsyncStorage.setItem(
-        "supabase_session",
-        JSON.stringify({
-          user: userInfo,
-          access_token: "apple_dev_token",
-          refresh_token: "apple_dev_refresh_token",
-          expires_in: 3600,
-          expires_at: Date.now() + 3600000,
-          token_type: "bearer",
-        }),
-      );
-
-      // 返回用户信息和错误（如果有）
-      return { userId: userInfo.id, error };
+      return { userId: user?.id, error };
     } catch (error) {
       console.error("Apple sign in error:", error);
       return { error };
@@ -271,18 +225,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async () => {
     try {
       console.log('🚪 开始退出登录...');
-      
       // 正常Supabase用户登出
       await supabase.auth.signOut();
-      await AsyncStorage.removeItem("supabase_session");
-      
+      clearAllUserData();
       console.log('✅ 退出登录成功');
     } catch (error) {
       console.error("❌ 退出登录错误:", error);
       // 即使出错也要清理本地状态
       setUser(null);
       setSession(null);
-      await AsyncStorage.removeItem("supabase_session");
     }
   };
 
@@ -310,6 +261,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         "userName",
         "userEmail",
         "newlook",
+        "access_token",
       ];
 
       for (const key of keysToRemove) {

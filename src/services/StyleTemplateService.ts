@@ -18,14 +18,14 @@ export class StyleTemplateService {
         .order('order', { ascending: true });
 
       if (error) {
-        console.error('❌ 获取风格模板失败:', error);
+        console.error('❌ [StyleTemplateService] 获取风格模板失败:', error);
         return [];
       }
 
-      console.log(`✅ 获取到 ${data?.length || 0} 个风格模板`);
+      console.log(`✅ [StyleTemplateService] 获取到 ${data?.length || 0} 个风格模板`);
       return data as StyleTemplate[];
     } catch (error) {
-      console.error('❌ 获取风格模板异常:', error);
+      console.error('❌ [StyleTemplateService] 获取风格模板异常:', error);
       return [];
     }
   }
@@ -42,7 +42,7 @@ export class StyleTemplateService {
         .order('order', { ascending: true });
 
       if (error) {
-        console.error('❌ 获取风格模板失败:', error);
+        console.error('❌ [StyleTemplateService] 获取风格模板失败:', error);
         return null;
       }
       // for (const template of data as StyleTemplate[]) {
@@ -50,7 +50,7 @@ export class StyleTemplateService {
       // }
       return data as StyleTemplate[];
     } catch (error) {
-      console.error('❌ 获取风格模板异常:', error);
+      console.error('❌ [StyleTemplateService] 获取风格模板异常:', error);
       return null;
     }
   }

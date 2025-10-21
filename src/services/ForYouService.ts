@@ -23,10 +23,10 @@ export class ForYouService {
         return [];
       }
 
-      console.log(`✅ 获取到 ${data?.length || 0} 个 ForYou 项目`);
+      console.log(`✅ [ForYouService] 获取到 ${data?.length || 0} 个 ForYou 项目`);
       return data as ForYou[];
     } catch (error) {
-      console.error('❌ 获取 ForYou 数据异常:', error);
+      console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);
       return [];
     }
   }
@@ -42,14 +42,14 @@ export class ForYouService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ 获取 ForYou 数据失败:', error);
+        console.error('❌ [ForYouService] 获取 ForYou 数据失败:', error);
         return [];
       }
 
-      console.log(`✅ 获取到 ${data?.length || 0} 个 ForYou 项目`);
+      console.log(`✅ [ForYouService] 获取到 ${data?.length || 0} 个 ForYou 项目`);
       return data as ForYou[];
     } catch (error) {
-      console.error('❌ 获取 ForYou 数据异常:', error);
+      console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);
       return [];
     }
   }
@@ -66,13 +66,13 @@ export class ForYouService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ 获取 ForYou 数据失败:', error);
+        console.error('❌ [ForYouService] 获取 ForYou 数据失败:', error);
         return [];
       }
 
       return data as ForYou[];
     } catch (error) {
-      console.error('❌ 获取 ForYou 数据异常:', error);
+      console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);
       return [];
     }
   }
@@ -89,7 +89,7 @@ export class ForYouService {
         .order('name');
 
       if (error) {
-        console.error('❌ 获取标题列表失败:', error);
+        console.error('❌ [ForYouService] 获取标题列表失败:', error);
         return [];
       }
 
@@ -97,7 +97,7 @@ export class ForYouService {
       const uniqueTitles = [...new Set(data.map(item => item.name))].filter(name => name && name.trim());
       return uniqueTitles;
     } catch (error) {
-      console.error('❌ 获取标题列表异常:', error);
+      console.error('❌ [ForYouService] 获取标题列表异常:', error);
       return [];
     }
   }
@@ -114,14 +114,14 @@ export class ForYouService {
         .single();
 
       if (error) {
-        console.error('❌ 创建 ForYou 失败:', error);
+        console.error('❌ [ForYouService] 创建 ForYou 失败:', error);
         return null;
       }
 
       console.log('✅ ForYou 创建成功:', data);
       return data as ForYou;
     } catch (error) {
-      console.error('❌ 创建 ForYou 异常:', error);
+      console.error('❌ [ForYouService] 创建 ForYou 异常:', error);
       return null;
     }
   }
@@ -137,14 +137,14 @@ export class ForYouService {
         .eq('id', id);
 
       if (error) {
-        console.error('❌ 删除 ForYou 失败:', error);
+        console.error('❌ [ForYouService] 删除 ForYou 失败:', error);
         return false;
       }
 
       console.log('✅ ForYou 删除成功');
       return true;
     } catch (error) {
-      console.error('❌ 删除 ForYou 异常:', error);
+      console.error('❌ [ForYouService] 删除 ForYou 异常:', error);
       return false;
     }
   }
