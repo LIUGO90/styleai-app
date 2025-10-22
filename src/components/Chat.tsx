@@ -275,7 +275,7 @@ export const ImageWithDimensions: React.FC<{
           <Text className="text-gray-500 text-xs">Image failed to load</Text>
         </View>
       )}
-{/* 
+      {/* 
       {image.alt && (
         <Text
           className={cn(
@@ -942,8 +942,10 @@ interface ChatHeaderProps {
   isOnline?: boolean;
   onBack?: () => void;
   onMore?: () => void;
+  onStar?: () => void;
   showAvatar?: boolean;
   showDrawerButton?: boolean;
+  startNumber?: number;
 }
 
 export function ChatHeader({
@@ -955,6 +957,8 @@ export function ChatHeader({
   onMore,
   showAvatar,
   showDrawerButton = false,
+  onStar,
+  startNumber = 0,
 }: ChatHeaderProps) {
   return (
     <View className="flex-row items-center bg-transparent border-b border-gray-200 px-4 py-2">
@@ -996,7 +1000,7 @@ export function ChatHeader({
         )}
 
         <View className="flex-1">
-          <Text 
+          <Text
             className="text-xl font-semibold text-black"
             numberOfLines={1}
             ellipsizeMode="tail"
@@ -1004,7 +1008,7 @@ export function ChatHeader({
             {title}
           </Text>
           {subtitle && (
-            <Text 
+            <Text
               className="text-xs text-gray-500"
               numberOfLines={1}
               ellipsizeMode="tail"
@@ -1023,6 +1027,19 @@ export function ChatHeader({
           accessibilityHint="View more options"
         >
           <Ionicons name="ellipsis-vertical" size={22} color="#007AFF" />
+        </Pressable>
+      )}
+      {onStar && (
+        <Pressable
+          onPress={onStar}
+          accessibilityRole="button"
+          accessibilityLabel="Star"
+          accessibilityHint="Star"
+        >
+          <View className="flex-row items-center justify-center">
+            <MaterialCommunityIcons name="star-outline" size={22} color="#FFA500" />
+            <Text className="text-base text-black mx-1">{startNumber}</Text>
+          </View>
         </Pressable>
       )}
     </View>

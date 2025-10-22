@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useImagePicker } from "@/hooks/useImagePicker";
 import { ForYouService } from "@/services/ForYouService";
 import { ForYou } from "@/types/styleTemplate.types";
+import { useCredits } from "@/hooks/usePayment";
 
 
 
@@ -24,7 +25,8 @@ export default function HomeScreen() {
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<FlatList>(null);
-
+  const [starNumber, setStarNumber] = useState(0);
+  const { credits, refresh: refreshCredits } = useCredits();
   // 加载数据函数
   const loadForYouData = useCallback(async () => {
     const data = await ForYouService.getAllActiveForYou();
@@ -35,19 +37,20 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       scrollViewRef.current?.scrollToOffset({ offset: 0, animated: false });
-      
+
+      setStarNumber(credits?.available_credits || 0);
       // 清空现有数据，避免显示旧内容
       // setForyou([]);
       
       // 重新加载数据
       loadForYouData();
-    }, [loadForYouData])
+    }, [loadForYouData, credits])
   );
 
   // 下拉刷新处理
   const onRefresh = async () => {
     setRefreshing(true);
-    
+    await refreshCredits();
     try {
       // 清除图片缓存
       console.log('🧹 开始清除图片缓存...');
@@ -143,6 +146,10 @@ export default function HomeScreen() {
           showAvatar={false}
           onMore={handleDrawerOpen}
           showDrawerButton={true}
+          onStar={()=>{
+
+          }}
+          startNumber={starNumber}
         />
 
 

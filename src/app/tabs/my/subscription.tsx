@@ -285,53 +285,6 @@ export default function SubscriptionScreen() {
     );
   };
 
-  // 查看完整订阅信息（开发调试用）
-  const handleViewFullDetails = () => {
-    const details: any = {
-      supabaseSubscriptions: subscriptions.length,
-      supabaseData: subscriptions.map(sub => ({
-        productId: sub.product_id,
-        productName: sub.product_name,
-        status: sub.status,
-        isActive: sub.is_active,
-        expirationDate: sub.expiration_date,
-        willRenew: sub.will_renew,
-      })),
-      subscriptionDetails: subscriptionDetails,
-      productInfo: productInfo,
-    };
-
-    if (customerInfo) {
-      const activeEntitlements = customerInfo.entitlements.active;
-      const allEntitlements = customerInfo.entitlements.all;
-      const activeSubscriptions = customerInfo.activeSubscriptions;
-      const allPurchaseDates = customerInfo.allPurchaseDates;
-
-      details.revenueCat = {
-        userId: customerInfo.originalAppUserId,
-        activeSubscriptions,
-        allPurchaseDates,
-        activeEntitlements: Object.keys(activeEntitlements),
-        allEntitlements: Object.keys(allEntitlements),
-        requestDate: customerInfo.requestDate,
-        firstSeen: customerInfo.firstSeen,
-        managementURL: customerInfo.managementURL,
-      };
-    }
-
-    console.log('📊 Complete Subscription Info:', JSON.stringify(details, null, 2));
-
-    Alert.alert(
-      'Subscription Information',
-      `Data Source: ${subscriptions.length > 0 ? 'Supabase' : 'RevenueCat'}\n\n` +
-      `Supabase Subscriptions: ${subscriptions.length}\n` +
-      `${subscriptions.length > 0 ? `Product: ${subscriptions[0].product_name}\nStatus: ${subscriptions[0].status}` : ''}\n\n` +
-      `${customerInfo ? `RevenueCat User: ${customerInfo.originalAppUserId}\n` : ''}` +
-      `Full details logged to console.`,
-      [{ text: 'OK' }]
-    );
-  };
-
   if (loading || subscriptionsLoading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -389,24 +342,7 @@ export default function SubscriptionScreen() {
                     ? '1000 Free Credits/Month'
                     : 'Upgrade to Premium'}
                 </Text>
-                {/* <Text className="text-gray-500 text-sm">
-                  {expirationDate 
-                    ? `${willRenew ? 'Renew' : 'Expires'} on ${new Date(expirationDate).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}`
-                    : (subscriptionDetails?.expirationDate)
-                      ? `${subscriptionDetails.willRenew ? 'Renew' : 'Expires'} on ${new Date(subscriptionDetails.expirationDate).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}`
-                      : (customerInfo && customerInfo.activeSubscriptions.length > 0)
-                        ? 'Active subscription'
-                        : 'No active subscription'
-                  }
-                </Text> */}
+
                 {productInfo && (
                   <View className="mt-2">
                     <Text className="text-gray-600 text-sm font-semibold">

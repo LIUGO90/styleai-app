@@ -24,6 +24,8 @@ export function useSubscription() {
         revenueCatService.getSubscriptionStatus(),
         revenueCatService.getCustomerInfo(),
       ]);
+      console.log("🎈status", status);
+      console.log("🎈info", info);
       setSubscriptionStatus(status);
       setCustomerInfo(info);
     } catch (error) {

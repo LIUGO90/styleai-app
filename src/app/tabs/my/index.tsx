@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -12,16 +12,20 @@ import { supabase } from "@/utils/supabase";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCredit } from "@/contexts/CreditContext";
 import { uploadImageWithFileSystem } from "@/services/FileUploadService";
+import { useSubscription } from "@/hooks/useRevenueCat";
 
 
 export default function MyProfile() {
   const router = useRouter();
   const { user, signOut, session, clearAllUserData } = useAuth();
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [userAvatar, setUserAvatar] = React.useState<string>("");
-  const [name, setName] = React.useState<string>("");
-  const [email, setEmail] = React.useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+
+  // 获取订阅状态
+  const { isActive, isPremium, loading: subscriptionLoading } = useSubscription();
 
   // Load saved avatar, name, and email
   const loadUserData = async () => {
@@ -81,7 +85,7 @@ export default function MyProfile() {
       // 3. Save to local AsyncStorage
       const imageUrl = await uploadImageWithFileSystem(user?.id || "", manipResult.uri);
       console.log("🎈imageUrl", imageUrl);
-      await AsyncStorage.setItem('userAvatar', imageUrl || ""); ;
+      await AsyncStorage.setItem('userAvatar', imageUrl || "");;
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', user?.id || "");
       if (updateError) {
         console.log("error ", updateError)
@@ -186,12 +190,12 @@ export default function MyProfile() {
       icon: "star" as const,
       color: "#fbbf24",
       onPress: () => router.push("/tabs/my/credit"),
-    // },{
-    //   id: "test",
-    //   title: "测试订阅页面",
-    //   icon: "star" as const,
-    //   color: "#fbbf24",
-    //   onPress: () => router.replace("/tabs/my/BaseSix"),
+      // },{
+      //   id: "test",
+      //   title: "测试订阅页面",
+      //   icon: "star" as const,
+      //   color: "#fbbf24",
+      //   onPress: () => router.replace("/tabs/my/BaseSix"),
     },
     {
       id: 'credits',
@@ -320,7 +324,7 @@ export default function MyProfile() {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-white">
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
@@ -353,10 +357,22 @@ export default function MyProfile() {
                 </View>
               )}
             </TouchableOpacity>
-            <View className="flex-1">
-              <Text className="text-black text-xl font-bold mb-1">
-                {name}
-              </Text>
+            <View className="flex-1 ">
+
+              <View className="flex-row items-center">
+                <Text className="text-black text-xl font-bold mb-1">
+                  {name}
+                </Text>
+                {/* 只在用户有活跃订阅时显示 Premium 标签 */}
+                {(isActive || isPremium) && (
+                  <View className={`mx-2 px-3 items-center rounded-full ${isPremium ? "bg-green-500" : "bg-gray-200"}`}>
+                    <Text className="text-black text-sm mb-1 font-bold italic">
+                      Premium
+                    </Text>
+                  </View>
+                )}
+              </View>
+
               <Text className="text-black text-sm mb-1">
                 {email}
               </Text>
@@ -385,7 +401,7 @@ export default function MyProfile() {
           </View>
         </View>
 
-       {/* Menu Items */}
+        {/* Menu Items */}
         <View className="bg-white rounded-2xl p-4 m-2">
           <Text className="text-lg font-semibold text-gray-800 mb-4">
             Settings & Preferences
