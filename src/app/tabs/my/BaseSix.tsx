@@ -49,7 +49,7 @@ function RevenueCatInitializer() {
 
 const imagewidth = Dimensions.get("window").width * 0.4 > 180 ? 180 : Dimensions.get("window").width * 0.4;
 
-export default function BaseSix() {
+export default function BaseSix({ isPaywall = false }: { isPaywall?: boolean }) {
   const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState<string>("");
@@ -305,46 +305,53 @@ export default function BaseSix() {
 
       {/* 内容层 */}
       <View className="flex-1 py-2">
-        <View
-          className="flex-row justify-center px-2 gap-6 "
-          style={{ height: 220 }}
-        >
-          {(image && image.length > 0) && image.map((item, index) => {
+        {!isPaywall && (
+          <View
+            className="flex-row justify-center px-2 gap-6 "
+            style={{ height: 220 }}
+          >
+            {(image && image.length > 0) && image.map((item, index) => {
 
-            return (
-              <View key={index} style={{ width: imagewidth }}
-                className="overflow-hidden rounded-2xl"
-              >
-                <Image
-                  source={{ uri: item }}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  onLoadStart={() => {
-                    // console.log(`🖼️ Image ${index} loading started`);
-                  }}
-                  onLoad={() => {
-                    // console.log(`🖼️ Image ${index} loaded successfully`);
+              return (
+                <View key={index} style={{ width: imagewidth }}
+                  className="overflow-hidden rounded-2xl"
+                >
+                  <Image
+                    source={{ uri: item }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    onLoadStart={() => {
+                      // console.log(`🖼️ Image ${index} loading started`);
+                    }}
+                    onLoad={() => {
+                      // console.log(`🖼️ Image ${index} loaded successfully`);
 
-                  }}
-                  onError={(error) => {
-                    console.error(`🖼️ Image ${index} failed to load:`, error);
-                  }}
-                  style={{
-                    width: imagewidth,
-                    height: '120%',
-                    backgroundColor: "#f0f0f0", // 添加背景色以便调试
-                  }}
-                />
-              </View>
-            );
-          })}
+                    }}
+                    onError={(error) => {
+                      console.error(`🖼️ Image ${index} failed to load:`, error);
+                    }}
+                    style={{
+                      width: imagewidth,
+                      height: '120%',
+                      backgroundColor: "#f0f0f0", // 添加背景色以便调试
+                    }}
+                  />
+                </View>
+              );
+            })}
 
-        </View>
+          </View>)}
 
         <View className="flex-1 justify-center px-5 py-2">
-          <Text className="text-2xl font-bold text-start mb-6 text-gray-800">
-            Your Personalized Lookbook is ready. Unlock NOW!
+          {isPaywall ?
+           <Text className="text-2xl font-bold text-start mb-6 text-gray-800 text-center">
+            Unlock Premium Features
           </Text>
+           : 
+           <Text className="text-2xl font-bold text-start mb-6 text-gray-800">
+            Your Personalized Lookbook is ready. Unlock NOW!
+          </Text>}
+
           <Text className="text-sm font-bold text-start  text-gray-800">
             √ Find your personal style to dress confidently{"\n"}√ Get new
             outfit ideas of any item{"\n"}√ Elevate your everyday look{"\n"}

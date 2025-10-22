@@ -179,14 +179,14 @@ export default function MyProfile() {
     },
     {
       id: "Subscription",
-      title: "Subscription",
+      title: "Credits Store",
       icon: "crown" as const,
       color: "#f59e0b",
       onPress: () => router.push("/tabs/my/subscription"),
     },
     {
       id: "Credits",
-      title: "Credits Store",
+      title: "Test Credits Store",
       icon: "star" as const,
       color: "#fbbf24",
       onPress: () => router.push("/tabs/my/credit"),
@@ -200,7 +200,7 @@ export default function MyProfile() {
     {
       id: 'credits',
       icon: 'star',
-      title: 'My Credits',
+      title: 'Test My Credits',
       subtitle: 'View credit balance and usage',
       onPress: showCreditModal,
       color: '#f97316',
@@ -364,13 +364,13 @@ export default function MyProfile() {
                   {name}
                 </Text>
                 {/* 只在用户有活跃订阅时显示 Premium 标签 */}
-                {(isActive || isPremium) && (
-                  <View className={`mx-2 px-3 items-center rounded-full ${isPremium ? "bg-green-500" : "bg-gray-200"}`}>
+                {/* {(isActive || isPremium) && ( */}
+                  <View className={`mx-2 px-3 items-center rounded-full ${isActive ? "bg-green-500" : "bg-gray-200"}`}>
                     <Text className="text-black text-sm mb-1 font-bold italic">
                       Premium
                     </Text>
                   </View>
-                )}
+                {/* )} */}
               </View>
 
               <Text className="text-black text-sm mb-1">

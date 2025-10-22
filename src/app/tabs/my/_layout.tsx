@@ -21,6 +21,12 @@ export default function Layout() {
         }} 
       />
       <Stack.Screen 
+        name="manageSub" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
         name="credit" 
         options={{ 
           animation: 'none',
