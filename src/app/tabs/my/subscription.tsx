@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Pressable, Modal, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSubscription, usePurchase, useManageSubscription } from '@/hooks/useRevenueCat';
-import { useActiveSubscriptions } from '@/hooks/usePayment';
+import { useActiveSubscriptions, useCreatePayment, useCredits, usePayments } from '@/hooks/usePayment';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
+import BaseSix from './BaseSix';
+import { PurchasesPackage } from 'react-native-purchases';
+import { isUserCancelledError, validateDatabaseSync, validatePurchaseResult } from '@/utils/purchaseValidation';
+import revenueCatService from '@/services/RevenueCatService';
+
+
+interface CreditPackage {
+  package: PurchasesPackage;
+  credits: number;
+  discount: string | null;
+}
 
 export default function SubscriptionScreen() {
   const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
-  const { restore, restoring } = usePurchase();
+  const { restore, restoring, purchase, purchasing } = usePurchase();
   const { showManageSubscriptions } = useManageSubscription();
   const { subscriptions, loading: subscriptionsLoading, refresh: refreshSubscriptions } = useActiveSubscriptions();
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
+  const { credits, refresh: refreshCredits } = useCredits();
+  const { createPaymentFromRevenueCat } = useCreatePayment();
+  const { payments, loading: paymentsLoading, refresh: refreshPayments } = usePayments(); // 从 Supabase 加载
+  const { refresh } = useSubscription();
 
   // 检查是否为订阅产品（而非积分包）
   const isSubscriptionProduct = (productId: string): boolean => {
@@ -46,6 +63,115 @@ export default function SubscriptionScreen() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
+
+  const loadCreditPackages = async () => {
+    console.log('📦 [Credit Page] Loading credit packages from ALL offerings...');
+
+    try {
+      // 获取所有 Offerings，而不是只从 Current Offering
+      const allOfferings = await revenueCatService.getOfferings();
+      console.log('📦 [Credit Page] All Offerings:', Object.keys(allOfferings.all));
+      console.log('📦 [Credit Page] Total Offerings count:', Object.keys(allOfferings.all).length);
+
+      // 检查是否包含 AIPoints_100 Offering
+      const aiPointsOfferings = Object.keys(allOfferings.all).filter(key => key.includes('AIPoints'));
+      console.log('📦 [Credit Page] AIPoints Offerings:', aiPointsOfferings);
+
+      const packages: CreditPackage[] = [];
+
+      // 遍历所有 Offerings 寻找积分产品
+      Object.values(allOfferings.all).forEach((offering, offeringIndex) => {
+        console.log(`📦 [Credit Page] Checking Offering ${offeringIndex + 1}: ${offering.identifier}`);
+        console.log(`📦 [Credit Page] Packages in ${offering.identifier}:`, offering.availablePackages.length);
+
+        offering.availablePackages.forEach((pkg, index) => {
+          const productId = pkg.product.identifier;
+          const productTitle = pkg.product.title;
+          const productType = pkg.product.productType;
+
+          console.log(`🔍 [Credit Page] Package ${index + 1}:`, {
+            id: productId,
+            title: productTitle,
+            price: pkg.product.priceString,
+            type: productType,
+            packageType: pkg.packageType,
+          });
+
+          // 特别检查 AIPoints_100
+          if (productId === 'AIPoints_100') {
+            console.log('🎯 [Credit Page] Found AIPoints_100!', {
+              productId,
+              productType,
+              packageType: pkg.packageType,
+              price: pkg.product.priceString,
+              title: pkg.product.title
+            });
+          }
+
+          // 只添加积分产品（AIPoints）
+          if (productId.includes('AIPoints')) {
+            const credits = extractCreditsFromProductId(productId);
+            const discount = getPackageDiscount(pkg);
+
+            console.log(`  ✅ Added AIPoints product: ${productId} (${credits} credits, ${pkg.product.priceString})`);
+            console.log(`  ✅ Discount: ${discount || 'none'}`);
+
+            packages.push({
+              package: pkg,
+              credits,
+              discount,
+            });
+          } else {
+            console.log(`  ⏭️ Skipped (not AIPoints): ${productId}`);
+          }
+        });
+      });
+
+      console.log('📦 [Credit Page] Total AIPoints packages found:', packages.length);
+      console.log('📦 [Credit Page] Package IDs:', packages.map(p => p.package.product.identifier).join(', '));
+
+      // 检查是否包含 AIPoints_100
+      const hasAIPoints100 = packages.some(p => p.package.product.identifier === 'AIPoints_100');
+      console.log('📦 [Credit Page] Contains AIPoints_100:', hasAIPoints100);
+
+      if (hasAIPoints100) {
+        const aiPoints100 = packages.find(p => p.package.product.identifier === 'AIPoints_100');
+        console.log('📦 [Credit Page] AIPoints_100 details:', {
+          credits: aiPoints100?.credits,
+          discount: aiPoints100?.discount,
+          price: aiPoints100?.package.product.priceString
+        });
+      }
+
+      // 按积分数量排序
+      packages.sort((a, b) => a.credits - b.credits);
+      setCreditPackages(packages);
+
+    } catch (error) {
+      console.error('📦 [Credit Page] Failed to load credit packages:', error);
+    }
+  };
+
+
+  // 从产品ID提取积分数量
+  const extractCreditsFromProductId = (productId: string): number => {
+    const match = productId.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+
+  // 获取折扣标签
+  const getPackageDiscount = (pkg: PurchasesPackage): string | null => {
+    const productId = pkg.product.identifier;
+
+    if (productId.includes('600')) return '16% off';
+    if (productId.includes('1200')) return '16% off';
+    if (productId.includes('2000')) return '25% off';
+    if (productId.includes('3800')) return '35% off';
+    if (productId.includes('10000')) return '50% off';
+
+    return '';
+  };
+
 
   // 获取详细的订阅信息（从 Supabase 加载）
   useEffect(() => {
@@ -203,6 +329,7 @@ export default function SubscriptionScreen() {
       setSubscriptionDetails(null);
       setProductInfo(null);
     }
+    loadCreditPackages()
   }, [subscriptions, subscriptionsLoading, customerInfo, isActive]);
 
   // 强制刷新订阅数据
@@ -285,6 +412,122 @@ export default function SubscriptionScreen() {
     );
   };
 
+  // 购买积分包
+  const handlePurchaseCredits = async (creditPackage: CreditPackage) => {
+    try {
+      Alert.alert(
+        'Purchase Credits',
+        `Are you sure you want to purchase ${creditPackage.credits} credits for ${creditPackage.package.product.priceString}?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Purchase',
+            onPress: async () => {
+              try {
+                console.log('🔄 Starting purchase...');
+
+                // 记录购买前的积分余额
+                const creditsBefore = credits?.available_credits || 0;
+
+                // 1. 通过 RevenueCat 购买
+                const result = await purchase(creditPackage.package);
+
+                // 验证购买结果
+                const purchaseValidation = validatePurchaseResult(result);
+                console.log(purchaseValidation.success ? '✅' : '❌', 'Phase 1:', purchaseValidation.message);
+
+                if (!purchaseValidation.success) {
+                  throw new Error(purchaseValidation.message);
+                }
+
+                // 2. 同步到数据库（自动添加积分）
+                const payment = await createPaymentFromRevenueCat(
+                  result.customerInfo,
+                  creditPackage.package
+                );
+
+                // 验证数据库同步
+                const syncValidation = validateDatabaseSync(
+                  payment,
+                  creditPackage.package.product.identifier
+                );
+                console.log(syncValidation.success ? '✅' : '⚠️', 'Phase 2:', syncValidation.message);
+
+                // 3. 刷新数据
+                await refresh(); // 刷新 RevenueCat 数据
+                await refreshCredits(); // 刷新积分余额
+                await refreshPayments(); // 刷新购买记录
+
+                // 等待一小段时间让数据更新
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // 获取更新后的积分余额（从 state 获取最新值）
+                // 注意：由于 React state 更新可能异步，这里使用购买前余额 + 购买数量作为预期
+                const expectedCreditsAfter = creditsBefore + creditPackage.credits;
+
+                console.log(`✅ Phase 3: Expected credits increase from ${creditsBefore} to ${expectedCreditsAfter}`);
+
+                // 根据验证结果显示消息
+                if (purchaseValidation.success && syncValidation.success) {
+                  // 所有步骤成功
+                  console.log('🎉 All phases completed successfully!');
+
+                  Alert.alert(
+                    'Purchase Successful!',
+                    `You have successfully purchased ${creditPackage.credits} credits.\n\nYour new balance: ${expectedCreditsAfter} credits`,
+                    [
+                      {
+                        text: 'OK',
+                        onPress: () => {
+                          refreshPayments();
+                        }
+                      }
+                    ]
+                  );
+                } else if (purchaseValidation.success) {
+                  // 购买成功但同步有问题
+                  console.warn('⚠️ Purchase successful but sync had issues');
+
+                  Alert.alert(
+                    'Purchase Completed',
+                    'Your purchase is successful. Data is syncing in the background.',
+                    [
+                      {
+                        text: 'OK',
+                        onPress: () => {
+                          refreshPayments();
+                        }
+                      }
+                    ]
+                  );
+                } else {
+                  // 购买失败
+                  throw new Error('Purchase validation failed');
+                }
+
+              } catch (error: any) {
+                if (isUserCancelledError(error)) {
+                  console.log('ℹ️ User cancelled purchase');
+                  return;
+                }
+
+                console.error('❌ Purchase error:', error);
+                Alert.alert('Purchase Failed', 'Unable to complete your purchase. Please try again.');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Purchase credits error:', error);
+      Alert.alert('Error', 'An error occurred. Please try again.');
+    }
+  };
+
+
   if (loading || subscriptionsLoading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -318,12 +561,12 @@ export default function SubscriptionScreen() {
                 <MaterialCommunityIcons name="refresh" size={24} color="#3b82f6" />
               )}
             </TouchableOpacity>
-            {/* <TouchableOpacity
-              onPress={handleViewFullDetails}
+            <TouchableOpacity
+              onPress={() => router.push("/tabs/my/manageSub")}
               className="p-2"
             >
               <MaterialCommunityIcons name="information-outline" size={24} color="black" />
-            </TouchableOpacity> */}
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -335,26 +578,36 @@ export default function SubscriptionScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-3xl font-bold text-orange-800 mb-1">
-                  {(productInfo && productInfo.isSubscription) ? 'Premium' : 'Free'}
-                </Text>
-                <Text className="text-orange-700 text-lg mb-2">
-                  {(productInfo && productInfo.isSubscription)
-                    ? '1000 Free Credits/Month'
-                    : 'Upgrade to Premium'}
+                  {(productInfo && productInfo.isSubscription) ? 'Premium' : 'Try Premium'}
                 </Text>
 
-                {productInfo && (
-                  <View className="mt-2">
-                    <Text className="text-gray-600 text-sm font-semibold">
-                      {productInfo.name}
-                    </Text>
-                    {productInfo.period && productInfo.period !== 'unknown' && (
-                      <Text className="text-gray-400 text-xs mt-0.5 capitalize">
-                        {productInfo.period} billing
+                {productInfo && productInfo.isSubscription
+                  ? <><Text className="text-orange-700 text-lg mb-2">
+                    1000 Free Credits/Month
+                  </Text>
+                    <View className="mt-2">
+                      <Text className="text-gray-600 text-sm font-semibold">
+                        {productInfo.name}
                       </Text>
-                    )}
-                  </View>
-                )}
+                    </View>
+                  </>
+                  :
+                  <>
+                    <Text className="text-orange-700 mb-2">Get 1000 Credits Per Month</Text>
+                    <View className='flex-row '>
+
+                      <Pressable
+                        onPress={() => setShowPaywallModal(true)}
+                        className="bg-orange-200 rounded-full px-6 py-2 my-4 "
+                      >
+                        <Text className="text-white text-base font-semibold text-center">
+                          TRY FOR FREE
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </>
+                }
+
               </View>
               <View className="w-16 h-16 bg-orange-200 rounded-full items-center justify-center">
                 <MaterialCommunityIcons name="crown" size={32} color="#ea580c" />
@@ -363,112 +616,72 @@ export default function SubscriptionScreen() {
           </View>
         </View>
 
-
-        {/* Subscription Actions */}
-        {(productInfo && productInfo.isSubscription) && (
+        {/* Buy Credits Section */}
+        {creditPackages.length > 0 && (
           <View className="px-6 mb-6">
-            <Text className="text-lg font-bold text-gray-900 mb-3">Subscription Management</Text>
+            <View className="flex-row items-center justify-between my-2">
+              <Text className="text-xl font-bold text-gray-900">Get More Credits</Text>
 
-            {/* Cancel/Continue Subscription Buttons */}
-            <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-4">
-              {/* Cancel Subscription Button */}
-              <TouchableOpacity
-                onPress={handleCancelSubscription}
-                className="flex-row items-center justify-center py-4 px-6 bg-red-50 rounded-lg border border-red-200 mb-3"
-              >
-                <MaterialCommunityIcons name="cancel" size={20} color="#dc2626" />
-                <Text className="text-red-700 font-semibold text-base ml-2">Cancel Subscription</Text>
-              </TouchableOpacity>
-
-              {/* Continue Subscription Button */}
-              <TouchableOpacity
-                onPress={handleContinueSubscription}
-                className="flex-row items-center justify-center py-4 px-6 bg-green-50 rounded-lg border border-green-200"
-              >
-                <MaterialCommunityIcons name="check-circle" size={20} color="#16a34a" />
-                <Text className="text-green-700 font-semibold text-base ml-2">Continue Subscription</Text>
-              </TouchableOpacity>
+              <View className="flex-row items-center justify-center bg-gray-100 rounded-full px-2 py-1">
+                <MaterialCommunityIcons name="star-outline" size={22} color="#FFA500" />
+                <Text className="text-base text-black mx-1">{credits?.available_credits || 0}</Text>
+              </View>
             </View>
 
-            {/* Important Notice */}
-            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <View className="flex-row items-start">
-                <MaterialCommunityIcons name="information" size={20} color="#2563eb" />
-                <View className="flex-1 ml-2">
-                  <Text className="text-blue-900 font-semibold text-sm mb-1">Important Notice</Text>
-                  <Text className="text-blue-700 text-xs leading-relaxed">
-                    • Cancellation takes effect at the end of your current billing period{'\n'}
-                    • You'll continue to have access until then{'\n'}
-                    • No refunds for unused time{'\n'}
-                    • You can resubscribe anytime
-                  </Text>
-                </View>
-              </View>
+            <View className="flex-row flex-wrap justify-between">
+              {creditPackages.map((creditPkg, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handlePurchaseCredits(creditPkg)}
+                  disabled={purchasing}
+                  className="w-[32%] bg-white border border-gray-200 rounded-xl p-4 mb-4"
+                >
+
+                  <Text className="text-orange-500 text-xs font-semibold mb-2">{creditPkg.discount}</Text>
+
+
+                  <View className="flex-row items-center mb-3">
+                    <MaterialCommunityIcons name="star" size={20} color="#fbbf24" />
+                    <Text className="text-lg font-bold text-black ml-2">{creditPkg.credits}</Text>
+                  </View>
+
+                  <View className={`rounded-lg py-2 ${purchasing ? 'bg-gray-400' : 'bg-orange-500'}`}>
+                    {purchasing ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text className="text-white text-center font-semibold">
+                        {creditPkg.package.product.priceString}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         )}
 
-        {/* Management Options */}
-        <View className="px-6 mb-6">
-          <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            {(productInfo && productInfo.isSubscription) ? (
-              <>
-                <TouchableOpacity
-                  onPress={async () => {
-                    try {
-                      await showManageSubscriptions();
-                    } catch (error) {
-                      Alert.alert('Error', 'Unable to open subscription management. Please manage your subscription through your device settings.');
-                    }
-                  }}
-                  className="flex-row items-center justify-between py-4"
-                >
-                  <View className="flex-row items-center">
-                    <MaterialCommunityIcons name="cog" size={24} color="#3b82f6" />
-                    <Text className="text-lg font-semibold text-gray-900 ml-3">Manage Subscription</Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-                </TouchableOpacity>
-
-                <View className="h-px bg-gray-200 my-2" />
-              </>
-            ) : (<>
-              <TouchableOpacity
-                onPress={async () => {
-                  router.replace("/tabs/my/BaseSix");
-                }}
-                className="flex-row items-center justify-between py-4"
-              >
-                <View className="flex-row items-center">
-                  <MaterialCommunityIcons name="cog" size={24} color="#3b82f6" />
-                  <Text className="text-lg font-semibold text-gray-900 ml-3">Pay Subscription</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-              </TouchableOpacity>
-
-              <View className="h-px bg-gray-200 my-2" />
-            </>
-            )}
-
-            <TouchableOpacity
-              onPress={handleRestore}
-              disabled={restoring}
-              className="flex-row items-center justify-between py-4"
-            >
-              <View className="flex-row items-center">
-                <MaterialCommunityIcons name="restore" size={24} color="#3b82f6" />
-                <Text className="text-lg font-semibold text-gray-900 ml-3">Restore Purchase</Text>
-              </View>
-              {restoring ? (
-                <ActivityIndicator color="#3b82f6" size="small" />
-              ) : (
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
       </ScrollView>
+
+      {/* BaseSix Bottom Sheet Modal (65% screen height) */}
+      <Modal
+        visible={showPaywallModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPaywallModal(false)}
+      >
+        <Pressable 
+          className="flex-1 justify-end bg-black/40"
+          onPress={() => setShowPaywallModal(false)}
+        >
+          <Pressable 
+            style={{ height: Dimensions.get('window').height * 0.65 }} 
+            className="bg-white rounded-t-3xl overflow-hidden"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <BaseSix isPaywall={true} />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
