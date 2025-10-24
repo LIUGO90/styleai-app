@@ -15,6 +15,8 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chatRequest } from "@/services/aiReuest";
+import { useCredits } from "@/hooks/usePayment";
+import { useCredit } from "@/contexts/CreditContext";
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = "") => {
@@ -61,7 +63,8 @@ export default function OutfitCheckScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [canInput, setCanInput] = useState<boolean>(false);
-
+  const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
+  const { showCreditModal } = useCredit();
   // 加载当前会话
   useEffect(() => {
     loadCurrentSession();
@@ -233,6 +236,25 @@ export default function OutfitCheckScreen() {
           }
           return msg;
         }));
+      }
+      const requiredCreditsFirst = 10; // 第一次AI请求需要10积分
+      const availableCreditsFirst = credits?.available_credits || 0;
+      if (availableCreditsFirst < requiredCreditsFirst) {
+        Alert.alert(
+          'Insufficient Credits',
+          `Outfit analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
+          [
+            {
+              text: 'Buy Credits',
+              onPress: () => showCreditModal()
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            }
+          ]
+        );
+        return;
       }
 
       let progressMessage = createProgressMessage(5, "Analyzing your outfit...");

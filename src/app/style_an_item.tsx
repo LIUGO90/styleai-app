@@ -412,15 +412,15 @@ export default function StyleAnItemScreen() {
 
         if (availableCreditsFirst < requiredCreditsFirst) {
           Alert.alert(
-            '积分不足',
-            `分析搭配需要 ${requiredCreditsFirst} 积分，您当前只有 ${availableCreditsFirst} 积分。请购买更多积分后再试。`,
+            'Insufficient Credits',
+            `Style analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
             [
               {
-                text: '购买积分',
+                text: 'Buy Credits',
                 onPress: () => showCreditModal()
               },
               {
-                text: '取消',
+                text: 'Cancel',
                 style: 'cancel'
               }
             ]
@@ -542,15 +542,15 @@ export default function StyleAnItemScreen() {
 
         if (availableCredits < requiredCredits) {
           Alert.alert(
-            '积分不足',
-            `生成搭配需要 ${requiredCredits} 积分，您当前只有 ${availableCredits} 积分。请购买更多积分后再试。`,
+            'Insufficient Credits',
+            `Outfit generation requires ${requiredCredits} credits, but you only have ${availableCredits} credits. Please purchase more credits and try again.`,
             [
               {
-                text: '购买积分',
+                text: 'Buy Credits',
                 onPress: () => showCreditModal()
               },
               {
-                text: '取消',
+                text: 'Cancel',
                 style: 'cancel'
               }
             ]
