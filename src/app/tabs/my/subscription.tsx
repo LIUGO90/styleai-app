@@ -581,7 +581,7 @@ export default function SubscriptionScreen() {
                   {(productInfo && productInfo.isSubscription) ? 'Premium' : 'Try Premium'}
                 </Text>
 
-                {productInfo && productInfo.isSubscription
+                {productInfo && productInfo.isSubscription  && false
                   ? <><Text className="text-orange-700 text-lg mb-2">
                     1000 Free Credits/Month
                   </Text>
@@ -678,7 +678,10 @@ export default function SubscriptionScreen() {
             className="bg-white rounded-t-3xl overflow-hidden"
             onPress={(e) => e.stopPropagation()}
           >
-            <BaseSix isPaywall={true} />
+            <BaseSix 
+              isPaywall={true}
+              onClose={() => setShowPaywallModal(false)}
+            />
           </Pressable>
         </Pressable>
       </Modal>

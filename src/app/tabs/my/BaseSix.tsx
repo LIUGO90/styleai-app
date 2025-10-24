@@ -49,7 +49,7 @@ function RevenueCatInitializer() {
 
 const imagewidth = Dimensions.get("window").width * 0.4 > 180 ? 180 : Dimensions.get("window").width * 0.4;
 
-export default function BaseSix({ isPaywall = false }: { isPaywall?: boolean }) {
+export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: boolean; onClose?: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState<string>("");
@@ -166,11 +166,17 @@ export default function BaseSix({ isPaywall = false }: { isPaywall?: boolean }) 
   }
 
   const handleNext = async () => {
-    // router.dismissAll();
-    router.replace({
-      pathname: "/",
-      params: { imagesUrls: JSON.stringify(image) }
-    });
+    if (isPaywall && onClose) {
+      // 如果是 paywall 模式，关闭 modal
+      onClose();
+    } else {
+      // 正常模式，跳转到首页
+      // router.dismissAll();
+      router.replace({
+        pathname: "/",
+        params: { imagesUrls: JSON.stringify(image) }
+      });
+    }
   };
 
   const handlePlanSelect = (pkg: PurchasesPackage) => {
