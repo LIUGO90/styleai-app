@@ -17,7 +17,7 @@ export default function SubscriptionScreen() {
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
-  const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
+
   // 检查是否为订阅产品（而非积分包）
   const isSubscriptionProduct = (productId: string): boolean => {
     // 积分包通常包含 AIPoints 关键词
@@ -272,7 +272,7 @@ export default function SubscriptionScreen() {
                   {(productInfo && productInfo.isSubscription) ? 'Premium' : 'Try Premium'}
                 </Text>
 
-                {productInfo && productInfo.isSubscription && false
+                {productInfo && productInfo.isSubscription
                   ? <><Text className="text-orange-700 text-lg mb-2">
                     1000 Free Credits/Month
                   </Text>
@@ -308,9 +308,8 @@ export default function SubscriptionScreen() {
         </View>
 
         {/* Buy Credits Section */}
-        {creditPackages.length > 0 && (
-          <BuyCredit />
-        )}
+        <BuyCredit />
+
 
       </ScrollView>
 
