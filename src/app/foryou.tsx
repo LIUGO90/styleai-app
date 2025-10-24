@@ -97,7 +97,7 @@ export default function ForYouScreen() {
         useCallback(() => {
             // 清除所有之前的生成状态
             clearAll();
-            // setForyou([]);
+            setForyou([]);
             setReloadKey(prev => prev + 1);
             loadTemplates();
         }, [imageData?.name])

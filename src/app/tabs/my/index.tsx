@@ -28,7 +28,7 @@ export default function MyProfile() {
   const { isActive, isPremium, loading: subscriptionLoading } = useSubscription();
 
   // Load saved avatar, name, and email
-  const loadUserData = async () => {
+  const loadUserData = async (forceRefresh = false) => {
     try {
       // console.log("🎈user", user);
       const storedName = await AsyncStorage.getItem("userName");
@@ -46,6 +46,24 @@ export default function MyProfile() {
         let avatar = userAvatar || user?.user_metadata?.picture || user?.user_metadata?.avatar_url || "";
         if (avatar.length === 0 || avatar === null || avatar === undefined) {
           createAvatar();
+        }
+      }
+
+      // Force refresh avatar from server if needed
+      if (forceRefresh && user?.id) {
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileData?.avatar_url) {
+            setUserAvatar(profileData.avatar_url);
+            await AsyncStorage.setItem('userAvatar', profileData.avatar_url);
+          }
+        } catch (error) {
+          console.log('Could not refresh avatar from server:', error);
         }
       }
     } catch (error) {
@@ -94,6 +112,8 @@ export default function MyProfile() {
       // 4. Update local state
       setUserAvatar(imageUrl || "");
 
+      // 5. Force refresh the page to ensure latest avatar is displayed
+      await loadUserData(true);
 
       Alert.alert("✅ Success", "Avatar updated successfully!");
 
@@ -212,15 +232,9 @@ export default function MyProfile() {
   const refreshUserInfo = async () => {
     setRefreshing(true);
     try {
-
-      // Reload avatar from local storage
-      const savedAvatar = await AsyncStorage.getItem('userAvatar');
-      if (savedAvatar) {
-
-        setUserAvatar(savedAvatar);
-      }
-
-
+      // Force refresh user data including avatar from server
+      await loadUserData(true);
+      
       Alert.alert("✅ Success", "Profile refreshed successfully!");
 
     } catch (error) {

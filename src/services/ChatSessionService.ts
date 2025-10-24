@@ -20,7 +20,7 @@ export interface ChatSession {
 export class ChatSessionService {
   private static readonly SESSIONS_KEY = "chat_sessions";
   private static readonly CURRENT_SESSION_KEY = "current_session_id";
-  private static readonly MAX_SESSIONS = 20; // 最大会话数量
+  private static readonly MAX_SESSIONS = 50; // 最大会话数量
 
   // 获取所有会话
   static async getAllSessions(): Promise<ChatSession[]> {
