@@ -379,7 +379,7 @@ export default function BaseSix() {
                   <Pressable
                     key={pkg.identifier}
                     onPress={() => handlePlanSelect(pkg)}
-                    className={`flex-1 rounded-3xl border-2 h-40 mx-2 relative overflow-visible ${isSelected
+                    className={`flex-1 rounded-3xl border-2 mx-2 relative overflow-visible ${isSelected
                       ? "border-orange-500 bg-orange-50"
                       : "border-gray-300 bg-gray-300"
                       }`}
@@ -412,7 +412,7 @@ export default function BaseSix() {
             )}
           </View>
 
-          <View className="p-5 mb-10 flex-col justify-between">
+          <View className="p-5 mb-6 flex-col justify-between">
             {/* 订阅按钮 */}
             {currentOffering && currentOffering.availablePackages.length > 0 && (
               <Pressable

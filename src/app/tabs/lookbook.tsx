@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, StyleSheet, TouchableOpacity, Modal, Dimensions, Share, Platform, FlatList, ViewToken } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet, TouchableOpacity, Modal, Dimensions, Share, Platform, FlatList, ViewToken, TextInput, KeyboardAvoidingView, Keyboard, Animated } from "react-native";
 import { Image } from "expo-image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,6 +16,7 @@ import { UserImageService } from "@/services/UserImageService";
 import { pageActivityManager } from "@/utils/pageActivityManager";
 import { imageUpdateManager } from "@/utils/imageUpdateManager";
 import { useGlobalToast } from "@/utils/globalToast";
+import { ChatSessionService } from "@/services/ChatSessionService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,11 +30,41 @@ export default function LookbookOne() {
   const [showStyleFilter, setShowStyleFilter] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false); // 批量选择模式
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set()); // 已选择的图片
+  const [inputText, setInputText] = useState(''); // 输入框文本
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false); // 键盘状态
+  const inputBottomPosition = useRef(new Animated.Value(48)).current; // 输入框底部位置动画
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
   const flatListRef = useRef<FlatList>(null);  // 全屏模式的 FlatList ref
   // 使用全局 Toast
   const { showToast } = useGlobalToast();
+
+  // 键盘事件监听
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (event) => {
+      console.log('Keyboard shown, height:', event.endCoordinates.height);
+      setIsKeyboardVisible(true);
+      Animated.timing(inputBottomPosition, {
+        toValue: event.endCoordinates.height + 20, // 键盘高度 + 20px 间距
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      console.log('Keyboard hidden');
+      setIsKeyboardVisible(false);
+      Animated.timing(inputBottomPosition, {
+        toValue: 48,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, [inputBottomPosition]);
 
   const loadCollections = useCallback(async () => {
 
@@ -80,13 +111,13 @@ export default function LookbookOne() {
 
   const handleImagePress = (index: number) => {
     if (images.length === 0) return;
-    
+
     // 如果在选择模式，切换选择状态
     if (selectionMode) {
       toggleImageSelection(images[index]);
       return;
     }
-    
+
     setCurrentIndex(index);
     setModalVisible(true);
 
@@ -153,7 +184,7 @@ export default function LookbookOne() {
           onPress: async () => {
             try {
               // 找到要删除的所有 items
-              const itemsToDelete = allItems.filter(item => 
+              const itemsToDelete = allItems.filter(item =>
                 selectedImages.has(item.image_url)
               );
 
@@ -250,12 +281,12 @@ export default function LookbookOne() {
                   });
                 } else {
                   // 还有图片，调整索引
-                  const newIndex = deletedIndex >= totalImages - 1 
+                  const newIndex = deletedIndex >= totalImages - 1
                     ? deletedIndex - 1  // 删除的是最后一张，显示前一张
                     : deletedIndex;      // 否则显示当前位置的下一张
-                  
+
                   setCurrentIndex(Math.max(0, newIndex));
-                  
+
                   // 延迟滚动到新位置
                   setTimeout(() => {
                     flatListRef.current?.scrollToIndex({
@@ -355,7 +386,7 @@ export default function LookbookOne() {
                 {selectedImages.size} Selected
               </Text>
             </TouchableOpacity>
-            
+
             <View className="flex-row items-center gap-2">
               <TouchableOpacity
                 onPress={selectedImages.size === images.length ? deselectAll : selectAll}
@@ -379,7 +410,7 @@ export default function LookbookOne() {
               >
                 <MaterialCommunityIcons name="checkbox-multiple-marked" size={20} color="#000" />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={() => setShowStyleFilter(!showStyleFilter)}
                 className="bg-black px-4 py-2 rounded-full flex-row items-center"
@@ -415,8 +446,8 @@ export default function LookbookOne() {
                   setShowStyleFilter(false);
                 }}
                 className={`mr-3 px-4 py-2 rounded-full ${selectedStyle === style
-                    ? 'bg-black'
-                    : 'bg-white border border-gray-300'
+                  ? 'bg-black'
+                  : 'bg-white border border-gray-300'
                   }`}
                 activeOpacity={0.7}
               >
@@ -454,7 +485,7 @@ export default function LookbookOne() {
           <View className="flex-row flex-wrap justify-between">
             {images.map((image, index) => {
               const isSelected = selectedImages.has(image);
-              
+
               return (
                 <TouchableOpacity
                   key={index}
@@ -472,14 +503,13 @@ export default function LookbookOne() {
                     priority="high"
                     recyclingKey={`lookbook-${index}`}
                   />
-                  
+
                   {/* 选择模式下的复选框 */}
                   {selectionMode && (
                     <View className="absolute top-2 right-2">
                       <View
-                        className={`w-8 h-8 rounded-full items-center justify-center ${
-                          isSelected ? 'bg-blue-500' : 'bg-white/80 border-2 border-white'
-                        }`}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${isSelected ? 'bg-blue-500' : 'bg-white/80 border-2 border-white'
+                          }`}
                       >
                         {isSelected && (
                           <MaterialCommunityIcons name="check" size={20} color="#fff" />
@@ -487,7 +517,7 @@ export default function LookbookOne() {
                       </View>
                     </View>
                   )}
-                  
+
                   {/* 选中状态的遮罩 */}
                   {selectionMode && isSelected && (
                     <View className="absolute inset-0 bg-blue-500/20" />
@@ -515,18 +545,16 @@ export default function LookbookOne() {
             >
               <Text className="text-center text-gray-700 font-semibold">Cancel</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleBatchDelete}
               disabled={selectedImages.size === 0}
-              className={`flex-1 py-3 rounded-xl ${
-                selectedImages.size === 0 ? 'bg-gray-200' : 'bg-red-500'
-              }`}
+              className={`flex-1 py-3 rounded-xl ${selectedImages.size === 0 ? 'bg-gray-200' : 'bg-red-500'
+                }`}
               activeOpacity={0.7}
             >
-              <Text className={`text-center font-semibold ${
-                selectedImages.size === 0 ? 'text-gray-400' : 'text-white'
-              }`}>
+              <Text className={`text-center font-semibold ${selectedImages.size === 0 ? 'text-gray-400' : 'text-white'
+                }`}>
                 Delete {selectedImages.size > 0 ? `(${selectedImages.size})` : ''}
               </Text>
             </TouchableOpacity>
@@ -541,23 +569,21 @@ export default function LookbookOne() {
         transparent={false}
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView className="flex-1 bg-black">
+        <SafeAreaView className="flex-1 bg-gray-200">
           {/* Header */}
-          <View className="absolute top-10 left-0 right-0 z-10 px-4 py-2 bg-black/50">
+          <View className="flex-row justify-between items-center absolute top-16 left-0 right-0 z-10 px-4 py-2 ">
             {/* Top row: Close and Counter */}
-            <View className="flex-row justify-between items-center">
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                className="p-2"
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons name="close" size={28} color="#fff" />
-              </TouchableOpacity>
-              <Text className="text-white text-lg font-semibold">
-                {currentIndex + 1} / {images.length}
-              </Text>
-              <View style={{ width: 44 }} />
-            </View>
+            <TouchableOpacity
+              onPress={() => {
+                setModalVisible(false);
+                Keyboard.dismiss();
+                setInputText('');
+              }}
+              className="p-2"
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="close" size={28} color="black" />
+            </TouchableOpacity>
 
             {/* Action buttons row */}
             <View className="flex-row justify-center items-center gap-4">
@@ -566,7 +592,7 @@ export default function LookbookOne() {
                 className="bg-white/20 p-3 rounded-full"
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="share-variant" size={24} color="#fff" />
+                <MaterialCommunityIcons name="share-variant" size={24} color="#black" />
               </TouchableOpacity>
 
 
@@ -580,8 +606,13 @@ export default function LookbookOne() {
             </View>
           </View>
 
+          <Text className="absolute z-20  top-20 left-1/2 transform -translate-x-1/2 text-center text-black text-lg font-semibold">
+            {currentIndex + 1} / {images.length}
+          </Text>
+
           {/* Main Image - 水平滚动 FlatList */}
           <FlatList
+            className="flex-1"
             ref={flatListRef}
             data={images}
             horizontal
@@ -614,13 +645,13 @@ export default function LookbookOne() {
                 style={{
                   width: SCREEN_WIDTH,
                   justifyContent: 'center',
-                  alignItems: 'center'
+                  alignItems: 'center',
                 }}
               >
                 <Image
                   source={item}
                   style={styles.fullscreenImage}
-                  contentFit="contain"
+                  contentFit="cover"
                   placeholder="Loading..."
                   cachePolicy="memory-disk"
                   recyclingKey={`fullscreen-${index}`}
@@ -632,7 +663,7 @@ export default function LookbookOne() {
             snapToAlignment="center"
           />
 
-          {/* Thumbnail Strip */}
+          {/* Thumbnail Strip
           <View className="absolute bottom-0 left-0 right-0 bg-black/50 pb-4">
             <ScrollView
               horizontal
@@ -666,7 +697,88 @@ export default function LookbookOne() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </View> */}
+
+
+          {/* Input Field */}
+          <Animated.View
+            className="absolute left-4 right-4 z-20"
+            style={{
+              bottom: inputBottomPosition
+            }}
+          >
+            <View className="flex-row items-end bg-white/90 rounded-lg border border-gray-300">
+              <TextInput
+                className="flex-1 px-4 py-3 text-black text-base"
+                placeholder="Chat with AI..."
+                placeholderTextColor="#666"
+                multiline
+                maxLength={200}
+                value={inputText}
+                onChangeText={setInputText}
+                onFocus={() => {
+                  console.log('TextInput focused');
+                  setIsKeyboardVisible(true);
+                  // 手动触发动画，以防键盘事件没有触发
+                  Animated.timing(inputBottomPosition, {
+                    toValue: 340, // 假设键盘高度约为 300px
+                    duration: 300,
+                    useNativeDriver: false,
+                  }).start();
+                }}
+                onBlur={() => {
+                  console.log('TextInput blurred');
+                  setIsKeyboardVisible(false);
+                  Animated.timing(inputBottomPosition, {
+                    toValue: 48,
+                    duration: 300,
+                    useNativeDriver: false,
+                  }).start();
+                }}
+                style={{ maxHeight: 100 }}
+              />
+              <TouchableOpacity
+                className="p-3"
+                onPress={async () => {
+                  if (inputText.trim()) {
+                    // 保存输入文本，然后清空
+                    const messageToSend = inputText.trim();
+                    console.log('Sending:', messageToSend);
+
+
+                    const session = await ChatSessionService.createSession("free_chat");
+                    if (session) {
+                      console.log('Navigating to free_chat with params:', {
+                        sessionId: session.id,
+                        imageUri: images[currentIndex],
+                        message: messageToSend
+                      });
+                      router.push({
+                        pathname: "/free_chat",
+                        params: {
+                          sessionId: session.id,
+                          imageUri: images[currentIndex],
+                          message: messageToSend
+                        }
+                      });
+                    }
+                    setInputText('');
+                    Keyboard.dismiss();
+                    setModalVisible(false)
+                  }
+                }}
+                disabled={!inputText.trim()}
+              >
+                <MaterialCommunityIcons
+                  name="send"
+                  size={24}
+                  color={inputText.trim() ? "#007AFF" : "#ccc"}
+                />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+
+
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -675,7 +787,11 @@ export default function LookbookOne() {
 
 const styles = StyleSheet.create({
   fullscreenImage: {
-    width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.75,
-  },
+    aspectRatio: 712 / 1247,  // 使用实际图片的宽高比
+    maxHeight: SCREEN_HEIGHT * 0.75,  // 最大高度限制
+    borderRadius: 16,
+    overflow: 'hidden',
+
+  }
 });

@@ -28,6 +28,9 @@ export default function FreeChatScreen() {
     const { imageUri } = useLocalSearchParams<{ imageUri?: string }>();
     const { message } = useLocalSearchParams<{ message?: string }>();
 
+    // 调试参数接收
+    // console.log('FreeChat received params:', { sessionId, imageUri, message });
+
     // 加载当前会话
     useEffect(() => {
         loadCurrentSession();
@@ -57,6 +60,11 @@ export default function FreeChatScreen() {
                 // 如果路由参数中有sessionId，加载指定会话
                 session = await ChatSessionService.getSession(sessionId);
                 setCurrentSession(session);
+            }else{
+                Alert.alert('No sessionId provided');
+                router.replace({
+                    pathname: "/tabs/",
+                });
             }
 
 
@@ -75,7 +83,10 @@ export default function FreeChatScreen() {
                     sender: "user",
                     timestamp: new Date(),
                 };
-                if (imageUri) {
+
+                if (imageUri && message) {
+                    handleSendMessage(message, imageUri);
+                } else if (imageUri) {
                     initmessages.images = [
                         ...(imageUri ? [{
                             id: generateUniqueId('img_'),
@@ -192,7 +203,14 @@ export default function FreeChatScreen() {
         addMessage(progressMessage);
         let image: string = '';
         if (imageUri && imageUri.length > 0) {
-            image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+
+            if (imageUri.startsWith('http')) {
+                image = imageUri;
+            } else {
+                // 上传图片到服务器
+                image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+            }
+
             newMessage.images = [{
                 id: generateUniqueId('img_'),
                 url: image,
@@ -207,7 +225,7 @@ export default function FreeChatScreen() {
             message: 'Analyzing your message...',
         };
         updateMessage(progressMessage);
-        const { message, images } = await chatRequest(user?.id || '', '','','','', text, [image] , currentSession?.id || '');
+        const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
         dateleMessage(progressMessage.id);
         addMessage({
             id: Date.now().toString(),
