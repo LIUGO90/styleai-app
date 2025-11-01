@@ -40,7 +40,9 @@ export function useSubscription() {
   }, [refreshStatus]);
 
   return {
-    ...subscriptionStatus,
+    subscriptionStatus,
+    isActive: subscriptionStatus.isActive,
+    expirationDate: subscriptionStatus.expirationDate,
     customerInfo,
     loading,
     refresh: refreshStatus,

@@ -25,7 +25,7 @@ export default function MyProfile() {
   const [email, setEmail] = useState<string>("");
 
   // 获取订阅状态
-  const { isActive, isPremium, loading: subscriptionLoading } = useSubscription();
+  const { subscriptionStatus, loading: subscriptionLoading } = useSubscription();
 
   // Load saved avatar, name, and email
   const loadUserData = async (forceRefresh = false) => {
@@ -210,12 +210,12 @@ export default function MyProfile() {
       icon: "star" as const,
       color: "#fbbf24",
       onPress: () => router.push("/tabs/my/credit"),
-      // },{
-      //   id: "test",
-      //   title: "测试订阅页面",
-      //   icon: "star" as const,
-      //   color: "#fbbf24",
-      //   onPress: () => router.replace("/tabs/my/BaseSix"),
+      },{
+        id: "test",
+        title: "测试订阅页面",
+        icon: "star" as const,
+        color: "#fbbf24",
+        onPress: () => router.replace("/onboarding/BaseSix"),
     },
     {
       id: 'credits',
@@ -379,7 +379,7 @@ export default function MyProfile() {
                 </Text>
                 {/* 只在用户有活跃订阅时显示 Premium 标签 */}
                 {/* {(isActive || isPremium) && ( */}
-                  <View className={`mx-2 px-3 items-center rounded-full ${isActive ? "bg-green-500" : "bg-gray-200"}`}>
+                  <View className={`mx-2 px-3 items-center rounded-full ${subscriptionStatus ? "bg-orange-500" : "bg-gray-200"}`}>
                     <Text className="text-black text-sm mb-1 font-bold italic">
                       Premium
                     </Text>

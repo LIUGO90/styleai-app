@@ -361,12 +361,7 @@ export default function ForYouScreen() {
                             foryou.length === 0 || 
                             (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
                         }
-                        style={{ 
-                            opacity: (
-                                foryou.length === 0 || 
-                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
-                            ) ? 0.6 : 1 
-                        }}
+                        
                     >
                         <View className="flex-row items-center justify-center">
                             {foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id) ? (

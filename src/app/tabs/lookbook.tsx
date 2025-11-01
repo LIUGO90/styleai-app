@@ -35,7 +35,7 @@ export default function LookbookOne() {
   const inputBottomPosition = useRef(new Animated.Value(48)).current; // 输入框底部位置动画
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
-  const flatListRef = useRef<FlatList>(null);  // 全屏模式的 FlatList ref
+  const fullscreenScrollRef = useRef<ScrollView>(null);  // 全屏模式的 ScrollView ref
   // 使用全局 Toast
   const { showToast } = useGlobalToast();
 
@@ -65,6 +65,23 @@ export default function LookbookOne() {
       keyboardDidHideListener?.remove();
     };
   }, [inputBottomPosition]);
+
+  // 滚动到指定位置的函数
+  const scrollToIndex = useCallback((index: number) => {
+    const targetX = index * SCREEN_WIDTH;
+    console.log(`🎯 尝试滚动到索引 ${index}, 偏移 ${targetX}px`);
+    
+    if (fullscreenScrollRef.current) {
+      fullscreenScrollRef.current.scrollTo({
+        x: targetX,
+        y: 0,
+        animated: false,
+      });
+      console.log(`✅ 滚动命令已发送`);
+    } else {
+      console.warn(`⚠️ fullscreenScrollRef.current 为 null`);
+    }
+  }, []);
 
   const loadCollections = useCallback(async () => {
 
@@ -118,20 +135,10 @@ export default function LookbookOne() {
       return;
     }
 
+    console.log(`📱 点击图片 ${index}，屏幕宽度: ${SCREEN_WIDTH}，目标偏移: ${index * SCREEN_WIDTH}`);
+    
     setCurrentIndex(index);
     setModalVisible(true);
-
-    // 延迟滚动到选中的图片，确保 Modal 已打开
-    setTimeout(() => {
-      try {
-        flatListRef.current?.scrollToIndex({
-          index,
-          animated: false,
-        });
-      } catch (error) {
-        console.warn('滚动到索引失败:', error);
-      }
-    }, 100);
   };
 
   // 切换选择模式
@@ -225,16 +232,16 @@ export default function LookbookOne() {
     );
   };
 
-  // 监听全屏模式下的滑动变化
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-      setCurrentIndex(viewableItems[0].index);
+  // 监听 ScrollView 滚动，更新当前索引
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    console.log(`📜 滚动中: offsetX=${offsetX.toFixed(0)}px, 计算索引=${index}`);
+    if (index >= 0 && index < images.length && index !== currentIndex) {
+      console.log(`🔄 更新索引: ${currentIndex} -> ${index}`);
+      setCurrentIndex(index);
     }
-  }).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
+  };
 
   // 删除当前图片
   const handleDeleteImage = async () => {
@@ -289,8 +296,9 @@ export default function LookbookOne() {
 
                   // 延迟滚动到新位置
                   setTimeout(() => {
-                    flatListRef.current?.scrollToIndex({
-                      index: Math.max(0, newIndex),
+                    fullscreenScrollRef.current?.scrollTo({
+                      x: Math.max(0, newIndex) * SCREEN_WIDTH,
+                      y: 0,
                       animated: true,
                     });
                   }, 300);
@@ -610,42 +618,34 @@ export default function LookbookOne() {
             {currentIndex + 1} / {images.length}
           </Text>
 
-          {/* Main Image - 水平滚动 FlatList */}
-          <FlatList
-            className="flex-1"
-            ref={flatListRef}
-            data={images}
+          {/* Main Image - 水平滚动 ScrollView */}
+          <ScrollView
+            key={`scrollview-${currentIndex}`}
+            ref={fullscreenScrollRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={viewabilityConfig}
-            keyExtractor={(item: string, index: number) => `fullscreen-${index}`}
-            getItemLayout={(data: ArrayLike<string> | null | undefined, index: number) => ({
-              length: SCREEN_WIDTH,
-              offset: SCREEN_WIDTH * index,
-              index,
-            })}
-            onScrollToIndexFailed={(info) => {
-              console.warn('滚动失败:', info);
-              // 等待后重试
-              setTimeout(() => {
-                try {
-                  flatListRef.current?.scrollToIndex({
-                    index: info.index,
-                    animated: true,
-                  });
-                } catch (error) {
-                  console.error('重试滚动失败:', error);
-                }
-              }, 100);
+            contentOffset={{ x: currentIndex * SCREEN_WIDTH, y: 0 }}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH}
+            snapToAlignment="center"
+            contentContainerStyle={{ flexDirection: 'row' }}
+            collapsable={false}
+            onLayout={(event) => {
+              console.log(`📐 ScrollView 已布局，初始偏移: ${currentIndex * SCREEN_WIDTH}px`);
             }}
-            renderItem={({ item, index }: { item: string; index: number }) => (
+          >
+            {images.map((item, index) => (
               <View
+                key={`fullscreen-${index}`}
                 style={{
                   width: SCREEN_WIDTH,
+                  height: '100%',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  // backgroundColor: index % 2 === 0 ? '#f5f5f5' : '#e8e8e8', // 交替背景色，便于调试
                 }}
               >
                 <Image
@@ -657,48 +657,10 @@ export default function LookbookOne() {
                   recyclingKey={`fullscreen-${index}`}
                 />
               </View>
-            )}
-            decelerationRate="fast"
-            snapToInterval={SCREEN_WIDTH}
-            snapToAlignment="center"
-          />
+            ))}
+          </ScrollView>
 
-          {/* Thumbnail Strip
-          <View className="absolute bottom-0 left-0 right-0 bg-black/50 pb-4">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12 }}
-            >
-              {images.map((image, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => {
-                    setCurrentIndex(index);
-                    try {
-                      flatListRef.current?.scrollToIndex({
-                        index,
-                        animated: true,
-                      });
-                    } catch (error) {
-                      console.warn('滚动到索引失败:', error);
-                    }
-                  }}
-                  className={`mr-3 rounded-lg overflow-hidden ${index === currentIndex ? 'border-2 border-white' : 'opacity-60'
-                    }`}
-                  activeOpacity={0.8}
-                >
-                  <Image
-                    source={image}
-                    style={{ width: 60, height: 80 }}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View> */}
-
+       
 
           {/* Input Field */}
           <Animated.View

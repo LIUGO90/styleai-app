@@ -1,6 +1,5 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
 import revenueCatService from "./RevenueCatService";
-import subscriptionScheduler from "./SubscriptionScheduler";
 
 class AppInitializationService {
   private static instance: AppInitializationService;
@@ -39,15 +38,6 @@ class AppInitializationService {
       // 2. Web Worker AI服务不需要特殊初始化
       // 它会在第一次使用时自动初始化
       console.log("📦 [AppInit] Web Worker AI 服务将在首次使用时初始化");
-
-      // 3. 启动订阅调度器
-      try {
-        console.log("📦 [AppInit] 正在启动订阅调度器...");
-        subscriptionScheduler.startDailyCheck();
-        console.log("✅ [AppInit] 订阅调度器已启动");
-      } catch (error: any) {
-        console.warn("⚠️ [AppInit] 订阅调度器启动失败:", error?.message || error);
-      }
 
       this.isInitialized = true;
       console.log("✅ [AppInit] 应用服务初始化完成");

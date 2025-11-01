@@ -11,7 +11,7 @@ import BuyCredit, { CreditPackage } from '@/components/BuyCredit';
 
 
 export default function SubscriptionScreen() {
-  const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
+  const { isActive, expirationDate, loading, customerInfo } = useSubscription();
 
   const { subscriptions, loading: subscriptionsLoading, refresh: refreshSubscriptions } = useActiveSubscriptions();
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
@@ -207,7 +207,7 @@ export default function SubscriptionScreen() {
       setProductInfo(null);
     }
 
-  }, [subscriptions, subscriptionsLoading, customerInfo, isActive]);
+  }, [subscriptions, subscriptionsLoading, customerInfo, isActive, expirationDate]);
 
   // 强制刷新订阅数据
   const handleRefresh = async () => {
@@ -278,7 +278,19 @@ export default function SubscriptionScreen() {
                   </Text>
                     <View className="mt-2">
                       <Text className="text-gray-600 text-sm font-semibold">
-                        {productInfo.name}
+                        {subscriptionDetails?.expirationDate
+                          ? `Renew on ${new Date(subscriptionDetails.expirationDate).toLocaleString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}`
+                          : expirationDate && expirationDate !== null
+                          ? `Renew on ${new Date(expirationDate).toLocaleString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}`
+                          : ''}
                       </Text>
                     </View>
                   </>

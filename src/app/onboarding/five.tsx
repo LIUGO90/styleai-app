@@ -134,7 +134,7 @@ export default function Five() {
         }
         await AsyncStorage.setItem(
           "newlook",
-          JSON.stringify(imagesUrl),
+          imagesUrl.join(',')
         );
 
         console.log("🧐 执行更新数据库", imagesUrl);

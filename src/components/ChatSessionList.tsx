@@ -34,25 +34,27 @@ export function ChatSessionList({
       !item.lastMessage || item.lastMessage.trim() === "";
 
     return (
-      <Pressable
+      <View className="flex-col"
         style={[
           styles.sessionItem,
           isCurrentSession && styles.currentSessionItem,
         ]}
-        onPress={() => onSessionSelect(item)}
-        onLongPress={() => {
-          Alert.alert("Delete Session", "Are you sure you want to delete this session? This action cannot be undone.", [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Delete",
-              style: "destructive",
-              onPress: () => onDeleteSession(item.id),
-            },
-          ]);
-        }}
       >
-        <View style={styles.sessionContent}>
-          <View style={styles.sessionHeader}>
+        <View className="flex-row justify-between gap-2">
+          <Pressable
+
+            onPress={() => onSessionSelect(item)}
+            onLongPress={() => {
+              Alert.alert("Delete Session", "Are you sure you want to delete this session? This action cannot be undone.", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => onDeleteSession(item.id),
+                },
+              ]);
+            }}
+          >
             <View style={styles.sessionInfo}>
               <Text
                 style={[
@@ -67,36 +69,58 @@ export function ChatSessionList({
                 {ChatSessionService.formatTime(item.lastMessageTime)}
               </Text>
             </View>
-            <View style={styles.sessionActions}>
-              <Text style={styles.messageCount}>{item.messageCount}</Text>
+          </Pressable>
+
+          {/* 删除会话 */}
+          <View style={styles.sessionActions}>
+            <Text style={styles.messageCount}>{item.messageCount}</Text>
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  "Delete Session",
+                  "Are you sure you want to delete this session? This action cannot be undone.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => onDeleteSession(item.id),
+                    },
+                  ]
+                );
+              }}
+              style={styles.deleteButton}
+            >
               <MaterialIcons
                 name="more-vert"
                 size={20}
                 color="#999"
                 style={styles.moreIcon}
               />
-            </View>
+            </Pressable>
           </View>
 
-          <Text
-            style={[
-              styles.lastMessage,
-              isLastMessageEmpty && styles.emptyMessage,
-            ]}
-            numberOfLines={2}
-          >
-            {isLastMessageEmpty ? "No messages yet" : item.lastMessage}
-          </Text>
+
         </View>
-      </Pressable>
+
+        <Text
+          style={[
+            styles.lastMessage,
+            isLastMessageEmpty && styles.emptyMessage,
+          ]}
+          numberOfLines={2}
+        >
+          {isLastMessageEmpty ? "No messages yet" : item.lastMessage}
+        </Text>
+      </View>
     );
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Chat History</Text>
-      <Pressable 
-        style={styles.newSessionButton} 
+      <Pressable
+        style={styles.newSessionButton}
         onPress={onCloseDrawer}
       >
         <Ionicons name="arrow-forward" size={24} color="black" />
@@ -163,15 +187,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "#007AFF",
   },
-  sessionContent: {
-    flex: 1,
-  },
-  sessionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 4,
-  },
   sessionInfo: {
     flex: 1,
     marginRight: 8,
@@ -201,6 +216,10 @@ const styles = StyleSheet.create({
   },
   moreIcon: {
     opacity: 0.6,
+  },
+  deleteButton: {
+    padding: 4,
+    borderRadius: 4,
   },
   lastMessage: {
     fontSize: 14,

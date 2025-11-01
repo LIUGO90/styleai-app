@@ -304,7 +304,7 @@ export default function BaseSix() {
       />
 
       {/* 内容层 */}
-      <View className="flex-1">
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         <View className="">
           <DotsContainer activeIndex={5} indexNumber={6} />
         </View>
@@ -315,7 +315,7 @@ export default function BaseSix() {
             style={{ height: 220 }}
           >
             {(image && image.length > 0) && image.map((item, index) => {
-
+              console.log('🔍item', item)
               return (
                 <View key={index} style={{ width: imagewidth }}
                   className="overflow-hidden rounded-2xl"
@@ -452,7 +452,7 @@ export default function BaseSix() {
           </View>
 
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

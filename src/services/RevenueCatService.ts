@@ -111,6 +111,7 @@ class RevenueCatService {
   async getCustomerInfo(): Promise<CustomerInfo> {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
+      console.log('🔍customerInfo', customerInfo);
       return customerInfo;
     } catch (error) {
       console.error('[RevenueCat] Failed to get customer info:', error);
@@ -137,27 +138,56 @@ class RevenueCatService {
 
     try {
       const customerInfo = await this.getCustomerInfo();
-      const entitlements = customerInfo.entitlements.active;
-
-      const isPro = REVENUECAT_CONFIG.entitlements.PRO in entitlements;
-      const isPremium = REVENUECAT_CONFIG.entitlements.PREMIUM in entitlements;
-      const isActive = isPro || isPremium;
-
+      
+      // Check entitlements
+      const isPro = REVENUECAT_CONFIG.entitlements.PRO in customerInfo.entitlements.active;
+      const isPremium = REVENUECAT_CONFIG.entitlements.PREMIUM in customerInfo.entitlements.active;
+      
+      // Get active subscription info
+      const activeSubscriptions = customerInfo.activeSubscriptions;
+      const isActive = activeSubscriptions.length > 0;
+      
       let expirationDate: string | null = null;
       let willRenew = false;
       let productIdentifier: string | null = null;
-
-      if (isActive) {
-        const activeEntitlement = entitlements[REVENUECAT_CONFIG.entitlements.PRO] 
-          || entitlements[REVENUECAT_CONFIG.entitlements.PREMIUM];
-
-        expirationDate = activeEntitlement.expirationDate;
-        willRenew = activeEntitlement.willRenew;
-        productIdentifier = activeEntitlement.productIdentifier;
+      
+      if (isActive && activeSubscriptions.length > 0) {
+        // Get the first active subscription
+        const firstSubscriptionId = activeSubscriptions[0];
+        const subscriptionInfo = customerInfo.subscriptionsByProductIdentifier[firstSubscriptionId];
+        
+        if (subscriptionInfo) {
+          expirationDate = subscriptionInfo.expiresDate || null;
+          willRenew = subscriptionInfo.willRenew || false;
+          productIdentifier = firstSubscriptionId;
+        }
       }
+      
+      // Check if expired (outside grace period)
+      let actualIsActive = isActive;
+      if (isActive && expirationDate) {
+        const now = new Date();
+        const expDate = new Date(expirationDate);
+        
+        // Check grace period (default 16 days)
+        let gracePeriodExpiresDate: string | null = null;
+        // RevenueCat does not natively provide gracePeriodExpiresDate on entitlements,
+        // so we skip that and always apply the default grace period (16 days).
+        // If you wish to support a custom implementation, put it here.
 
+        if (gracePeriodExpiresDate) {
+          const graceExpDate = new Date(gracePeriodExpiresDate);
+          actualIsActive = now <= graceExpDate;
+        
+        } else {
+          // Default grace period: 16 days
+          const gracePeriodMs = 16 * 24 * 60 * 60 * 1000;
+          actualIsActive = now <= new Date(expDate.getTime() + gracePeriodMs);
+        }
+      }
+      
       return {
-        isActive,
+        isActive: actualIsActive,
         isPro,
         isPremium,
         expirationDate,
