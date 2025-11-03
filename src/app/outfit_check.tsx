@@ -246,7 +246,7 @@ export default function OutfitCheckScreen() {
           [
             {
               text: 'Buy Credits',
-              onPress: () => showCreditModal()
+              onPress: () => showCreditModal(user?.id || '', "outfit_check_credit_insufficient")
             },
             {
               text: 'Cancel',

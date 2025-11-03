@@ -223,10 +223,15 @@ export default function BaseSix() {
       // 4. 成功处理
       if (purchaseValidation.success) {
         console.log('🎉 Subscription purchase completed successfully!');
+        const { data, error } = await supabase.from('action_history').insert({
+          user_id: user?.id,
+          action: "onboarding_subscription_purchase_completed",
+        }).select()
+          .single();
 
         Alert.alert(
-          '订阅成功！',
-          `您的订阅已激活，现在可以使用所有高级功能了！\n\n${syncValidation.success ? '所有数据已同步完成' : '数据正在后台同步'}`,
+          'Subscription Success！',
+          `Your subscription is now active, you can now use all premium features!\n\n${syncValidation.success ? 'All data has been synced' : 'Data is syncing in the background'}`,
           [
             {
               text: 'OK',
@@ -244,8 +249,8 @@ export default function BaseSix() {
 
       console.error('❌ Subscription error:', error);
       Alert.alert(
-        '订阅失败',
-        '无法完成订阅，请稍后重试',
+        'Subscription Failed',
+        'Unable to complete subscription, please try again later',
         [{ text: 'OK' }]
       );
     }

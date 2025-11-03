@@ -2,6 +2,7 @@ import { OnboardingData } from "@/components/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetch } from "expo/fetch";
 import { addImageLook } from "./addLookBook";
+import { supabase } from "@/utils/supabase";
 
 export interface AIRequestResponse {
   status: string;
@@ -295,7 +296,11 @@ class WebWorkerAIService {
     sessionId: string,
     options: AIRequestOptions = {},
   ): Promise<AIRequestResponse> {
-
+    supabase.from('action_history').insert({
+      user_id: userId,
+      action: `chat_request_${sessionId}`,
+    }).select()
+      .single();
     for (var i = 0; i < 3; i++) {
       try {
         const controller = new AbortController()
@@ -306,7 +311,7 @@ class WebWorkerAIService {
         );
         setTimeout(() => {
           controller.abort()
-        }, 3000 * 10)
+        }, 6000 * 10)
         return { status: "success", jobId: response.jobId, message: response.message.text, images: response.message.images };
       } catch (error ) {
         console.log("🧐 执行Chat请求错误", error)

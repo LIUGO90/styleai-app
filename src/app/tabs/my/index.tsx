@@ -222,7 +222,7 @@ export default function MyProfile() {
       icon: 'star',
       title: 'Test My Credits',
       subtitle: 'View credit balance and usage',
-      onPress: showCreditModal,
+      onPress: () => showCreditModal(user?.id || '', "test_my_credits"),
       color: '#f97316',
     },
 

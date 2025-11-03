@@ -12,12 +12,14 @@ import { useImagePicker } from "@/hooks/useImagePicker";
 import { ForYouService } from "@/services/ForYouService";
 import { ForYou } from "@/types/styleTemplate.types";
 import { useCredits } from "@/hooks/usePayment";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [foryou, setForyou] = useState<ForYou[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // 刷新计数器，用于强制重新渲染图片
@@ -90,7 +92,7 @@ export default function HomeScreen() {
   const { showImagePickerOptions } = useImagePicker({
     onImageSelected: async (imageUri: string) => {
       if (imageUri) {
-        const session = await ChatSessionService.createSession("free_chat");
+        const session = await ChatSessionService.createSession(user?.id || '', "free_chat");
         if (session) {
           router.push({
             pathname: "/free_chat",
@@ -122,7 +124,7 @@ export default function HomeScreen() {
       inputText.current = "";
       inputRef.current?.clear();
       // 创建新会话
-      const session = await ChatSessionService.createSession("free_chat");
+      const session = await ChatSessionService.createSession(user?.id || '', "free_chat");
       // 然后跳转
       if (session) {
         router.push({
@@ -205,7 +207,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="flex-1 bg-gray-200 rounded-xl p-2 flex-row items-center justify-center"
               onPress={async () => {
-                const session = await ChatSessionService.createSession("style_an_item");
+                const session = await ChatSessionService.createSession(user?.id || '', "style_an_item");
                 if (session) {
                   router.push({
                     pathname: "/style_an_item",
@@ -221,7 +223,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="flex-1 bg-gray-200 backdrop-blur-sm rounded-xl p-2 flex-row items-center justify-center"
               onPress={async () => {
-                const session = await ChatSessionService.createSession("outfit_check");
+                const session = await ChatSessionService.createSession(user?.id || '', "outfit_check");
                 if (session) {
                   router.push({
                     pathname: "/outfit_check",

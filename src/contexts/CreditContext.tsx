@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import CreditModal from '@/components/CreditModal';
+import { supabase } from '@/utils/supabase';
 
 interface CreditContextType {
-  showCreditModal: () => void;
+  showCreditModal: (id: string, action: string) => void;
   hideCreditModal: () => void;
   isModalVisible: boolean;
 }
@@ -16,8 +17,13 @@ interface CreditProviderProps {
 export const CreditProvider: React.FC<CreditProviderProps> = ({ children }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const showCreditModal = useCallback(() => {
+  const showCreditModal = useCallback(async (id: string, action: string) => {
     console.log('🔔 显示积分 Modal');
+    const { data, error } = await supabase.from('action_history').insert({
+      user_id: id,
+      action: action,
+    }).select()
+      .single();
     setIsModalVisible(true);
   }, []);
 
@@ -49,13 +55,13 @@ export const setGlobalCreditInstance = (instance: CreditContextType) => {
   globalCreditInstance = instance;
 };
 
-export const showGlobalCreditModal = () => {
-  if (!globalCreditInstance) {
-    console.warn('⚠️ CreditContext not initialized. Make sure CreditProvider is mounted.');
-    return;
-  }
-  globalCreditInstance.showCreditModal();
-};
+// export const showGlobalCreditModal = () => {
+//   if (!globalCreditInstance) {
+//     console.warn('⚠️ CreditContext not initialized. Make sure CreditProvider is mounted.');
+//     return;
+//   }
+//   globalCreditInstance.showCreditModal();
+// };
 
 export const hideGlobalCreditModal = () => {
   if (!globalCreditInstance) {

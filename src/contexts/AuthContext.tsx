@@ -9,6 +9,7 @@ import React, {
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, AppStateStatus } from "react-native";
 
 export interface AuthUser extends User {
   name: string;
@@ -47,6 +48,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const isClearingRef = useRef(false);
+
+  useEffect(() => {
+    // 监听 AppState 变化并记录 action history
+    if (!user?.id) return;
+
+    const subscription = AppState.addEventListener(
+      'change',
+      async (state: AppStateStatus) => {
+        console.log('App state changed:', state);
+        if (state === 'active' || state === 'background') {
+          const { data, error } = await supabase.from('action_history').insert({
+            user_id: user.id,
+            action: `app_state_changed_${state}`,
+          }).select()
+            .single();
+          if (error) {
+            console.error('Error inserting action history:', error);
+          } else {
+            // console.log('Action history inserted:', data);
+          }
+        }
+      }
+    );
+
+    // 清理函数：移除监听器以防止内存泄漏
+    return () => {
+      subscription.remove();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     // 获取初始session
@@ -194,6 +224,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password,
       });
+
       return { error };
     } catch (error) {
       return { error };

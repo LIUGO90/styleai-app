@@ -417,7 +417,7 @@ export default function StyleAnItemScreen() {
             [
               {
                 text: 'Buy Credits',
-                onPress: () => showCreditModal()
+                onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
               },
               {
                 text: 'Cancel',
@@ -547,7 +547,7 @@ export default function StyleAnItemScreen() {
             [
               {
                 text: 'Buy Credits',
-                onPress: () => showCreditModal()
+                onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
               },
               {
                 text: 'Cancel',

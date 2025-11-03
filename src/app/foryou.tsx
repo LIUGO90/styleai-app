@@ -20,6 +20,7 @@ import { usePersistentRequests } from "@/hooks/usePersistentRequests";
 import { useCredits } from "@/hooks/usePayment";
 import { useCredit } from "@/contexts/CreditContext";
 import paymentService from "@/services/PaymentService";
+import { supabase } from "@/utils/supabase";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -150,15 +151,16 @@ export default function ForYouScreen() {
             const availableCredits = credits?.available_credits || 0;
             
             if (availableCredits < requiredCredits) {
+
                 showToast({ 
-                    message: `需要 ${requiredCredits} 积分才能生成图片，当前积分不足`, 
+                    message: `Need ${requiredCredits} credits to generate image, insufficient credits available`, 
                     type: "warning",
                     duration: 3000
                 });
                 
                 // 延迟显示积分购买弹窗，让用户看到提示信息
                 setTimeout(() => {
-                    showCreditModal();
+                    showCreditModal(user?.id || '', "foryou_credit_insufficient");
                 }, 1500);
                 return;
             }
@@ -190,6 +192,13 @@ export default function ForYouScreen() {
             );
 
             if (resultLookbook && resultLookbook.length > 0) {
+
+                const { data, error } = await supabase.from('action_history').insert({
+                    user_id: user?.id || '',
+                    action: `foryou_generated_${currentTemplate.name}_${currentTemplateId}`,
+                  }).select()
+                    .single();
+
                 // 图片生成成功，扣除积分
                 try {
                     const deductSuccess = await paymentService.useCredits(

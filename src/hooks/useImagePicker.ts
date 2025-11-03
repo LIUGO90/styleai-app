@@ -1,6 +1,8 @@
 import { Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/utils/supabase";
 
 export interface UseImagePickerOptions {
   onImageSelected?: (imageUri: string) => void;
@@ -9,6 +11,7 @@ export interface UseImagePickerOptions {
 
 export const useImagePicker = (options?: UseImagePickerOptions) => {
   const router = useRouter();
+  const { user } = useAuth();
   const {
     onImageSelected,
     showAlert = true,
@@ -43,6 +46,11 @@ export const useImagePicker = (options?: UseImagePickerOptions) => {
 
         // 触发回调
         if (onImageSelected) {
+          const { data, error } = await supabase.from('action_history').insert({
+            user_id: user?.id || '',
+            action: `image_selected_from_gallery`,
+          }).select()
+            .single();
           onImageSelected(imageUri);
         }
         // return imageUri;
@@ -87,6 +95,11 @@ export const useImagePicker = (options?: UseImagePickerOptions) => {
 
         // 触发回调
         if (onImageSelected) {
+          const { data, error } = await supabase.from('action_history').insert({
+            user_id: user?.id || '',
+            action: `image_selected_from_camera`,
+          }).select()
+            .single();
           onImageSelected(imageUri);
         }
       }

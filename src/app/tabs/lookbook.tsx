@@ -708,7 +708,7 @@ export default function LookbookOne() {
                     console.log('Sending:', messageToSend);
 
 
-                    const session = await ChatSessionService.createSession("free_chat");
+                    const session = await ChatSessionService.createSession(user?.id || '', "free_chat");
                     if (session) {
                       console.log('Navigating to free_chat with params:', {
                         sessionId: session.id,
