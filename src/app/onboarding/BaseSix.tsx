@@ -234,11 +234,6 @@ export default function BaseSix() {
       // 4. 成功处理
       if (purchaseValidation.success) {
         console.log('🎉 Subscription purchase completed successfully!');
-        const { data, error } = await supabase.from('action_history').insert({
-          user_id: user?.id,
-          action: "onboarding_subscription_purchase_completed",
-        }).select()
-          .single();
 
         // 追踪订阅成功
         const planType = getPackageTitle(selectedPackage).toLowerCase();

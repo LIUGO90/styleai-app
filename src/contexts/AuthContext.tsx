@@ -59,16 +59,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       async (state: AppStateStatus) => {
         console.log('App state changed:', state);
         if (state === 'active' || state === 'background') {
-          const { data, error } = await supabase.from('action_history').insert({
-            user_id: user.id,
-            action: `app_state_changed_${state}`,
-          }).select()
-            .single();
-          if (error) {
-            console.error('Error inserting action history:', error);
-          } else {
-            // console.log('Action history inserted:', data);
-          }
+
         }
       }
     );

@@ -233,12 +233,6 @@ export default function ForYouScreen() {
 
             if (resultLookbook && resultLookbook.length > 0) {
 
-                const { data, error } = await supabase.from('action_history').insert({
-                    user_id: user?.id || '',
-                    action: `foryou_generated_${currentTemplate.name}_${currentTemplateId}`,
-                  }).select()
-                    .single();
-
                 // 图片生成成功，扣除积分
                 let creditsAfter = availableCredits;
                 try {

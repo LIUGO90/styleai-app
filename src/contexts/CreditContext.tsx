@@ -19,11 +19,6 @@ export const CreditProvider: React.FC<CreditProviderProps> = ({ children }) => {
 
   const showCreditModal = useCallback(async (id: string, action: string) => {
     console.log('🔔 显示积分 Modal');
-    const { data, error } = await supabase.from('action_history').insert({
-      user_id: id,
-      action: action,
-    }).select()
-      .single();
     setIsModalVisible(true);
   }, []);
 

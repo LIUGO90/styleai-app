@@ -90,12 +90,6 @@ export class ChatSessionService {
       updatedAt: new Date(),
     };
     
-    const { data, error } = await supabase.from('action_history').insert({
-      user_id: userId,
-      action: `chat_session_created_${type}_${session.id}`,
-    }).select()
-      .single();
-    
     // 追踪会话创建
     analytics.track('chat_session_created', {
       session_id: session.id,
