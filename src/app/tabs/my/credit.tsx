@@ -13,6 +13,9 @@ import {
 } from '@/utils/purchaseValidation';
 import revenueCatService from '@/services/RevenueCatService';
 import { Payment } from '@/types/payment';
+import { analytics } from '@/services/AnalyticsService';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 interface PurchaseItem {
   id: string;
@@ -40,6 +43,16 @@ export default function CreditManagement() {
   const { payments, loading: paymentsLoading, refresh: refreshPayments } = usePayments(); // 从 Supabase 加载
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseItem[]>([]);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
+
+  // 页面浏览追踪
+  useFocusEffect(
+    useCallback(() => {
+      analytics.page('credit_management', {
+        category: 'settings',
+        section: 'my',
+      });
+    }, [])
+  );
 
   // Debug: 输出 offerings 信息
   useEffect(() => {
@@ -342,6 +355,17 @@ export default function CreditManagement() {
               try {
                 console.log('🔄 Starting purchase...');
                 
+                // 追踪购买开始
+                await analytics.track('purchase_started', {
+                  product_id: creditPackage.package.product.identifier,
+                  product_type: 'credits',
+                  credits: creditPackage.credits,
+                  price: creditPackage.package.product.price,
+                  currency: creditPackage.package.product.currencyCode || 'USD',
+                  discount: creditPackage.discount || null,
+                  source: 'credit_management_page',
+                });
+                
                 // 记录购买前的积分余额
                 const creditsBefore = credits?.available_credits || 0;
                 
@@ -388,6 +412,22 @@ export default function CreditManagement() {
                   // 所有步骤成功
                   console.log('🎉 All phases completed successfully!');
                   
+                  // 追踪购买成功
+                  await analytics.trackPurchase(
+                    creditPackage.package.product.identifier,
+                    creditPackage.package.product.price,
+                    creditPackage.package.product.currencyCode || 'USD',
+                    1,
+                    {
+                      credits: creditPackage.credits,
+                      credits_before: creditsBefore,
+                      credits_after: expectedCreditsAfter,
+                      discount: creditPackage.discount || null,
+                      purchase_sync_status: 'success',
+                      source: 'credit_management_page',
+                    }
+                  );
+                  
                   Alert.alert(
                     'Purchase Successful!',
                     `You have successfully purchased ${creditPackage.credits} credits.\n\nYour new balance: ${expectedCreditsAfter} credits`,
@@ -403,6 +443,22 @@ export default function CreditManagement() {
                 } else if (purchaseValidation.success) {
                   // 购买成功但同步有问题
                   console.warn('⚠️ Purchase successful but sync had issues');
+                  
+                  // 追踪购买成功但同步失败
+                  await analytics.trackPurchase(
+                    creditPackage.package.product.identifier,
+                    creditPackage.package.product.price,
+                    creditPackage.package.product.currencyCode || 'USD',
+                    1,
+                    {
+                      credits: creditPackage.credits,
+                      credits_before: creditsBefore,
+                      credits_after: expectedCreditsAfter,
+                      discount: creditPackage.discount || null,
+                      purchase_sync_status: 'partial',
+                      source: 'credit_management_page',
+                    }
+                  );
                   
                   Alert.alert(
                     'Purchase Completed',
@@ -424,10 +480,27 @@ export default function CreditManagement() {
               } catch (error: any) {
                 if (isUserCancelledError(error)) {
                   console.log('ℹ️ User cancelled purchase');
+                  // 追踪用户取消
+                  await analytics.track('purchase_cancelled', {
+                    product_id: creditPackage.package.product.identifier,
+                    product_type: 'credits',
+                    credits: creditPackage.credits,
+                    source: 'credit_management_page',
+                  });
                   return;
                 }
                 
                 console.error('❌ Purchase error:', error);
+                
+                // 追踪购买失败
+                await analytics.track('purchase_failed', {
+                  product_id: creditPackage.package.product.identifier,
+                  product_type: 'credits',
+                  credits: creditPackage.credits,
+                  error: error?.message || 'Unknown error',
+                  source: 'credit_management_page',
+                });
+                
                 Alert.alert('Purchase Failed', 'Unable to complete your purchase. Please try again.');
               }
             },

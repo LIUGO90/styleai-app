@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { Chat, ChatHeader, createProgressMessage } from '@/components/Chat';
 import { Message, MessageButton, ImageUploadCallback, OnboardingData } from '@/components/types';
@@ -16,6 +16,7 @@ import { addImageLook } from '@/services/addLookBook';
 import { useCredits } from '@/hooks/usePayment';
 import { useCredit } from '@/contexts/CreditContext';
 import paymentService from '@/services/PaymentService';
+import { analytics } from '@/services/AnalyticsService';
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = '') => {
@@ -142,6 +143,17 @@ export default function StyleAnItemScreen() {
   // 积分相关状态
   const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
   const { showCreditModal } = useCredit();
+  
+  // 页面浏览追踪
+  useFocusEffect(
+    useCallback(() => {
+      analytics.page('style_an_item', {
+        category: 'features',
+        source: 'drawer',
+      });
+    }, [])
+  );
+
   // 加载当前会话
   useEffect(() => {
     loadCurrentSession();
@@ -297,6 +309,16 @@ export default function StyleAnItemScreen() {
       },]
     }
 
+    // 追踪发送消息
+    const startTime = Date.now();
+    analytics.track('chat_message_sent', {
+      has_text: text.length > 0,
+      has_image: imageUri && imageUri.length > 0,
+      text_length: text.length,
+      source: 'style_an_item',
+      session_id: currentSession?.id || null,
+    });
+
     progressMessage.progress = {
       current: 5,
       total: 10,
@@ -306,6 +328,19 @@ export default function StyleAnItemScreen() {
     updateMessage(progressMessage);
     const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
     dateleMessage(progressMessage.id);
+    
+    const responseTime = Date.now() - startTime;
+    
+    // 追踪接收AI回复
+    analytics.track('chat_message_received', {
+      has_text: message.length > 0,
+      has_images: images.length > 0,
+      image_count: images.length,
+      response_time_ms: responseTime,
+      source: 'style_an_item',
+      session_id: currentSession?.id || null,
+    });
+    
     addMessage({
       id: Date.now().toString(),
       text: message,

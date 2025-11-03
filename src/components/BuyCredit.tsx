@@ -7,6 +7,7 @@ import { validatePurchaseResult, validateDatabaseSync, isUserCancelledError } fr
 import { refresh } from "@react-native-community/netinfo";
 import { usePurchase } from "@/hooks/useRevenueCat";
 import { useCreatePayment, useCredits, usePayments } from "@/hooks/usePayment";
+import { analytics } from "@/services/AnalyticsService";
 
 
 
@@ -142,6 +143,16 @@ export default function BuyCredit() {
         try {
             console.log('🔄 Starting purchase...');
 
+            // 追踪购买开始
+            await analytics.track('purchase_started', {
+                product_id: creditPackage.package.product.identifier,
+                product_type: 'credits',
+                credits: creditPackage.credits,
+                price: creditPackage.package.product.price,
+                currency: creditPackage.package.product.currencyCode || 'USD',
+                discount: creditPackage.discount || null,
+            });
+
             // 记录购买前的积分余额
             const creditsBefore = credits?.available_credits || 0;
 
@@ -188,6 +199,21 @@ export default function BuyCredit() {
                 // 所有步骤成功
                 console.log('🎉 All phases completed successfully!');
 
+                // 追踪购买成功
+                await analytics.trackPurchase(
+                    creditPackage.package.product.identifier,
+                    creditPackage.package.product.price,
+                    creditPackage.package.product.currencyCode || 'USD',
+                    1,
+                    {
+                        credits: creditPackage.credits,
+                        credits_before: creditsBefore,
+                        credits_after: expectedCreditsAfter,
+                        discount: creditPackage.discount || null,
+                        purchase_sync_status: 'success',
+                    }
+                );
+
                 Alert.alert(
                     'Purchase Successful!',
                     `You have successfully purchased ${creditPackage.credits} credits.\n\nYour new balance: ${expectedCreditsAfter} credits`,
@@ -203,6 +229,21 @@ export default function BuyCredit() {
             } else if (purchaseValidation.success) {
                 // 购买成功但同步有问题
                 console.warn('⚠️ Purchase successful but sync had issues');
+
+                // 追踪购买成功但同步失败
+                await analytics.trackPurchase(
+                    creditPackage.package.product.identifier,
+                    creditPackage.package.product.price,
+                    creditPackage.package.product.currencyCode || 'USD',
+                    1,
+                    {
+                        credits: creditPackage.credits,
+                        credits_before: creditsBefore,
+                        credits_after: expectedCreditsAfter,
+                        discount: creditPackage.discount || null,
+                        purchase_sync_status: 'partial',
+                    }
+                );
 
                 Alert.alert(
                     'Purchase Completed',
@@ -224,10 +265,25 @@ export default function BuyCredit() {
         } catch (error: any) {
             if (isUserCancelledError(error)) {
                 console.log('ℹ️ User cancelled purchase');
+                // 追踪用户取消
+                await analytics.track('purchase_cancelled', {
+                    product_id: creditPackage.package.product.identifier,
+                    product_type: 'credits',
+                    credits: creditPackage.credits,
+                });
                 return;
             }
 
             console.error('❌ Purchase error:', error);
+            
+            // 追踪购买失败
+            await analytics.track('purchase_failed', {
+                product_id: creditPackage.package.product.identifier,
+                product_type: 'credits',
+                credits: creditPackage.credits,
+                error: error?.message || 'Unknown error',
+            });
+
             Alert.alert('Purchase Failed', 'Unable to complete your purchase. Please try again.');
         }
 

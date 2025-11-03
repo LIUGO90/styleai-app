@@ -15,6 +15,7 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chatRequest } from "@/services/aiReuest";
+import { analytics } from "@/services/AnalyticsService";
 
 
 export default function FreeChatScreen() {
@@ -218,6 +219,16 @@ export default function FreeChatScreen() {
             },]
         }
 
+        // 追踪发送消息
+        const startTime = Date.now();
+        analytics.track('chat_message_sent', {
+            has_text: text.length > 0,
+            has_image: imageUri && imageUri.length > 0,
+            text_length: text.length,
+            source: 'free_chat',
+            session_id: currentSession?.id || null,
+        });
+
         progressMessage.progress = {
             current: 5,
             total: 10,
@@ -227,6 +238,19 @@ export default function FreeChatScreen() {
         updateMessage(progressMessage);
         const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
         dateleMessage(progressMessage.id);
+        
+        const responseTime = Date.now() - startTime;
+        
+        // 追踪接收AI回复
+        analytics.track('chat_message_received', {
+            has_text: message.length > 0,
+            has_images: images.length > 0,
+            image_count: images.length,
+            response_time_ms: responseTime,
+            source: 'free_chat',
+            session_id: currentSession?.id || null,
+        });
+        
         addMessage({
             id: Date.now().toString(),
             text: message,

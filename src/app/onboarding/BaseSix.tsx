@@ -21,6 +21,7 @@ import { supabase } from "@/utils/supabase";
 import { useCreatePayment } from "@/hooks/usePayment";
 import { validatePurchaseResult, validateDatabaseSync, isUserCancelledError } from "@/utils/purchaseValidation";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { analytics } from "@/services/AnalyticsService";
 
 
 // RevenueCat 初始化组件
@@ -186,6 +187,16 @@ export default function BaseSix() {
     try {
       console.log('🔄 Starting subscription purchase...');
 
+      // 追踪订阅开始
+      const planType = getPackageTitle(selectedPackage).toLowerCase();
+      await analytics.track('subscription_started', {
+        product_id: selectedPackage.product.identifier,
+        plan_type: planType,
+        price: selectedPackage.product.price,
+        currency: selectedPackage.product.currencyCode || 'USD',
+        source: 'onboarding',
+      });
+
       // 1. 通过 RevenueCat 购买
       const result = await purchase(selectedPackage);
 
@@ -229,6 +240,19 @@ export default function BaseSix() {
         }).select()
           .single();
 
+        // 追踪订阅成功
+        const planType = getPackageTitle(selectedPackage).toLowerCase();
+        await analytics.trackSubscription(
+          selectedPackage.product.identifier,
+          selectedPackage.product.price,
+          selectedPackage.product.currencyCode || 'USD',
+          planType,
+          {
+            purchase_sync_status: syncValidation.success ? 'success' : 'partial',
+            source: 'onboarding',
+          }
+        );
+
         Alert.alert(
           'Subscription Success！',
           `Your subscription is now active, you can now use all premium features!\n\n${syncValidation.success ? 'All data has been synced' : 'Data is syncing in the background'}`,
@@ -244,10 +268,27 @@ export default function BaseSix() {
     } catch (error: any) {
       if (isUserCancelledError(error)) {
         console.log('ℹ️ User cancelled subscription purchase');
+        // 追踪用户取消订阅
+        const planType = selectedPackage ? getPackageTitle(selectedPackage).toLowerCase() : 'unknown';
+        await analytics.track('subscription_cancelled', {
+          product_id: selectedPackage?.product.identifier || 'unknown',
+          plan_type: planType,
+          source: 'onboarding',
+        });
         return;
       }
 
       console.error('❌ Subscription error:', error);
+      
+      // 追踪订阅失败
+      const planType = selectedPackage ? getPackageTitle(selectedPackage).toLowerCase() : 'unknown';
+      await analytics.track('subscription_failed', {
+        product_id: selectedPackage?.product.identifier || 'unknown',
+        plan_type: planType,
+        error: error?.message || 'Unknown error',
+        source: 'onboarding',
+      });
+
       Alert.alert(
         'Subscription Failed',
         'Unable to complete subscription, please try again later',

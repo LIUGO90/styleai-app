@@ -13,6 +13,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCredit } from "@/contexts/CreditContext";
 import { uploadImageWithFileSystem } from "@/services/FileUploadService";
 import { useSubscription } from "@/hooks/useRevenueCat";
+import { analytics } from "@/services/AnalyticsService";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 
 export default function MyProfile() {
@@ -70,6 +73,16 @@ export default function MyProfile() {
       console.error('❌ Error loading user data:', error);
     }
   };
+
+  // 页面浏览追踪
+  useFocusEffect(
+    useCallback(() => {
+      analytics.page('my_profile', {
+        category: 'main',
+        tab: 'my',
+      });
+    }, [])
+  );
 
   useEffect(() => {
     loadUserData();

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { uploadImageWithFileSystem, deleteRemoteImage } from "@/services/FileUploadService";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { useAuth } from "@/contexts/AuthContext";
+import { analytics } from "@/services/AnalyticsService";
+import { useCallback } from "react";
 
 export default function MyCloset() {
   const [selectedStyles, setSelectedStyles] = useState<string>("");
@@ -37,6 +39,16 @@ export default function MyCloset() {
     "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/app_12_ivory_vest.webp",
     "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/app_13_black_camisole.jpg",
   ];
+
+  // 页面浏览追踪
+  useFocusEffect(
+    useCallback(() => {
+      analytics.page('mycloset', {
+        category: 'main',
+        tab: 'mycloset',
+      });
+    }, [])
+  );
 
   useEffect(() => {
     const loadMyCloset = async () => {

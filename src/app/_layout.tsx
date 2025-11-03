@@ -28,6 +28,12 @@ LogBox.ignoreLogs([
   "RevenueCat",
   "Invalid API key",
   "Error configuring Purchases",
+  // Amplitude cookie 相关警告（React Native 环境正常现象，不影响功能）
+  "Amplitude Logger",
+  "Failed to set cookie",
+  "Cannot set property 'cookie'",
+  "Failed to set cookie for key: AMP_TEST",
+  "AMP_TEST",
 ]);
 
 

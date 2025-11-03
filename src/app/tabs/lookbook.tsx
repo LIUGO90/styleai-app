@@ -17,6 +17,7 @@ import { pageActivityManager } from "@/utils/pageActivityManager";
 import { imageUpdateManager } from "@/utils/imageUpdateManager";
 import { useGlobalToast } from "@/utils/globalToast";
 import { ChatSessionService } from "@/services/ChatSessionService";
+import { analytics } from "@/services/AnalyticsService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -351,6 +352,12 @@ export default function LookbookOne() {
   // 使用 useFocusEffect 确保每次页面获得焦点时都重新加载
   useFocusEffect(
     useCallback(() => {
+      // 追踪页面浏览
+      analytics.page('lookbook', {
+        category: 'main',
+        tab: 'lookbook',
+      });
+      
       // 标记用户进入 lookbook 页面
       pageActivityManager.setActivePage('lookbook');
 

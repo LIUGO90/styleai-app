@@ -7,6 +7,9 @@ import { useActiveSubscriptions, useCreatePayment, useCredits, usePayments } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BaseSix from './BaseSix';
 import BuyCredit, { CreditPackage } from '@/components/BuyCredit';
+import { analytics } from '@/services/AnalyticsService';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 
 
@@ -17,6 +20,16 @@ export default function SubscriptionScreen() {
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
+
+  // 页面浏览追踪
+  useFocusEffect(
+    useCallback(() => {
+      analytics.page('subscription_management', {
+        category: 'settings',
+        section: 'my',
+      });
+    }, [])
+  );
 
   // 检查是否为订阅产品（而非积分包）
   const isSubscriptionProduct = (productId: string): boolean => {

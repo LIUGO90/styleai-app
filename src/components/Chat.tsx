@@ -32,6 +32,7 @@ import { ImageUpload } from "./ImageUpload";
 import { uploadImageWithFileSystem } from "@/services/FileUploadService";
 import { Image } from "expo-image";
 import { CircularProgress } from "./CircularProgress";
+import { analytics } from "@/services/AnalyticsService";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -352,7 +353,18 @@ export function Chat({
   // 处理发送消息
   const handleSend = () => {
     if ((inputText.trim() || selectedImage.trim()) && !disabled) {
-      onSendMessage?.(inputText.trim(), selectedImage);
+      const messageText = inputText.trim();
+      const hasImage = selectedImage.trim().length > 0;
+      
+      // 追踪发送消息事件
+      analytics.track('chat_message_sent', {
+        has_text: messageText.length > 0,
+        has_image: hasImage,
+        text_length: messageText.length,
+        source: 'chat_component',
+      });
+      
+      onSendMessage?.(messageText, selectedImage);
       setInputText("");
       setSelectedImage("");
       setIsTyping(false);

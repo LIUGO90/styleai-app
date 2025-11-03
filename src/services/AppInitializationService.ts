@@ -1,5 +1,7 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
 import revenueCatService from "./RevenueCatService";
+import * as amplitude from '@amplitude/analytics-react-native';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
 class AppInitializationService {
   private static instance: AppInitializationService;
@@ -23,6 +25,36 @@ class AppInitializationService {
 
     try {
       console.log("🚀 [AppInit] 开始初始化应用服务...");
+
+      // 初始化 Amplitude（产品分析）
+      try {
+        console.log("📦 [AppInit] 正在初始化 Amplitude...");
+        // 注意：cookie 相关错误是 React Native 环境的正常现象，可以安全忽略
+        // Amplitude SDK 会尝试使用 cookie，但 React Native 不支持 document.cookie
+        // 这不会影响核心分析功能
+        await amplitude.init('ec3521ed771adf8517385870f4ae8f77').promise;
+        console.log("✅ [AppInit] Amplitude 基础 SDK 初始化成功");
+
+        // 尝试添加 Session Replay 插件（可选）
+        try {
+          await amplitude.add(new SessionReplayPlugin()).promise;
+          console.log("✅ [AppInit] Amplitude Session Replay 插件添加成功");
+        } catch (replayError: any) {
+          console.warn("⚠️ [AppInit] Session Replay 插件添加失败（分析功能仍可用）");
+          console.warn("⚠️ [AppInit] 错误详情:", replayError?.message || replayError);
+          // 继续执行，不影响基础分析功能
+        }
+      } catch (error: any) {
+        // 忽略 cookie 相关错误（React Native 中正常现象）
+        if (error?.message?.includes('cookie') || error?.message?.includes('Cookie')) {
+          console.warn("⚠️ [AppInit] Amplitude cookie 警告（可安全忽略）");
+          console.warn("⚠️ [AppInit] 这是 React Native 环境的正常现象，不影响分析功能");
+        } else {
+          console.warn("⚠️ [AppInit] Amplitude 初始化失败（应用将继续运行，但分析功能不可用）");
+          console.warn("⚠️ [AppInit] 错误详情:", error?.message || error);
+        }
+        // 不抛出错误，允许应用继续运行
+      }
 
       // 1. 初始化 RevenueCat（订阅管理）
       try {
@@ -70,6 +102,58 @@ class AppInitializationService {
    */
   isServiceInitialized(): boolean {
     return this.isInitialized;
+  }
+
+  /**
+   * 设置 Amplitude 用户ID
+   * 应在用户登录后调用
+   */
+  async setAmplitudeUserId(userId: string, userProperties?: Record<string, any>): Promise<void> {
+    if (!this.isInitialized) {
+      console.warn("⚠️ [AppInit] Amplitude 未初始化，无法设置用户ID");
+      return;
+    }
+
+    try {
+      console.log(`📦 [AppInit] 设置 Amplitude 用户ID: ${userId}`);
+      
+      // 直接设置用户ID
+      amplitude.setUserId(userId);
+      
+      // 如果有用户属性，使用 identify 方法设置
+      if (userProperties && Object.keys(userProperties).length > 0) {
+        const identify = new amplitude.Identify();
+        Object.keys(userProperties).forEach(key => {
+          identify.set(key, userProperties[key]);
+        });
+        await amplitude.identify(identify).promise;
+      }
+      
+      console.log("✅ [AppInit] Amplitude 用户ID 设置成功");
+    } catch (error: any) {
+      console.error("❌ [AppInit] 设置 Amplitude 用户ID 失败:", error?.message || error);
+    }
+  }
+
+  /**
+   * 清除 Amplitude 用户ID
+   * 应在用户退出登录时调用
+   */
+  async clearAmplitudeUserId(): Promise<void> {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      console.log("📦 [AppInit] 清除 Amplitude 用户ID");
+      
+      // 重置用户会话（清除用户ID和属性）
+      amplitude.reset();
+      
+      console.log("✅ [AppInit] Amplitude 用户ID 已清除");
+    } catch (error: any) {
+      console.error("❌ [AppInit] 清除 Amplitude 用户ID 失败:", error?.message || error);
+    }
   }
 }
 

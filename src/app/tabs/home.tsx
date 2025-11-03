@@ -13,6 +13,7 @@ import { ForYouService } from "@/services/ForYouService";
 import { ForYou } from "@/types/styleTemplate.types";
 import { useCredits } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
+import { analytics } from "@/services/AnalyticsService";
 
 
 
@@ -38,6 +39,12 @@ export default function HomeScreen() {
   // 页面获得焦点时滚动到顶部并刷新数据
   useFocusEffect(
     useCallback(() => {
+      // 追踪页面浏览
+      analytics.page('home', {
+        category: 'main',
+        tab: 'home',
+      });
+      
       refreshCredits();
       scrollViewRef.current?.scrollToOffset({ offset: 0, animated: false });
 
@@ -119,6 +126,13 @@ export default function HomeScreen() {
   const handleSendMessage = async () => {
     const trimmedText = inputText.current.trim();
     if (trimmedText) {
+      // 追踪从首页发送消息
+      analytics.track('chat_message_sent', {
+        has_text: trimmedText.length > 0,
+        has_image: false,
+        text_length: trimmedText.length,
+        source: 'home_screen',
+      });
 
       // 先清空输入框
       inputText.current = "";

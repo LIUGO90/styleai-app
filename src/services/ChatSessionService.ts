@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Message } from "@/components/types";
 import { webWorkerAIService } from "./WebWorkerAIService";
 import { Alert } from "react-native";
+import { supabase } from "@/utils/supabase";
+import { analytics } from "./AnalyticsService";
 
 // 聊天会话接口
 export interface ChatSession {
@@ -63,6 +65,7 @@ export class ChatSessionService {
   // }
   // 创建新会话
   static async createSession(
+    userId: string,
     type: ChatSession["type"],
     title?: string,
   ): Promise<ChatSession | null> {
@@ -86,7 +89,20 @@ export class ChatSessionService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
+    
+    const { data, error } = await supabase.from('action_history').insert({
+      user_id: userId,
+      action: `chat_session_created_${type}_${session.id}`,
+    }).select()
+      .single();
+    
+    // 追踪会话创建
+    analytics.track('chat_session_created', {
+      session_id: session.id,
+      session_type: type,
+      session_title: session.title,
+    });
+    
     sessions.unshift(session); // 添加到开头
     await this.saveSessions(sessions);
     await this.setCurrentSession(session.id);
@@ -220,16 +236,27 @@ export class ChatSessionService {
   // 删除会话
   static async deleteSession(sessionId: string): Promise<void> {
     try {
-
+      // 获取会话信息以便追踪
+      const sessions = await this.getAllSessions();
+      const sessionToDelete = sessions.find(s => s.id === sessionId);
+      
       // 先通知后台删除记录
       await webWorkerAIService.deleteChatRequest([sessionId], {}, new AbortController());
 
       // 然后删除本地记录
-      const sessions = await this.getAllSessions();
       const filteredSessions = sessions.filter(
         (session) => session.id !== sessionId,
       );
       await this.saveSessions(filteredSessions);
+
+      // 追踪会话删除
+      if (sessionToDelete) {
+        analytics.track('chat_session_deleted', {
+          session_id: sessionId,
+          session_type: sessionToDelete.type,
+          message_count: sessionToDelete.messageCount,
+        });
+      }
 
       // 如果删除的是当前会话，清除当前会话ID
       const currentSessionId = await this.getCurrentSessionId();

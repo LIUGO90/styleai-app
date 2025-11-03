@@ -10,6 +10,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, AppStateStatus } from "react-native";
+import { appInitializationService } from "@/services/AppInitializationService";
 
 export interface AuthUser extends User {
   name: string;
@@ -115,6 +116,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       switch (event) {
         case "SIGNED_OUT":
           console.log("🎈user signed out:", session);
+          // 清除 Amplitude 用户ID
+          await appInitializationService.clearAmplitudeUserId();
           setSession(null);
           setUser(null);
           setLoading(false);
@@ -159,6 +162,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 email: userEmail,
                 role: profile?.role || "",
               } as AuthUser);
+              
+              // 设置 Amplitude 用户ID和用户属性
+              await appInitializationService.setAmplitudeUserId(session.user.id, {
+                name: userName,
+                email: userEmail,
+                role: profile?.role || "",
+              });
+              
               // 保存到本地存储（保存 userName 而不是 profile?.name，因为 userName 已经包含了 fallback 逻辑）
               if (userName) {
                 await AsyncStorage.setItem("userName", userName);
@@ -195,6 +206,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               } as AuthUser);
+              
+              // 设置 Amplitude 用户ID（即使 profile 查询失败）
+              await appInitializationService.setAmplitudeUserId(session.user.id, {
+                name: userName,
+                email: userEmail,
+              });
             }
           }
 
@@ -261,6 +278,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async () => {
     try {
       console.log('🚪 开始退出登录...');
+      // 清除 Amplitude 用户ID
+      await appInitializationService.clearAmplitudeUserId();
       // 正常Supabase用户登出
       await supabase.auth.signOut();
       clearAllUserData();

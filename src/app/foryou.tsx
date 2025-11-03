@@ -21,6 +21,7 @@ import { useCredits } from "@/hooks/usePayment";
 import { useCredit } from "@/contexts/CreditContext";
 import paymentService from "@/services/PaymentService";
 import { supabase } from "@/utils/supabase";
+import { analytics } from "@/services/AnalyticsService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -94,6 +95,16 @@ export default function ForYouScreen() {
     };
 
     // 每次页面获得焦点时强制重载
+    // 页面浏览追踪
+    useFocusEffect(
+        useCallback(() => {
+            analytics.page('foryou', {
+                category: 'features',
+                style: imageData?.name || 'unknown',
+            });
+        }, [imageData?.name])
+    );
+
     useFocusEffect(
         useCallback(() => {
             // 清除所有之前的生成状态
@@ -151,6 +162,15 @@ export default function ForYouScreen() {
             const availableCredits = credits?.available_credits || 0;
             
             if (availableCredits < requiredCredits) {
+                // 追踪积分不足
+                await analytics.track('image_generation_insufficient_credits', {
+                    template_id: currentTemplateId,
+                    template_name: currentTemplate.name,
+                    style: imageData.name,
+                    required_credits: requiredCredits,
+                    available_credits: availableCredits,
+                    source: 'foryou_page',
+                });
 
                 showToast({ 
                     message: `Need ${requiredCredits} credits to generate image, insufficient credits available`, 
@@ -170,16 +190,34 @@ export default function ForYouScreen() {
             const imageUrl = onboardingDataObj.fullBodyPhoto;
 
             if (!imageUrl) {
+                // 追踪缺少 onboarding 数据
+                await analytics.track('image_generation_missing_onboarding', {
+                    template_id: currentTemplateId,
+                    template_name: currentTemplate.name,
+                    style: imageData.name,
+                    source: 'foryou_page',
+                });
                 showToast({ message: "Please complete onboarding first", type: "error" });
                 return;
             }
             const selectedStyles = imageData.name;
+
+            // 追踪图像生成开始
+            await analytics.track('image_generation_started', {
+                template_id: currentTemplateId,
+                template_name: currentTemplate.name,
+                style: selectedStyles,
+                required_credits: requiredCredits,
+                available_credits: availableCredits,
+                source: 'foryou_page',
+            });
 
             // 设置当前 template 的加载状态
             setGenerating(currentTemplateId, true);
             showToast({ message: "Generating Try-on", type: "info" });
 
             // 使用持久化 AI 服务发起请求，支持中断恢复
+            const startTime = Date.now();
             const resultLookbook = await persistentAIService.requestForYou(
                 user?.id || '', 
                 [imageUrl, currentImageUrl], 
@@ -191,6 +229,8 @@ export default function ForYouScreen() {
                 }
             );
 
+            const generationTime = Date.now() - startTime;
+
             if (resultLookbook && resultLookbook.length > 0) {
 
                 const { data, error } = await supabase.from('action_history').insert({
@@ -200,6 +240,7 @@ export default function ForYouScreen() {
                     .single();
 
                 // 图片生成成功，扣除积分
+                let creditsAfter = availableCredits;
                 try {
                     const deductSuccess = await paymentService.useCredits(
                         user?.id || '',
@@ -213,12 +254,40 @@ export default function ForYouScreen() {
                         console.log(`✅ [ForYou] 成功扣除 ${requiredCredits} 积分`);
                         // 刷新积分信息
                         await refreshCredits();
+                        creditsAfter = (credits?.available_credits || availableCredits) - requiredCredits;
                     } else {
                         console.warn('⚠️ [ForYou] 积分扣除失败，但图片已生成');
                     }
                 } catch (creditError) {
                     console.error('❌ [ForYou] 积分扣除异常:', creditError);
                 }
+
+                // 追踪图像生成成功和积分使用
+                await analytics.trackImageGeneration(
+                    selectedStyles,
+                    requiredCredits,
+                    true, // success
+                    {
+                        template_id: currentTemplateId,
+                        template_name: currentTemplate.name,
+                        generation_time_ms: generationTime,
+                        credits_before: availableCredits,
+                        credits_after: creditsAfter,
+                        images_count: resultLookbook.length,
+                        source: 'foryou_page',
+                    }
+                );
+
+                await analytics.trackCreditUsage(
+                    'image_generation_foryou',
+                    requiredCredits,
+                    creditsAfter,
+                    {
+                        template_id: currentTemplateId,
+                        template_name: currentTemplate.name,
+                        style: selectedStyles,
+                    }
+                );
 
                 // 显示成功消息
                 showToast({
@@ -234,9 +303,42 @@ export default function ForYouScreen() {
 
             } else {
                 console.error('❌ No images generated - imagesUrl is empty or null');
+                
+                // 追踪图像生成失败
+                await analytics.trackImageGeneration(
+                    selectedStyles,
+                    requiredCredits,
+                    false, // failed
+                    {
+                        template_id: currentTemplateId,
+                        template_name: currentTemplate.name,
+                        generation_time_ms: generationTime,
+                        error: 'No images generated',
+                        source: 'foryou_page',
+                    }
+                );
+
                 showToast({ message: "Failed to generate lookbook images", type: "error" });
             }
         } catch (error) {
+            // 追踪图像生成异常
+            // 注意：在 catch 块中，变量可能不在作用域内，使用安全默认值
+            const errorStyle = imageData?.name || 'unknown';
+            const errorRequiredCredits = 10; // 默认值
+            const errorTemplateId = currentIndex < foryou.length ? foryou[currentIndex]?.id : 'unknown';
+            const errorTemplateName = currentIndex < foryou.length ? foryou[currentIndex]?.name : 'unknown';
+            
+            await analytics.trackImageGeneration(
+                errorStyle,
+                errorRequiredCredits,
+                false, // failed
+                {
+                    template_id: errorTemplateId,
+                    template_name: errorTemplateName,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    source: 'foryou_page',
+                }
+            );
             console.error("Error generating lookbook:", error);
             showToast({ 
                 message: "Request interrupted. It will be restored automatically when you reopen the app.", 
