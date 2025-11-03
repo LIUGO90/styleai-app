@@ -1,10 +1,12 @@
 /**
  * 全局 Toast 管理器
- * 提供在应用任何位置显示 Toast 通知的能力
+ * 基于 react-native-toast-message
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Toast } from '@/components/Toast';
+import React, { createContext, useContext, ReactNode } from 'react';
+import ToastMessage from 'react-native-toast-message';
+import { Platform, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -15,7 +17,7 @@ interface ToastAction {
 
 interface ToastOptions {
   message: string;
-  type?: ToastType;
+  type: ToastType;
   action?: ToastAction;
   duration?: number;
 }
@@ -28,50 +30,104 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 /**
+ * 自定义 Toast 组件 - 匹配设计图
+ */
+const CustomToast = ({ text1, text2, onPress, type = 'success' }: any) => {
+  console.log('🎨 CustomToast 渲染:', { text1, text2, type, onPress });
+  
+  const iconConfig = {
+    success: { name: 'check-circle' as const, color: '#10b981' },
+    error: { name: 'alert-circle' as const, color: '#ef4444' },
+    info: { name: 'information' as const, color: '#3b82f6' },
+    warning: { name: 'alert' as const, color: '#f59e0b' },
+  };
+
+  const icon = iconConfig[type as keyof typeof iconConfig];
+
+  // 判断是否有有效的 onPress 函数（不是 noop 空函数）
+  const hasValidOnPress = onPress && onPress.name !== 'noop' && typeof onPress === 'function';
+
+  return (
+    <TouchableOpacity
+      style={styles.customToastContainer}
+      onPress={hasValidOnPress ? onPress : undefined}
+      activeOpacity={0.9}
+    >
+      <View style={styles.customToastContent}>
+        {/* 左侧图标 */}
+        <View style={[styles.iconCircle, { borderColor: icon.color }]}>
+          <MaterialCommunityIcons name={icon.name} size={24} color={icon.color} />
+        </View>
+
+        <Text className='wrap-text' style={styles.mainText}>{text1}</Text>
+
+        {/* 右侧箭头 - 仅在有有效 onPress 时显示 */}
+        {hasValidOnPress && (
+          <View style={styles.actionContainer}>
+            <Text style={styles.actionText}>View</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+/**
+ * 自定义 Toast 样式配置 - 现代美观设计
+ */
+const toastConfig = {
+  success: (props: any) => <CustomToast {...props} type="success" />,
+  error: (props: any) => <CustomToast {...props} type="error" />,
+  info: (props: any) => <CustomToast {...props} type="info" />,
+  warning: (props: any) => <CustomToast {...props} type="warning" />,
+};
+
+/**
  * Toast Provider 组件
  * 在应用根部使用此组件包裹整个应用
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState('');
-  const [type, setType] = useState<ToastType>('success');
-  const [action, setAction] = useState<ToastAction | undefined>();
-
-  const showToast = useCallback((options: ToastOptions | string) => {
+  const showToast = (options: ToastOptions | string) => {
     if (typeof options === 'string') {
       // 简单用法：只传递消息
-      setMessage(options);
-      setType('success');
-      setAction(undefined);
+      ToastMessage.show({
+        type: 'success',
+        text1: options,
+        position: 'top',
+        visibilityTime: 3000,
+        topOffset: Platform.OS === 'ios' ? 70 : 30,
+      });
     } else {
       // 完整用法：传递所有选项
-      setMessage(options.message);
-      setType(options.type || 'success');
-      setAction(options.action);
+      const duration = options.duration || (options.type === 'info' ? 2000 : 3000);
+
+      ToastMessage.show({
+        type: options.type || 'success',
+        text1: options.message,
+        text2: options.action?.label, // 使用 action label 作为副标题
+        position: 'top',
+        visibilityTime: duration,
+        topOffset: Platform.OS === 'ios' ? 70 : 30,
+        onPress: options.action?.onPress
+      });
     }
-    setVisible(true);
-  }, []);
+  };
+
+  const hideToast = () => {
+    ToastMessage.hide();
+  };
 
   // 注册全局 Toast 管理器
   React.useEffect(() => {
     globalToast.register(showToast);
-  }, [showToast]);
-
-  const hideToast = useCallback(() => {
-    setVisible(false);
-    setAction(undefined);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
-      <Toast
-        visible={visible}
-        message={message}
-        type={type}
-        action={action}
-        onHide={hideToast}
-      />
+      {/* ToastMessage 组件必须放在最后，使用自定义配置 */}
+      <ToastMessage config={toastConfig} />
     </ToastContext.Provider>
   );
 }
@@ -146,3 +202,59 @@ class GlobalToastManager {
 // 导出单例实例
 export const globalToast = new GlobalToastManager();
 
+/**
+ * 自定义 Toast 样式
+ */
+const styles = StyleSheet.create({
+  customToastContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  customToastContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  textContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  mainText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  subText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#6b7280',
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9ca3af',
+    marginRight: 2,
+  },
+});

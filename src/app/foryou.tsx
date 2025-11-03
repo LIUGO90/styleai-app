@@ -175,7 +175,7 @@ export default function ForYouScreen() {
 
             // 设置当前 template 的加载状态
             setGenerating(currentTemplateId, true);
-            showToast({ message: "Creating your personalized lookbook...", type: "info" });
+            showToast({ message: "Generating Try-on", type: "info" });
 
             // 使用持久化 AI 服务发起请求，支持中断恢复
             const resultLookbook = await persistentAIService.requestForYou(
@@ -213,7 +213,7 @@ export default function ForYouScreen() {
 
                 // 显示成功消息
                 showToast({
-                    message: `Your ${selectedStyles} lookbook has been saved!`,
+                    message: `Your look is ready`,
                     type: "success",
                     action: {
                         label: "View",

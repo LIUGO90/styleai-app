@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChatHeader } from "@/components/Chat";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -36,16 +36,23 @@ export default function HomeScreen() {
   // 页面获得焦点时滚动到顶部并刷新数据
   useFocusEffect(
     useCallback(() => {
+      refreshCredits();
       scrollViewRef.current?.scrollToOffset({ offset: 0, animated: false });
 
-      setStarNumber(credits?.available_credits || 0);
+      // setStarNumber(credits?.available_credits || 0);
       // 清空现有数据，避免显示旧内容
       // setForyou([]);
-      
+
       // 重新加载数据
       loadForYouData();
-    }, [loadForYouData, credits])
+    }, [loadForYouData])
   );
+
+
+  useEffect(() => {
+    console.log("🎈credits", credits);
+    setStarNumber(credits?.available_credits || 0);
+  }, [credits]);
 
   // 下拉刷新处理
   const onRefresh = async () => {
@@ -59,16 +66,16 @@ export default function HomeScreen() {
       //   Image.clearDiskCache(),    // 清除磁盘缓存
       // ]);
       // console.log('✅ 图片缓存清除完成');
-      
+
       // 清空现有数据，强制重新渲染
       // setForyou([]);
-      
+
       // 增加刷新计数器，强制重新渲染图片
       setRefreshKey(prev => prev + 1);
-      
+
       // 短暂延迟，确保清空操作完成
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // 重新加载数据
       await loadForYouData();
     } catch (error) {
@@ -146,7 +153,7 @@ export default function HomeScreen() {
           showAvatar={false}
           onMore={handleDrawerOpen}
           showDrawerButton={true}
-          onStar={()=>{
+          onStar={() => {
 
           }}
           startNumber={starNumber}

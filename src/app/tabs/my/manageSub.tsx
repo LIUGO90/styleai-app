@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
 
 export default function ManageSubScreen() {
-  const { isActive, isPro, isPremium, expirationDate, willRenew, productIdentifier, loading, customerInfo } = useSubscription();
+  const { isActive, loading, customerInfo } = useSubscription();
   const { restore, restoring } = usePurchase();
   const { showManageSubscriptions } = useManageSubscription();
   const { subscriptions, loading: subscriptionsLoading, refresh: refreshSubscriptions } = useActiveSubscriptions();
