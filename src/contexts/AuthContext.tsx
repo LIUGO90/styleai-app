@@ -11,6 +11,7 @@ import { supabase } from "@/utils/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, AppStateStatus } from "react-native";
 import { appInitializationService } from "@/services/AppInitializationService";
+import { analytics } from "@/services/AnalyticsService";
 
 export interface AuthUser extends User {
   name: string;
@@ -58,8 +59,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       'change',
       async (state: AppStateStatus) => {
         console.log('App state changed:', state);
-        if (state === 'active' || state === 'background') {
-
+        if (state === 'active') {
+          // 追踪应用打开/激活
+          analytics.track('app_opened', {
+            timestamp: new Date().toISOString(),
+            user_id: user.id,
+          });
+          
+          // 记录到 action_history
+          const { data, error } = await supabase.from('action_history').insert({
+            user_id: user.id,
+            action: state,
+          }).select()
+            .single();
+          if (error) {
+            console.error('Error inserting action history:', error);
+          }
+        } else if (state === 'background') {
+          // 追踪应用进入后台
+          analytics.track('app_backgrounded', {
+            timestamp: new Date().toISOString(),
+            user_id: user.id,
+          });
         }
       }
     );

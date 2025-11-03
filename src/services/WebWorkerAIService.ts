@@ -296,11 +296,6 @@ class WebWorkerAIService {
     sessionId: string,
     options: AIRequestOptions = {},
   ): Promise<AIRequestResponse> {
-    supabase.from('action_history').insert({
-      user_id: userId,
-      action: `chat_request_${sessionId}`,
-    }).select()
-      .single();
     for (var i = 0; i < 3; i++) {
       try {
         const controller = new AbortController()

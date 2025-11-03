@@ -32,7 +32,7 @@ class AppInitializationService {
         // 注意：cookie 相关错误是 React Native 环境的正常现象，可以安全忽略
         // Amplitude SDK 会尝试使用 cookie，但 React Native 不支持 document.cookie
         // 这不会影响核心分析功能
-        await amplitude.init('ec3521ed771adf8517385870f4ae8f77').promise;
+        await amplitude.init('7f0e31c0f1412366694f89231ca79125').promise;
         console.log("✅ [AppInit] Amplitude 基础 SDK 初始化成功");
 
         // 尝试添加 Session Replay 插件（可选）
@@ -117,17 +117,22 @@ class AppInitializationService {
     try {
       console.log(`📦 [AppInit] 设置 Amplitude 用户ID: ${userId}`);
       
-      // 直接设置用户ID
+      // 先设置用户ID（同步调用）
       amplitude.setUserId(userId);
       
-      // 如果有用户属性，使用 identify 方法设置
+      // 如果有用户属性，使用 Identify 对象设置
       if (userProperties && Object.keys(userProperties).length > 0) {
         const identify = new amplitude.Identify();
         Object.keys(userProperties).forEach(key => {
           identify.set(key, userProperties[key]);
         });
+        // 执行 identify 操作，等待完成
         await amplitude.identify(identify).promise;
       }
+      
+      // 确保用户ID已设置（再次确认）
+      // 注意：某些情况下需要等待 identify 完成后再发送事件
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log("✅ [AppInit] Amplitude 用户ID 设置成功");
     } catch (error: any) {
