@@ -3,7 +3,7 @@ import CreditModal from '@/components/CreditModal';
 import { supabase } from '@/utils/supabase';
 
 interface CreditContextType {
-  showCreditModal: (id: string, action: string) => void;
+  showCreditModal: (id: string, action: string, callback?: () => Promise<void>) => void;
   hideCreditModal: () => void;
   isModalVisible: boolean;
 }
@@ -17,9 +17,12 @@ interface CreditProviderProps {
 export const CreditProvider: React.FC<CreditProviderProps> = ({ children }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const showCreditModal = useCallback(async (id: string, action: string) => {
+  const showCreditModal = useCallback(async (id: string, action: string ,callback?: () => Promise<void>) => {
     console.log('🔔 显示积分 Modal');
     setIsModalVisible(true);
+    if (callback) {
+      await callback();
+    }
   }, []);
 
   const hideCreditModal = useCallback(() => {

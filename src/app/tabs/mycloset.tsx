@@ -247,7 +247,7 @@ export default function MyCloset() {
 
       if (imageUrl) {
 
-        const newImages = [...myClosetImages, imageUrl];
+        const newImages = [imageUrl || '', ...myClosetImages];
         setMyClosetImages(newImages);
 
         // 保存用户上传的URL到 AsyncStorage
@@ -410,10 +410,10 @@ export default function MyCloset() {
               <Pressable
                 onPress={async () => {
 
-                  const session = await ChatSessionService.createSession("style_an_item");
+                  const session = await ChatSessionService.createSession(user?.id || '', "style_an_item");
                   if (session) {
-                  router.push({
-                    pathname: "/style_an_item",
+                    router.push({
+                      pathname: "/style_an_item",
                       params: { sessionId: session.id, imageUrl: selectedItem?.source }
                     });
                   }

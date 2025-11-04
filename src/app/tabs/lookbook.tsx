@@ -19,10 +19,17 @@ import { useGlobalToast } from "@/utils/globalToast";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { analytics } from "@/services/AnalyticsService";
 
+
+interface ImageItem {
+  id: string;
+  image_url: string;
+  style: string;
+}
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LookbookOne() {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,7 +78,7 @@ export default function LookbookOne() {
   const scrollToIndex = useCallback((index: number) => {
     const targetX = index * SCREEN_WIDTH;
     console.log(`🎯 尝试滚动到索引 ${index}, 偏移 ${targetX}px`);
-    
+
     if (fullscreenScrollRef.current) {
       fullscreenScrollRef.current.scrollTo({
         x: targetX,
@@ -96,9 +103,13 @@ export default function LookbookOne() {
       setAvailableStyles(styles);
 
       // 提取所有图片 URL
-      const allImages: string[] = items
+      const allImages: ImageItem[] = items
         .filter(item => item.image_url && item.image_url.length > 0)
-        .map(item => item.image_url);
+        .map(item => ({
+          id: item.id,
+          image_url: item.image_url,
+          style: item.style || 'Unknown',
+        }));
 
       console.log(`✅ 成功获取 ${allImages.length} 张图片，${styles.length - 1} 个风格`);
       setImages(allImages);
@@ -132,12 +143,12 @@ export default function LookbookOne() {
 
     // 如果在选择模式，切换选择状态
     if (selectionMode) {
-      toggleImageSelection(images[index]);
+      toggleImageSelection(images[index].image_url);
       return;
     }
 
     console.log(`📱 点击图片 ${index}，屏幕宽度: ${SCREEN_WIDTH}，目标偏移: ${index * SCREEN_WIDTH}`);
-    
+
     setCurrentIndex(index);
     setModalVisible(true);
   };
@@ -163,7 +174,7 @@ export default function LookbookOne() {
 
   // 全选
   const selectAll = () => {
-    setSelectedImages(new Set(images));
+    setSelectedImages(new Set(images.map(item => item.image_url)));
   };
 
   // 取消全选
@@ -330,7 +341,7 @@ export default function LookbookOne() {
       // 使用 React Native 的 Share API
       const result = await Share.share({
         message: 'Check out my look from Magic Lookbook!',
-        url: currentImageUrl,
+        url: currentImageUrl.image_url,
         title: 'My Lookbook',
       });
 
@@ -357,7 +368,7 @@ export default function LookbookOne() {
         category: 'main',
         tab: 'lookbook',
       });
-      
+
       // 标记用户进入 lookbook 页面
       pageActivityManager.setActivePage('lookbook');
 
@@ -499,24 +510,25 @@ export default function LookbookOne() {
         {images.length > 0 ? (
           <View className="flex-row flex-wrap justify-between">
             {images.map((image, index) => {
-              const isSelected = selectedImages.has(image);
+              const isSelected = selectedImages.has(image.image_url);
 
               return (
                 <TouchableOpacity
-                  key={index}
+                  key={image.id}
                   className="bg-gray-200 w-[48%] rounded-3xl overflow-hidden relative mb-4"
                   style={{ aspectRatio: 712 / 1247 }}
                   activeOpacity={0.8}
                   onPress={() => handleImagePress(index)}
                 >
                   <Image
-                    source={image}
+                    key={image.id}
+                    source={{ uri: image.image_url }}
                     style={{ width: '100%', height: '100%' }}
                     contentFit="cover"
                     placeholder="Loading..."
                     cachePolicy="memory-disk"
                     priority="high"
-                    recyclingKey={`lookbook-${index}`}
+                    recyclingKey={image.id}
                   />
 
                   {/* 选择模式下的复选框 */}
@@ -656,18 +668,18 @@ export default function LookbookOne() {
                 }}
               >
                 <Image
-                  source={item}
+                  source={{ uri: item.image_url }}
                   style={styles.fullscreenImage}
                   contentFit="cover"
                   placeholder="Loading..."
                   cachePolicy="memory-disk"
-                  recyclingKey={`fullscreen-${index}`}
+                  recyclingKey={item.id}
                 />
               </View>
             ))}
           </ScrollView>
 
-       
+
 
           {/* Input Field */}
           <Animated.View
@@ -726,7 +738,7 @@ export default function LookbookOne() {
                         pathname: "/free_chat",
                         params: {
                           sessionId: session.id,
-                          imageUri: images[currentIndex],
+                          imageUri: images[currentIndex].image_url,
                           message: messageToSend
                         }
                       });

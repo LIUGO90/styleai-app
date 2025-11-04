@@ -65,16 +65,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             timestamp: new Date().toISOString(),
             user_id: user.id,
           });
-          
-          // 记录到 action_history
-          const { data, error } = await supabase.from('action_history').insert({
-            user_id: user.id,
-            action: state,
-          }).select()
-            .single();
-          if (error) {
-            console.error('Error inserting action history:', error);
-          }
+
         } else if (state === 'background') {
           // 追踪应用进入后台
           analytics.track('app_backgrounded', {

@@ -117,8 +117,21 @@ class AppInitializationService {
     try {
       console.log(`📦 [AppInit] 设置 Amplitude 用户ID: ${userId}`);
       
-      // 先设置用户ID（同步调用）
+      // 先 flush 确保之前的操作完成（iOS 环境可能需要）
+      await amplitude.flush().promise;
+      
+      // 设置用户ID（同步调用）
       amplitude.setUserId(userId);
+      
+      // 验证用户ID是否设置成功
+      const currentUserId = amplitude.getUserId();
+      console.log(`🔍 [AppInit] 当前 Amplitude 用户ID: ${currentUserId}`);
+      
+      if (currentUserId !== userId) {
+        console.warn(`⚠️ [AppInit] 用户ID设置不匹配，期望: ${userId}, 实际: ${currentUserId}`);
+        // 再次尝试设置
+        amplitude.setUserId(userId);
+      }
       
       // 如果有用户属性，使用 Identify 对象设置
       if (userProperties && Object.keys(userProperties).length > 0) {
@@ -130,11 +143,16 @@ class AppInitializationService {
         await amplitude.identify(identify).promise;
       }
       
-      // 确保用户ID已设置（再次确认）
-      // 注意：某些情况下需要等待 identify 完成后再发送事件
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // 再次 flush 确保用户ID和属性都已发送
+      await amplitude.flush().promise;
       
-      console.log("✅ [AppInit] Amplitude 用户ID 设置成功");
+      // 最终验证
+      const finalUserId = amplitude.getUserId();
+      console.log(`✅ [AppInit] Amplitude 用户ID 设置完成，当前ID: ${finalUserId}`);
+      
+      if (finalUserId !== userId) {
+        console.error(`❌ [AppInit] 用户ID设置失败！期望: ${userId}, 实际: ${finalUserId}`);
+      }
     } catch (error: any) {
       console.error("❌ [AppInit] 设置 Amplitude 用户ID 失败:", error?.message || error);
     }

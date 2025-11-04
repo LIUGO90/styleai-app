@@ -133,6 +133,7 @@ export default function ForYouScreen() {
     }).current;
 
     const handleNext = async () => {
+
         try {
             // 安全检查：确保攒据已加载
             if (!foryou || foryou.length === 0) {
@@ -180,7 +181,9 @@ export default function ForYouScreen() {
                 
                 // 延迟显示积分购买弹窗，让用户看到提示信息
                 setTimeout(() => {
-                    showCreditModal(user?.id || '', "foryou_credit_insufficient");
+                    showCreditModal(user?.id || '', "foryou_credit_insufficient", async () => {
+                        await refreshCredits();
+                    });
                 }, 1500);
                 return;
             }
