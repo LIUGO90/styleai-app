@@ -50,6 +50,8 @@ export interface ImageUploadCallback {
 
 // 聊天组件属性
 export interface ChatProps {
+  currentSessionId: string;
+  chatType: "free_chat" | "style_an_item" | "outfit_check",
   messages?: Message[];
   onSendMessage?: (message: string,imageUri?: string) => void;
   onTyping?: (isTyping: boolean) => void;
@@ -68,6 +70,12 @@ export interface ChatProps {
   allowMessageDelete?: boolean;
   clickHighlight?: string;
   canInput?: boolean;
+  setMessages: (messages: Message[]) => void;
+  getMessage: (messageId: string) => Message | undefined;
+  hideMessage: (messageId: string) => void;
+  updateMessage: (message: Message) => void;
+  addMessage: (message: Message) => void;
+  dateleMessage: (messageId: string) => void;
 }
 
 // 消息类型定义

@@ -18,6 +18,9 @@ import { chatRequest } from "@/services/aiReuest";
 import { useCredits } from "@/hooks/usePayment";
 import { useCredit } from "@/contexts/CreditContext";
 import { addImageLook } from "@/services/addLookBook";
+import { useMessages } from "@/hooks/useMessages";
+import paymentService from "@/services/PaymentService";
+import analytics from "@/services/AnalyticsService";
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = "") => {
@@ -60,12 +63,13 @@ export default function OutfitCheckScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [canInput, setCanInput] = useState<boolean>(false);
   const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
   const { showCreditModal } = useCredit();
+  const { messages, setMessages, getMessage, hideMessage, updateMessage, addMessage, dateleMessage } = useMessages();
+
   // 加载当前会话
   useEffect(() => {
     loadCurrentSession();
@@ -137,86 +141,9 @@ export default function OutfitCheckScreen() {
     AsyncStorage.setItem('sessionListRefresh', Date.now().toString());
   };
 
-  const getMessage = (messageId: string) => {
-    return messages.find(msg => msg.id === messageId);
-  }
-
-  const hideMessage = (messageId: string) => {
-
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
-  }
-
-  const updateMessage = (message: Message) => {
-
-    setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
-  }
-
-  const addMessage = (message: Message) => {
-
-    setMessages(prev => [...prev, message]);
-  }
-
-  const dateleMessage = (messageId: string) => {
-
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-  }
 
   const handleSendMessage = async (text: string, imageUri?: string) => {
-    const usermessageId = generateUniqueId('user_');
-    let newMessage: Message = {
-      id: usermessageId,
-      text,
-      images: [],
-      sender: "user",
-      senderName: "用户",
-      timestamp: new Date(),
-    };
-    if (imageUri && imageUri.length > 0) {
-      newMessage.images = [
-        {
-          id: generateUniqueId('img_'),
-          url: imageUri,
-          alt: 'Garment Image',
-        },
-      ];
-    }
-    setMessages((prev) => [...prev, newMessage]);
-    let progressMessage = createProgressMessage(1, "Analyzing your message...");
-    addMessage(progressMessage);
-    let image: string = '';
-    if (imageUri && imageUri.length > 0) {
-      image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
-      newMessage.images = [{
-        id: generateUniqueId('img_'),
-        url: image,
-        alt: 'Garment Image',
-      },]
-    }
 
-    progressMessage.progress = {
-      current: 5,
-      total: 10,
-      status: 'processing',
-      message: 'Analyzing your message...',
-    };
-    updateMessage(progressMessage);
-    const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
-    dateleMessage(progressMessage.id);
-    addMessage({
-      id: Date.now().toString(),
-      text: message,
-      sender: 'ai',
-      senderName: 'AI Assistant',
-      timestamp: new Date(),
-      images: images.map(image => ({
-        id: generateUniqueId('img_'),
-        url: image,
-        alt: 'Garment Image',
-      })),
-    });
-    if (images.length > 0) {
-      addImageLook(user?.id || "", "outfit_check", images);
-    }
   };
 
 
@@ -226,7 +153,7 @@ export default function OutfitCheckScreen() {
 
       if (messageId) {
         // 直接更新指定消息的卡片图片
-        setMessages(prev => prev.map(msg => {
+        setMessages((prev: Message[]) => prev.map((msg: Message) => {
           if (msg.id === messageId && msg.card) {
             return {
               ...msg,
@@ -243,6 +170,12 @@ export default function OutfitCheckScreen() {
       const requiredCreditsFirst = 10; // 第一次AI请求需要10积分
       const availableCreditsFirst = credits?.available_credits || 0;
       if (availableCreditsFirst < requiredCreditsFirst) {
+        analytics.track('credit_not_enough', {
+          required_credits: requiredCreditsFirst,
+          available_credits: availableCreditsFirst,
+          source: 'outfit_check',
+          session_id: currentSession?.id || '',
+        });
         Alert.alert(
           'Insufficient Credits',
           `Outfit analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
@@ -262,8 +195,18 @@ export default function OutfitCheckScreen() {
 
       let progressMessage = createProgressMessage(5, "Analyzing your outfit...");
       addMessage(progressMessage);
+      analytics.track('outfit_check_image_uploading', {
+        has_image: imageUri && imageUri.length > 0,
+        source: 'outfit_check',
+        session_id: currentSession?.id || '',
+      });
+      uploadImageForGeminiAnalyze(user?.id || '', imageUri).then(async ({ message, image, uploadedImage }) => {
+        analytics.track('outfit_check_image_received', {
+          has_image: image && image.length > 0,
+          source: 'outfit_check',
+          session_id: currentSession?.id || '',
+        });
 
-      uploadImageForGeminiAnalyze(user?.id || '', imageUri).then(({ message, image, uploadedImage }) => {
         dateleMessage('3')
         dateleMessage(progressMessage.id);
         addMessage({
@@ -298,6 +241,30 @@ export default function OutfitCheckScreen() {
           sender: 'ai',
           timestamp: new Date(),
         });
+
+        if (image.length > 0) {
+          addImageLook(user?.id || "", 'outfit_check', [image]);
+          // 成功生成图片后，扣除积分
+          try {
+            const deductSuccess = await paymentService.useCredits(
+              user?.id || '',
+              requiredCreditsFirst,
+              'style_analysis',
+              currentSession?.id || '',
+              `Outfit check for occasion: ${currentSession?.title || ''}`
+            );
+
+            if (deductSuccess) {
+              console.log(`✅ [StyleAnItem] 成功扣除 ${requiredCreditsFirst} 积分`);
+              // 刷新积分信息
+              await refreshCredits();
+            } else {
+              console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+            }
+          } catch (creditError) {
+            console.error('❌ [StyleAnItem] 积分扣除异常:', creditError);
+          }
+        }
       });
 
       setCanInput(true);
@@ -338,6 +305,14 @@ export default function OutfitCheckScreen() {
 
       <Chat
         messages={messages}
+        currentSessionId={currentSession?.id || ''}
+        chatType="outfit_check"
+        setMessages={setMessages}
+        getMessage={getMessage}
+        hideMessage={hideMessage}
+        updateMessage={updateMessage}
+        addMessage={addMessage}
+        dateleMessage={dateleMessage}
         onSendMessage={handleSendMessage}
         onImageUpload={handleImageUpload}
         placeholder="Describe outfit ..."

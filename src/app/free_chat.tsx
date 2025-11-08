@@ -17,19 +17,22 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chatRequest } from "@/services/aiReuest";
 import { analytics } from "@/services/AnalyticsService";
 import { addImageLook } from "@/services/addLookBook";
+import { useMessages } from "@/hooks/useMessages";
+import paymentService from "@/services/PaymentService";
+import { useCredits } from "@/hooks/usePayment";
 
 
 export default function FreeChatScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { user } = useAuth();
-    const [messages, setMessages] = useState<Message[]>([]);
+    const { messages, setMessages, getMessage, hideMessage, updateMessage, addMessage, dateleMessage } = useMessages();
     const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
 
     const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
     const { imageUri } = useLocalSearchParams<{ imageUri?: string }>();
     const { message } = useLocalSearchParams<{ message?: string }>();
-
+    const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
     // 调试参数接收
     // console.log('FreeChat received params:', { sessionId, imageUri, message });
 
@@ -157,117 +160,115 @@ export default function FreeChatScreen() {
         AsyncStorage.setItem('sessionListRefresh', Date.now().toString());
     };
 
-    const getMessage = (messageId: string) => {
-        return messages.find(msg => msg.id === messageId);
-    }
 
-    const hideMessage = (messageId: string) => {
-
-        setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
-    }
-
-    const updateMessage = (message: Message) => {
-
-        setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
-    }
-
-    const addMessage = (message: Message) => {
-
-        setMessages(prev => [...prev, message]);
-    }
-
-    const dateleMessage = (messageId: string) => {
-
-        setMessages(prev => prev.filter(msg => msg.id !== messageId));
-    }
-
-    const handleSendMessage = async (text: string, imageUri?: string) => {
+    const handleSendMessage = async (message: string, imageUri?: string) => {
         const usermessageId = generateUniqueId('user_');
         let newMessage: Message = {
-            id: usermessageId,
-            text,
-            images: [],
-            sender: "user",
-            senderName: "用户",
-            timestamp: new Date(),
+          id: usermessageId,
+          text: message,
+          images: [],
+          sender: "user",
+          senderName: "用户",
+          timestamp: new Date(),
         };
         if (imageUri && imageUri.length > 0) {
-            newMessage.images = [
-                {
-                    id: generateUniqueId('img_'),
-                    url: imageUri,
-                    alt: 'Garment Image',
-                },
-            ];
+          newMessage.images = [
+            {
+              id: generateUniqueId('img_'),
+              url: imageUri,
+              alt: 'Garment Image',
+            },
+          ];
         }
-        setMessages((prev) => [...prev, newMessage]);
+        addMessage(newMessage);
         let progressMessage = createProgressMessage(1, "Analyzing your message...");
         addMessage(progressMessage);
+    
+    
         let image: string = '';
         if (imageUri && imageUri.length > 0) {
-
-            if (imageUri.startsWith('http')) {
-                image = imageUri;
-            } else {
-                // 上传图片到服务器
-                image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
-            }
-
-            newMessage.images = [{
-                id: generateUniqueId('img_'),
-                url: image,
-                alt: 'Garment Image',
-            },]
+    
+          if (imageUri.startsWith('http')) {
+            image = imageUri;
+          } else {
+            // 上传图片到服务器
+            image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+          }
+    
+          newMessage.images = [{
+            id: generateUniqueId('img_'),
+            url: image,
+            alt: 'Garment Image',
+          },]
         }
-
+        const currentSessionId = currentSession?.id || '';
         // 追踪发送消息
         const startTime = Date.now();
         analytics.track('chat_message_sent', {
-            has_text: text.length > 0,
-            has_image: imageUri && imageUri.length > 0,
-            text_length: text.length,
-            source: 'free_chat',
-            session_id: currentSession?.id || null,
+          has_text: message.length > 0,
+          has_image: imageUri && imageUri.length > 0,
+          text_length: message.length,
+          source: 'free_chat',
+          session_id: currentSessionId,
         });
-
         progressMessage.progress = {
-            current: 5,
-            total: 10,
-            status: 'processing',
-            message: 'Analyzing your message...',
+          current: 5,
+          total: 10,
+          status: 'processing',
+          message: 'Analyzing your message...',
         };
         updateMessage(progressMessage);
-        const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
-        dateleMessage(progressMessage.id);
-
-        const responseTime = Date.now() - startTime;
-
-        // 追踪接收AI回复
-        analytics.track('chat_message_received', {
+    
+        chatRequest(user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
+          const responseTime = Date.now() - startTime;
+          // 追踪接收AI回复
+          analytics.track('chat_message_received', {
             has_text: message.length > 0,
             has_images: images.length > 0,
             image_count: images.length,
             response_time_ms: responseTime,
             source: 'free_chat',
-            session_id: currentSession?.id || null,
-        });
-
-        addMessage({
+            session_id: currentSessionId,
+          });
+    
+          dateleMessage(progressMessage.id);
+          addMessage({
             id: Date.now().toString(),
             text: message,
             sender: 'ai',
             senderName: 'AI Assistant',
             timestamp: new Date(),
-            images: images.map(image => ({
-                id: generateUniqueId('img_'),
-                url: image,
-                alt: 'Garment Image',
+            images: images?.map((image: string) => ({
+              id: generateUniqueId('img_'),
+              url: image,
+              alt: 'Garment Image',
             })),
+          });
+          if (images?.length > 0) {
+            addImageLook(user?.id || "", 'free_chat', images);
+            try {
+              const deductSuccess = await paymentService.useCredits(
+                user?.id || '',
+                10 * images.length,
+                'style_analysis',
+                currentSessionId || '',
+                `Free chat for occasion: ${currentSession?.title || ''}`
+              );
+    
+              if (deductSuccess) {
+                console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+                await refreshCredits();
+              } else {
+                console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+              }
+    
+            } catch (error) {
+              console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+            }
+          }
         });
-        if (images.length > 0) {
-            addImageLook(user?.id || "", "Freechat", images);
-        }
-    };
+    
+      };
 
 
     const handleDrawerOpen = () => {
@@ -291,12 +292,20 @@ export default function FreeChatScreen() {
             />
 
             <Chat
+                chatType="free_chat"
+                currentSessionId={currentSession?.id || ''}
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 // onImageUpload={handleImageUpload}
                 placeholder="Describe outfit ..."
                 showAvatars={false}
                 canInput={true}
+                setMessages={setMessages}
+                getMessage={getMessage}
+                hideMessage={hideMessage}
+                updateMessage={updateMessage}
+                addMessage={addMessage}
+                dateleMessage={dateleMessage}
             />
         </SafeAreaView>
     );

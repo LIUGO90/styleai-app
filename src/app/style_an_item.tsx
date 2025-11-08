@@ -17,6 +17,7 @@ import { useCredits } from '@/hooks/usePayment';
 import { useCredit } from '@/contexts/CreditContext';
 import paymentService from '@/services/PaymentService';
 import { analytics } from '@/services/AnalyticsService';
+import { useMessages } from '@/hooks/useMessages';
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = '') => {
@@ -136,9 +137,9 @@ export default function StyleAnItemScreen() {
   const selectedImageRef = useRef<string>("");
   const selectedIdRef = useRef<string>("");
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [jobId, setJobId] = useState<string>("");
   const [canInput, setCanInput] = useState<boolean>(false);
+  const { messages, setMessages, getMessage, hideMessage, updateMessage, addMessage, dateleMessage } = useMessages();
 
   // 积分相关状态
   const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
@@ -253,110 +254,8 @@ export default function StyleAnItemScreen() {
     AsyncStorage.setItem('sessionListRefresh', Date.now().toString());
   };
 
-  const getMessage = (messageId: string) => {
-    return messages.find(msg => msg.id === messageId);
-  }
-
-  const hideMessage = (messageId: string) => {
-
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isHidden: true } : msg));
-  }
-
-  const updateMessage = (message: Message) => {
-
-    setMessages(prev => prev.map(msg => msg.id === message.id ? message : msg));
-  }
-
-  const addMessage = (message: Message) => {
-
-    setMessages(prev => [...prev, message]);
-  }
-
-  const dateleMessage = (messageId: string) => {
-
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-  }
-
   const handleSendMessage = async (text: string, imageUri?: string) => {
-    const usermessageId = generateUniqueId('user_');
-    let newMessage: Message = {
-      id: usermessageId,
-      text,
-      images: [],
-      sender: "user",
-      senderName: "用户",
-      timestamp: new Date(),
-    };
-    if (imageUri && imageUri.length > 0) {
-      newMessage.images = [
-        {
-          id: generateUniqueId('img_'),
-          url: imageUri,
-          alt: 'Garment Image',
-        },
-      ];
-    }
-    setMessages((prev) => [...prev, newMessage]);
-    let progressMessage = createProgressMessage(1, "Analyzing your message...");
-    addMessage(progressMessage);
-    let image: string = '';
-    if (imageUri && imageUri.length > 0) {
-      image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
-      newMessage.images = [{
-        id: generateUniqueId('img_'),
-        url: image,
-        alt: 'Garment Image',
-      },]
-    }
 
-    // 追踪发送消息
-    const startTime = Date.now();
-    analytics.track('chat_message_sent', {
-      has_text: text.length > 0,
-      has_image: imageUri && imageUri.length > 0,
-      text_length: text.length,
-      source: 'style_an_item',
-      session_id: currentSession?.id || null,
-    });
-
-    progressMessage.progress = {
-      current: 5,
-      total: 10,
-      status: 'processing',
-      message: 'Analyzing your message...',
-    };
-    updateMessage(progressMessage);
-    const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
-    dateleMessage(progressMessage.id);
-    
-    const responseTime = Date.now() - startTime;
-    
-    // 追踪接收AI回复
-    analytics.track('chat_message_received', {
-      has_text: message.length > 0,
-      has_images: images.length > 0,
-      image_count: images.length,
-      response_time_ms: responseTime,
-      source: 'style_an_item',
-      session_id: currentSession?.id || null,
-    });
-    
-    addMessage({
-      id: Date.now().toString(),
-      text: message,
-      sender: 'ai',
-      senderName: 'AI Assistant',
-      timestamp: new Date(),
-      images: images.map(image => ({
-        id: generateUniqueId('img_'),
-        url: image,
-        alt: 'Garment Image',
-      })),
-    });
-
-    if (images.length > 0) {
-      addImageLook(user?.id || "", "style_an_item", images);
-    }
   };
 
 
@@ -365,34 +264,6 @@ export default function StyleAnItemScreen() {
     const messageId = message.id;
     // Handle different logic based on button action
     switch (button.action) {
-      case 'style_an_item':
-
-        router.push('/tabs/styling/style_an_item');
-        break;
-      case 'outfit_check':
-
-        // 可以添加其他页面的跳转
-        router.push('/tabs/styling/outfit_check');
-        break;
-      case 'generate_ootd':
-
-        // 可以添加其他页面的跳转
-        router.push('/tabs/styling/generate_ootd');
-        break;
-
-      case 'change_accessories':
-        // 生成新的配置
-        const message2 = initMessages[2];
-        message2.id = generateUniqueId('msg_');
-        addMessage(message2);
-        selectedIdRef.current = message2.id;
-
-        // 清空卡片状态信息
-        setSelectedButtons('');
-        selectedImageRef.current = ""
-        selectedIdRef.current = ""
-        break;
-
       case 'confirm_selection':
 
         if (selectedImageRef.current === '') {
@@ -440,12 +311,24 @@ export default function StyleAnItemScreen() {
 
           updateMessage(newMessage);
         }
-
+        analytics.track('chat_message_sent', {
+          has_text: newMessage.text.length > 0,
+          has_images: newMessage.images.length > 0,
+          image_count: newMessage.images.length,
+          source: 'style_an_item',
+          session_id: currentSession?.id || '',
+        });
         // 检查用户积分是否足够（第一次AI请求）
         const requiredCreditsFirst = 20; // 第一次AI请求需要10积分
         const availableCreditsFirst = credits?.available_credits || 0;
 
         if (availableCreditsFirst < requiredCreditsFirst) {
+          analytics.track('credit_not_enough', {
+            required_credits: requiredCreditsFirst,
+            available_credits: availableCreditsFirst,
+            source: 'style_an_item',
+            session_id: currentSession?.id || '',
+          });
           Alert.alert(
             'Insufficient Credits',
             `Style analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
@@ -477,13 +360,27 @@ export default function StyleAnItemScreen() {
           images = [data.fullBodyPhoto];
           images.push(image);
 
-          chatRequest(user?.id || '',
+          analytics.track('chat_message_sending', {
+            has_text: newMessage.text.length > 0,
+            has_images: newMessage.images.length > 0,
+            image_count: newMessage.images.length,
+            source: 'style_an_item',
+            session_id: currentSession?.id || '',
+          });
+          await chatRequest(user?.id || '',
             data.bodyType,
             data.bodyStructure,
             data.skinTone,
             selectedButtons,
             "",
             images, currentSession?.id || '').then(async ({ status, message, images }) => {
+              analytics.track('chat_message_received', {
+                has_text: message.length > 0,
+                has_images: images.length > 0,
+                image_count: images.length,
+                source: 'style_an_item',
+                session_id: currentSession?.id || '',
+              });
               if (status == "success") {
                 // 成功生成图片后，扣除积分
                 try {
@@ -723,6 +620,14 @@ export default function StyleAnItemScreen() {
 
       <Chat
         messages={messages}
+        currentSessionId={currentSession?.id || ''}
+        chatType="style_an_item"
+        setMessages={setMessages}
+        getMessage={getMessage}
+        hideMessage={hideMessage}
+        updateMessage={updateMessage}
+        addMessage={addMessage}
+        dateleMessage={dateleMessage}
         onSendMessage={handleSendMessage}
         onButtonPress={handleButtonPress}
         onImageUpload={handleImageUpload}

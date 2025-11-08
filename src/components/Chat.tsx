@@ -41,6 +41,13 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { useImagePicker } from "@/hooks/useImagePicker";
+import { add } from "@amplitude/analytics-react-native";
+import { useAuth } from "@/contexts/AuthContext";
+import { chatRequest } from "@/services/aiReuest";
+import { addImageLook } from "@/services/addLookBook";
+import paymentService from "@/services/PaymentService";
+import { useCredits } from "@/hooks/usePayment";
+import { useCredit } from "@/contexts/CreditContext";
 
 const imageHeight = Math.max(180, Dimensions.get("window").height * 0.2);
 const imageWidth = Dimensions.get("window").width * 0.4;
@@ -308,6 +315,8 @@ const filterVisibleMessages = (messages: Message[]): Message[] => {
 };
 
 export function Chat({
+  chatType,
+  currentSessionId,
   messages = [],
   onSendMessage,
   onTyping,
@@ -319,14 +328,22 @@ export function Chat({
   disabled = false,
   clickHighlight = "",
   canInput = false,
+  setMessages,
+  getMessage,
+  hideMessage,
+  updateMessage,
+  addMessage,
+  dateleMessage,
 }: ChatProps) {
+  const { user } = useAuth();
   const [inputText, setInputText] = useState("");
+  const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
+  const { showCreditModal } = useCredit();
+  
   const [isTyping, setIsTyping] = useState(false);
   const [selectedButtons, setSelectedButtons] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
-  const [deleteButtonPressed, setDeleteButtonPressed] = useState<string | null>(
-    null,
-  );
+  const [deleteButtonPressed, setDeleteButtonPressed] = useState<string | null>(null);
   const [showCardImageZoom, setShowCardImageZoom] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -355,7 +372,29 @@ export function Chat({
     if ((inputText.trim() || selectedImage.trim()) && !disabled) {
       const messageText = inputText.trim();
       const hasImage = selectedImage.trim().length > 0;
-      
+
+      // 检查用户积分是否足够
+      const requiredCredits = 10; // 需要10积分
+      const availableCredits = credits?.available_credits || 0;
+
+      if (availableCredits < requiredCredits) {
+        Alert.alert(
+          'Insufficient Credits',
+          `This chat may generate images and requires ${requiredCredits} credits per request. You currently have ${availableCredits} credits. Please purchase more credits and try again.`,
+          [
+            {
+              text: 'Buy Credits',
+              onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            }
+          ]
+        );
+        return;
+      }
+
       // 追踪发送消息事件
       analytics.track('chat_message_sent', {
         has_text: messageText.length > 0,
@@ -363,8 +402,8 @@ export function Chat({
         text_length: messageText.length,
         source: 'chat_component',
       });
-      
-      onSendMessage?.(messageText, selectedImage);
+
+      handleSendMessage(messageText, selectedImage);
       setInputText("");
       setSelectedImage("");
       setIsTyping(false);
@@ -372,6 +411,115 @@ export function Chat({
       // 发送后收起键盘
       Keyboard.dismiss();
     }
+  };
+
+  const handleSendMessage = async (message: string, imageUri?: string) => {
+    const usermessageId = generateUniqueId('user_');
+    let newMessage: Message = {
+      id: usermessageId,
+      text: message,
+      images: [],
+      sender: "user",
+      senderName: "用户",
+      timestamp: new Date(),
+    };
+    if (imageUri && imageUri.length > 0) {
+      newMessage.images = [
+        {
+          id: generateUniqueId('img_'),
+          url: imageUri,
+          alt: 'Garment Image',
+        },
+      ];
+    }
+    addMessage(newMessage);
+    let progressMessage = createProgressMessage(1, "Analyzing your message...");
+    addMessage(progressMessage);
+
+
+    let image: string = '';
+    if (imageUri && imageUri.length > 0) {
+
+      if (imageUri.startsWith('http')) {
+        image = imageUri;
+      } else {
+        // 上传图片到服务器
+        image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+      }
+
+      newMessage.images = [{
+        id: generateUniqueId('img_'),
+        url: image,
+        alt: 'Garment Image',
+      },]
+    }
+
+    // 追踪发送消息
+    const startTime = Date.now();
+    analytics.track('chat_message_sent', {
+      has_text: message.length > 0,
+      has_image: imageUri && imageUri.length > 0,
+      text_length: message.length,
+      source: chatType,
+      session_id: currentSessionId,
+    });
+    progressMessage.progress = {
+      current: 5,
+      total: 10,
+      status: 'processing',
+      message: 'Analyzing your message...',
+    };
+    updateMessage(progressMessage);
+
+    chatRequest(user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
+      const responseTime = Date.now() - startTime;
+      // 追踪接收AI回复
+      analytics.track('chat_message_received', {
+        has_text: message.length > 0,
+        has_images: images.length > 0,
+        image_count: images.length,
+        response_time_ms: responseTime,
+        source: 'free_chat',
+        session_id: currentSessionId,
+      });
+
+      dateleMessage(progressMessage.id);
+      addMessage({
+        id: Date.now().toString(),
+        text: message,
+        sender: 'ai',
+        senderName: 'AI Assistant',
+        timestamp: new Date(),
+        images: images?.map((image: string) => ({
+          id: generateUniqueId('img_'),
+          url: image,
+          alt: 'Garment Image',
+        })),
+      });
+      if (images?.length > 0) {
+        addImageLook(user?.id || "", chatType, images);
+        try {
+          const deductSuccess = await paymentService.useCredits(
+            user?.id || '',
+            10 * images.length,
+            'style_analysis',
+            currentSessionId || '',
+            `Style analysis for occasion: ${selectedButtons}`
+          );
+
+          if (deductSuccess) {
+            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+            await refreshCredits();
+          } else {
+            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+          }
+
+        } catch (error) {
+          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+        }
+      }
+    });
+
   };
 
   // 处理输入变化
@@ -1057,3 +1205,4 @@ export function ChatHeader({
     </View>
   );
 }
+
