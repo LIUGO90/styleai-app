@@ -3,6 +3,9 @@
  */
 
 export type ImageStyle = 
+  | 'style_an_item'
+  | 'outfit_check'
+  | 'free_chat'
   | 'Old Money'
   | 'Y2K'
   | 'BurgundyFall'

@@ -427,7 +427,7 @@ export default function LookbookOne() {
           </>
         ) : (
           <>
-            <Text className="text-2xl font-bold text-black">MAGIC LOOKBOOK</Text>
+            <Text className="text-2xl font-bold text-black">MY LOOKBOOK</Text>
             <View className="flex-row items-center gap-2">
               <TouchableOpacity
                 onPress={toggleSelectionMode}
@@ -437,7 +437,7 @@ export default function LookbookOne() {
                 <MaterialCommunityIcons name="checkbox-multiple-marked" size={20} color="#000" />
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => setShowStyleFilter(!showStyleFilter)}
                 className="bg-black px-4 py-2 rounded-full flex-row items-center"
                 activeOpacity={0.8}
@@ -450,7 +450,7 @@ export default function LookbookOne() {
                 <Text className="text-white text-sm font-medium ml-1">
                   {selectedStyle === 'All' ? 'Filter' : selectedStyle}
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </>
         )}

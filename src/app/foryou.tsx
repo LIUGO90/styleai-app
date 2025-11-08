@@ -33,7 +33,7 @@ export default function ForYouScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [reloadKey, setReloadKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
-    
+
     // 积分相关状态
     const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
     const { showCreditModal } = useCredit();
@@ -54,9 +54,9 @@ export default function ForYouScreen() {
         autoRestore: true, // 启用自动恢复
         onRequestRestored: (request) => {
             console.log('🔄 [ForYou] 请求正在恢复:', request);
-            showToast({ 
-                message: "Restoring interrupted request...", 
-                type: "info" 
+            showToast({
+                message: "Restoring interrupted request...",
+                type: "info"
             });
         }
     });
@@ -133,35 +133,32 @@ export default function ForYouScreen() {
     }).current;
 
     const handleNext = async () => {
+        // 防抖：立即检查并设置生成状态，防止快速重复点击
+        if (!foryou || foryou.length === 0 || currentIndex >= foryou.length) {
+            return;
+        }
+
+        const currentTemplate = foryou[currentIndex];
+        const currentTemplateId = currentTemplate.id;
+
+        // 立即检查并设置生成状态，防止重复点击
+        if (isTemplateGenerating(currentTemplateId)) {
+            showToast({ message: "This look is already being generated...", type: "info" });
+            return;
+        }
+
+        // 立即设置生成状态，防止在异步操作开始前的重复点击
+        setGenerating(currentTemplateId, true);
 
         try {
-            // 安全检查：确保攒据已加载
-            if (!foryou || foryou.length === 0) {
-                showToast({ message: "Loading templates, please wait...", type: "info" });
-                return;
-            }
-
-            if (currentIndex >= foryou.length) {
-                showToast({ message: "Invalid selection", type: "error" });
-                return;
-            }
-
-            // 获取当前显示的模板数据
-            const currentTemplate = foryou[currentIndex];
-            const currentTemplateId = currentTemplate.id;
+            // 安全检查：确保数据已加载
             const currentImageUrl = currentTemplate.urls;  // 使用 urls 作为参考图
             const prompt = currentTemplate.prompt;
-
-            // 检查当前 template 是否正在生成
-            if (isTemplateGenerating(currentTemplateId)) {
-                showToast({ message: "This look is already being generated...", type: "info" });
-                return;
-            }
 
             // 检查用户积分
             const requiredCredits = 10;
             const availableCredits = credits?.available_credits || 0;
-            
+
             if (availableCredits < requiredCredits) {
                 // 追踪积分不足
                 await analytics.track('image_generation_insufficient_credits', {
@@ -173,18 +170,20 @@ export default function ForYouScreen() {
                     source: 'foryou_page',
                 });
 
-                showToast({ 
-                    message: `Need ${requiredCredits} credits to generate image, insufficient credits available`, 
+                showToast({
+                    message: `Need ${requiredCredits} credits to generate image, insufficient credits available`,
                     type: "warning",
                     duration: 3000
                 });
-                
+
                 // 延迟显示积分购买弹窗，让用户看到提示信息
                 setTimeout(() => {
                     showCreditModal(user?.id || '', "foryou_credit_insufficient", async () => {
                         await refreshCredits();
                     });
                 }, 1500);
+                // 清除生成状态，因为提前返回了
+                setGenerating(currentTemplateId, false);
                 return;
             }
 
@@ -201,6 +200,8 @@ export default function ForYouScreen() {
                     source: 'foryou_page',
                 });
                 showToast({ message: "Please complete onboarding first", type: "error" });
+                // 清除生成状态，因为提前返回了
+                setGenerating(currentTemplateId, false);
                 return;
             }
             const selectedStyles = imageData.name;
@@ -215,15 +216,14 @@ export default function ForYouScreen() {
                 source: 'foryou_page',
             });
 
-            // 设置当前 template 的加载状态
-            setGenerating(currentTemplateId, true);
+            // 注意：生成状态已在函数开始时设置，用于防抖
             showToast({ message: "Generating Try-on", type: "info" });
 
             // 使用持久化 AI 服务发起请求，支持中断恢复
             const startTime = Date.now();
             const resultLookbook = await persistentAIService.requestForYou(
-                user?.id || '', 
-                [imageUrl, currentImageUrl], 
+                user?.id || '',
+                [imageUrl, currentImageUrl],
                 prompt,
                 {
                     onProgress: (progress) => {
@@ -300,7 +300,7 @@ export default function ForYouScreen() {
 
             } else {
                 console.error('❌ No images generated - imagesUrl is empty or null');
-                
+
                 // 追踪图像生成失败
                 await analytics.trackImageGeneration(
                     selectedStyles,
@@ -324,7 +324,7 @@ export default function ForYouScreen() {
             const errorRequiredCredits = 10; // 默认值
             const errorTemplateId = currentIndex < foryou.length ? foryou[currentIndex]?.id : 'unknown';
             const errorTemplateName = currentIndex < foryou.length ? foryou[currentIndex]?.name : 'unknown';
-            
+
             await analytics.trackImageGeneration(
                 errorStyle,
                 errorRequiredCredits,
@@ -337,8 +337,8 @@ export default function ForYouScreen() {
                 }
             );
             console.error("Error generating lookbook:", error);
-            showToast({ 
-                message: "Request interrupted. It will be restored automatically when you reopen the app.", 
+            showToast({
+                message: "Request interrupted. It will be restored automatically when you reopen the app.",
                 type: "warning",
                 duration: 5000
             });
@@ -381,10 +381,10 @@ export default function ForYouScreen() {
                     activeOpacity={0.7}
                     disabled={refreshing}
                 >
-                    <MaterialCommunityIcons 
-                        name="refresh" 
-                        size={24} 
-                        color={refreshing ? "#999" : "#000"} 
+                    <MaterialCommunityIcons
+                        name="refresh"
+                        size={24}
+                        color={refreshing ? "#999" : "#000"}
                     />
                 </TouchableOpacity>
             </View>
@@ -461,34 +461,36 @@ export default function ForYouScreen() {
                         </Text>
                     </View>
 
-                    <TouchableOpacity
-                        className="bg-black w-full py-4 rounded-xl"
-                        activeOpacity={0.8}
-                        onPress={handleNext}
-                        disabled={
-                            foryou.length === 0 || 
-                            (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
-                        }
-                        
-                    >
-                        <View className="flex-row items-center justify-center">
-                            {foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id) ? (
-                                <>
-                                    <ActivityIndicator size="small" color="#ffffff" />
-                                    <Text className="text-white text-lg font-semibold ml-2">
-                                        Generating...
-                                    </Text>
-                                </>
-                            ) : (
-                                <>
-                                    <MaterialCommunityIcons name="shimmer" size={20} color="#ffffff" />
-                                    <Text className="text-white text-lg font-semibold ml-2">
-                                        Try On This Look
-                                    </Text>
-                                </>
-                            )}
+                    {foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id) ? (
+                        <View className="flex-row  items-center justify-center bg-white border-gray-200 border-2 w-full py-4 rounded-xl">
+
+                            <ActivityIndicator size="small" color="black" />
+                            <Text className="text-black  text-lg font-semibold ml-2">
+                                Generating...
+                            </Text>
                         </View>
-                    </TouchableOpacity>
+                    ) : (
+
+                        <TouchableOpacity
+                            className="bg-black w-full py-4 rounded-xl"
+                            activeOpacity={0.8}
+                            onPress={handleNext}
+                            disabled={
+                                foryou.length === 0 ||
+                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
+                            }
+
+                        >
+                            <View className="flex-row items-center justify-center">
+                                <MaterialCommunityIcons name="shimmer" size={20} color="#ffffff" />
+                                <Text className="text-white text-lg font-semibold ml-2">
+                                    Try On This Look
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                    )}
+
 
                     {/* 提示文字 */}
                     <Text className="text-gray-500 text-xs text-center mt-3">

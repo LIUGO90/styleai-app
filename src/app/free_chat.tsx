@@ -16,6 +16,7 @@ import { ChatSession, ChatSessionService } from "@/services/ChatSessionService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chatRequest } from "@/services/aiReuest";
 import { analytics } from "@/services/AnalyticsService";
+import { addImageLook } from "@/services/addLookBook";
 
 
 export default function FreeChatScreen() {
@@ -61,7 +62,7 @@ export default function FreeChatScreen() {
                 // 如果路由参数中有sessionId，加载指定会话
                 session = await ChatSessionService.getSession(sessionId);
                 setCurrentSession(session);
-            }else{
+            } else {
                 Alert.alert('No sessionId provided');
                 router.replace({
                     pathname: "/tabs/",
@@ -238,9 +239,9 @@ export default function FreeChatScreen() {
         updateMessage(progressMessage);
         const { message, images } = await chatRequest(user?.id || '', '', '', '', '', text, [image], currentSession?.id || '');
         dateleMessage(progressMessage.id);
-        
+
         const responseTime = Date.now() - startTime;
-        
+
         // 追踪接收AI回复
         analytics.track('chat_message_received', {
             has_text: message.length > 0,
@@ -250,7 +251,7 @@ export default function FreeChatScreen() {
             source: 'free_chat',
             session_id: currentSession?.id || null,
         });
-        
+
         addMessage({
             id: Date.now().toString(),
             text: message,
@@ -263,7 +264,9 @@ export default function FreeChatScreen() {
                 alt: 'Garment Image',
             })),
         });
-
+        if (images.length > 0) {
+            addImageLook(user?.id || "", "Freechat", images);
+        }
     };
 
 
@@ -291,7 +294,7 @@ export default function FreeChatScreen() {
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 // onImageUpload={handleImageUpload}
-                placeholder="Describe your outfit needs..."
+                placeholder="Describe outfit ..."
                 showAvatars={false}
                 canInput={true}
             />

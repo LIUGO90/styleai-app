@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chatRequest } from "@/services/aiReuest";
 import { useCredits } from "@/hooks/usePayment";
 import { useCredit } from "@/contexts/CreditContext";
+import { addImageLook } from "@/services/addLookBook";
 
 // 生成唯一ID的辅助函数
 const generateUniqueId = (prefix: string = "") => {
@@ -96,7 +97,7 @@ export default function OutfitCheckScreen() {
       if (session) {
 
         await ChatSessionService.setCurrentSession(session.id);
-      } 
+      }
 
 
       setCurrentSession(session);
@@ -213,7 +214,9 @@ export default function OutfitCheckScreen() {
         alt: 'Garment Image',
       })),
     });
-
+    if (images.length > 0) {
+      addImageLook(user?.id || "", "outfit_check", images);
+    }
   };
 
 

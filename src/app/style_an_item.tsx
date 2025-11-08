@@ -355,7 +355,7 @@ export default function StyleAnItemScreen() {
     });
 
     if (images.length > 0) {
-      addImageLook(user?.id || "", "chat", images);
+      addImageLook(user?.id || "", "style_an_item", images);
     }
   };
 
