@@ -297,23 +297,24 @@ class WebWorkerAIService {
     options: AIRequestOptions = {},
   ): Promise<AIRequestResponse> {
     for (var i = 0; i < 3; i++) {
+      var trycount = i
       try {
         const controller = new AbortController()
         const response = await this.makeRequest(
           `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
-          { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
+          { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId, trycount },
           controller
         );
         setTimeout(() => {
           controller.abort()
         }, 6000 * 10)
         return { status: "success", jobId: response.jobId, message: response.message.text, images: response.message.images };
-      } catch (error ) {
+      } catch (error) {
         console.log("🧐 执行Chat请求错误", error)
         if (error instanceof Error && error.message === '401') {
           return { status: "success", jobId: "", message: "unauthorized, please ask for help", images: [] };
         }
-        return { status: 'error', jobId: "", message: "request failed, please try again", images: [] };
+        await new Promise((resolve) => setTimeout(resolve, 3000 * (i + 1)));
       }
     }
     return { status: 'error', jobId: "", message: "request failed, please try again", images: [] };
