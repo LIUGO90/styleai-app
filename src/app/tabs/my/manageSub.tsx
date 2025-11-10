@@ -51,48 +51,9 @@ export default function ManageSubScreen() {
   useEffect(() => {
     console.log('📊 [Subscription] Supabase subscriptions:', subscriptions);
     console.log('📊 [Subscription] subscriptionsLoading:', subscriptionsLoading);
-    console.log('📊 [Subscription] Customer Info:', customerInfo);
+    // console.log('📊 [Subscription] Customer Info:', customerInfo);
     console.log('📊 [Subscription] isActive:', isActive);
-    // return;
-    // 优先使用 Supabase 数据
-    if (!subscriptionsLoading && subscriptions.length > 0) {
-      console.log('📊 [Subscription] 使用 Supabase 数据加载订阅信息');
 
-      // 获取第一个活跃订阅（按过期日期排序，最晚的在前）
-      const activeSubscription = subscriptions[0];
-
-      console.log('📊 [Subscription] Active Subscription from Supabase:', {
-        productId: activeSubscription.product_id,
-        productName: activeSubscription.product_name,
-        expirationDate: activeSubscription.expiration_date,
-        willRenew: activeSubscription.will_renew,
-        isActive: activeSubscription.is_active,
-        status: activeSubscription.status,
-      });
-
-      setSubscriptionDetails({
-        productIdentifier: activeSubscription.product_id,
-        expirationDate: activeSubscription.expiration_date,
-        purchaseDate: activeSubscription.purchase_date,
-        originalPurchaseDate: activeSubscription.purchase_date,
-        willRenew: activeSubscription.will_renew,
-        periodType: activeSubscription.subscription_period || 'monthly',
-        isSandbox: false,
-        billingIssueDetectedAt: null,
-        unsubscribeDetectedAt: null,
-      });
-
-      setProductInfo({
-        id: activeSubscription.product_id,
-        name: activeSubscription.product_name || formatProductName(activeSubscription.product_id),
-        period: activeSubscription.subscription_period || 'monthly',
-        isSubscription: true,
-      });
-
-      return;
-    }
-
-    // 如果 Supabase 没有数据，回退到 RevenueCat
     if (customerInfo) {
       console.log('📊 [Subscription] 使用 RevenueCat 数据加载订阅信息');
 

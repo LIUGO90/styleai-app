@@ -374,26 +374,26 @@ export function Chat({
       const hasImage = selectedImage.trim().length > 0;
 
       // 检查用户积分是否足够
-      const requiredCredits = 10; // 需要10积分
-      const availableCredits = credits?.available_credits || 0;
+      // const requiredCredits = 10; // 需要10积分
+      // const availableCredits = credits?.available_credits || 0;
 
-      if (availableCredits < requiredCredits) {
-        Alert.alert(
-          'Insufficient Credits',
-          `This chat may generate images and requires ${requiredCredits} credits per request. You currently have ${availableCredits} credits. Please purchase more credits and try again.`,
-          [
-            {
-              text: 'Buy Credits',
-              onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            }
-          ]
-        );
-        return;
-      }
+      // if (availableCredits < requiredCredits) {
+      //   Alert.alert(
+      //     'Insufficient Credits',
+      //     `This chat may generate images and requires ${requiredCredits} credits per request. You currently have ${availableCredits} credits. Please purchase more credits and try again.`,
+      //     [
+      //       {
+      //         text: 'Buy Credits',
+      //         onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
+      //       },
+      //       {
+      //         text: 'Cancel',
+      //         style: 'cancel'
+      //       }
+      //     ]
+      //   );
+      //   return;
+      // }
 
       // 追踪发送消息事件
       analytics.track('chat_message_sent', {
@@ -498,25 +498,25 @@ export function Chat({
       });
       if (images?.length > 0) {
         addImageLook(user?.id || "", chatType, images);
-        try {
-          const deductSuccess = await paymentService.useCredits(
-            user?.id || '',
-            10 * images.length,
-            'style_analysis',
-            currentSessionId || '',
-            `Style analysis for occasion: ${selectedButtons}`
-          );
+        // try {
+        //   const deductSuccess = await paymentService.useCredits(
+        //     user?.id || '',
+        //     10 * images.length,
+        //     'style_analysis',
+        //     currentSessionId || '',
+        //     `Style analysis for occasion: ${selectedButtons}`
+        //   );
 
-          if (deductSuccess) {
-            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
-            await refreshCredits();
-          } else {
-            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
-          }
+        //   if (deductSuccess) {
+        //     console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+        //     await refreshCredits();
+        //   } else {
+        //     console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+        //   }
 
-        } catch (error) {
-          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
-        }
+        // } catch (error) {
+        //   console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+        // }
       }
     });
 

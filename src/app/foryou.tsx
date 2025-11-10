@@ -362,10 +362,10 @@ export default function ForYouScreen() {
                             router.replace('/tabs/home');
                         }
                     }}
-                    className="p-2 -ml-2"
+                    className="absolute p-2 m-3"
                     activeOpacity={0.7}
                 >
-                    <MaterialCommunityIcons name="arrow-left" size={28} color="#000" />
+                    <MaterialCommunityIcons name="arrow-left" size={32} color="#000" />
                 </TouchableOpacity>
                 <View className="flex-1 items-center">
                     <Text className="text-gray-800 text-lg font-semibold">
@@ -375,7 +375,7 @@ export default function ForYouScreen() {
                         {currentIndex + 1} / {foryou.length}
                     </Text>
                 </View>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     onPress={onRefresh}
                     className="p-2 -mr-2"
                     activeOpacity={0.7}
@@ -386,7 +386,7 @@ export default function ForYouScreen() {
                         size={24}
                         color={refreshing ? "#999" : "#000"}
                     />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* 水平滑动图片列表 */}

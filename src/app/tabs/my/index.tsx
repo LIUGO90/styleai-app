@@ -28,8 +28,9 @@ export default function MyProfile() {
   const [email, setEmail] = useState<string>("");
 
   // 获取订阅状态
-  const { subscriptionStatus, loading: subscriptionLoading } = useSubscription();
-
+  const { subscriptionStatus, isActive, loading: subscriptionLoading } = useSubscription();
+  console.log("🎈isActive", isActive);
+  console.log("🎈subscriptionStatus", subscriptionStatus);
   // Load saved avatar, name, and email
   const loadUserData = async (forceRefresh = false) => {
     try {
@@ -60,7 +61,7 @@ export default function MyProfile() {
             .select('avatar_url')
             .eq('id', user.id)
             .single();
-          
+
           if (profileData?.avatar_url) {
             setUserAvatar(profileData.avatar_url);
             await AsyncStorage.setItem('userAvatar', profileData.avatar_url);
@@ -217,27 +218,27 @@ export default function MyProfile() {
       color: "#f59e0b",
       onPress: () => router.push("/tabs/my/subscription"),
     },
-    {
-      id: "Credits",
-      title: "Test Credits Store",
-      icon: "star" as const,
-      color: "#fbbf24",
-      onPress: () => router.push("/tabs/my/credit"),
-      },{
-        id: "test",
-        title: "测试订阅页面",
-        icon: "star" as const,
-        color: "#fbbf24",
-        onPress: () => router.replace("/onboarding/BaseSix"),
-    },
-    {
-      id: 'credits',
-      icon: 'star',
-      title: 'Test My Credits',
-      subtitle: 'View credit balance and usage',
-      onPress: () => showCreditModal(user?.id || '', "test_my_credits"),
-      color: '#f97316',
-    },
+    // {
+    //   id: "Credits",
+    //   title: "Test Credits Store",
+    //   icon: "star" as const,
+    //   color: "#fbbf24",
+    //   onPress: () => router.push("/tabs/my/credit"),
+    // }, {
+    //   id: "test",
+    //   title: "测试订阅页面",
+    //   icon: "star" as const,
+    //   color: "#fbbf24",
+    //   onPress: () => router.replace("/onboarding/BaseSix"),
+    // },
+    // {
+    //   id: 'credits',
+    //   icon: 'star',
+    //   title: 'Test My Credits',
+    //   subtitle: 'View credit balance and usage',
+    //   onPress: () => showCreditModal(user?.id || '', "test_my_credits"),
+    //   color: '#f97316',
+    // },
 
 
   ];
@@ -247,7 +248,7 @@ export default function MyProfile() {
     try {
       // Force refresh user data including avatar from server
       await loadUserData(true);
-      
+
       Alert.alert("✅ Success", "Profile refreshed successfully!");
 
     } catch (error) {
@@ -392,11 +393,11 @@ export default function MyProfile() {
                 </Text>
                 {/* 只在用户有活跃订阅时显示 Premium 标签 */}
                 {/* {(isActive || isPremium) && ( */}
-                  <View className={`mx-2 px-3 items-center rounded-full ${subscriptionStatus ? "bg-orange-500" : "bg-gray-200"}`}>
-                    <Text className="text-black text-sm mb-1 font-bold italic">
-                      Premium
-                    </Text>
-                  </View>
+                <View className={`mx-2 px-3 items-center rounded-full ${isActive ? "bg-orange-500" : "bg-gray-200"}`}>
+                  <Text className="text-black text-sm mb-1 font-bold italic">
+                    Premium
+                  </Text>
+                </View>
                 {/* )} */}
               </View>
 
