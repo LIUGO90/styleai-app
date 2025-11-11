@@ -61,14 +61,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('App state changed:', state);
         if (state === 'active') {
           // 追踪应用打开/激活
-          analytics.track('app_opened', {
+          analytics.track('[app] app_opened', {
             timestamp: new Date().toISOString(),
             user_id: user.id,
           });
 
         } else if (state === 'background') {
           // 追踪应用进入后台
-          analytics.track('app_backgrounded', {
+          analytics.track('[app] app_backgrounded', {
             timestamp: new Date().toISOString(),
             user_id: user.id,
           });

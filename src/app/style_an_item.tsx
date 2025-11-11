@@ -311,7 +311,7 @@ export default function StyleAnItemScreen() {
 
           updateMessage(newMessage);
         }
-        analytics.track('chat_message_sent', {
+        analytics.chat('send', {
           has_text: newMessage.text.length > 0,
           has_images: newMessage.images.length > 0,
           image_count: newMessage.images.length,
@@ -323,7 +323,7 @@ export default function StyleAnItemScreen() {
         const availableCreditsFirst = credits?.available_credits || 0;
 
         if (availableCreditsFirst < requiredCreditsFirst) {
-          analytics.track('credit_not_enough', {
+          analytics.credits('insufficient', {
             required_credits: requiredCreditsFirst,
             available_credits: availableCreditsFirst,
             source: 'style_an_item',
@@ -360,7 +360,7 @@ export default function StyleAnItemScreen() {
           images = [data.fullBodyPhoto];
           images.push(image);
 
-          analytics.track('chat_message_sending', {
+          analytics.chat('send', {
             has_text: newMessage.text.length > 0,
             has_images: newMessage.images.length > 0,
             image_count: newMessage.images.length,
@@ -374,7 +374,7 @@ export default function StyleAnItemScreen() {
             selectedButtons,
             "",
             images, currentSession?.id || '').then(async ({ status, message, images }) => {
-              analytics.track('chat_message_received', {
+              analytics.chat('received', {
                 has_text: message.length > 0,
                 has_images: images.length > 0,
                 image_count: images.length,
@@ -416,7 +416,7 @@ export default function StyleAnItemScreen() {
                     alt: 'Garment Image',
                   })),
                 });
-                addImageLook(user?.id || "", selectedButtons, images);
+                addImageLook(user?.id || "", Date.now().toString(), 'style_an_item', images);
               } else {
                 dateleMessage(progressMessage1.id);
                 Alert.alert('AI request failed');

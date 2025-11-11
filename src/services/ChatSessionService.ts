@@ -91,10 +91,11 @@ export class ChatSessionService {
     };
     
     // 追踪会话创建
-    analytics.track('chat_session_created', {
+    analytics.chat('session_created', {
       session_id: session.id,
       session_type: type,
       session_title: session.title,
+      source: 'chat_session_service',
     });
     
     sessions.unshift(session); // 添加到开头
@@ -245,10 +246,11 @@ export class ChatSessionService {
 
       // 追踪会话删除
       if (sessionToDelete) {
-        analytics.track('chat_session_deleted', {
+        analytics.chat('session_deleted', {
           session_id: sessionId,
           session_type: sessionToDelete.type,
           message_count: sessionToDelete.messageCount,
+          source: 'chat_session_service',
         });
       }
 

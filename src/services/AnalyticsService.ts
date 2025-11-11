@@ -92,6 +92,87 @@ class AnalyticsService {
       }
     }
   }
+  
+  async credits(
+    creditsName: string,
+    pageProperties?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await amplitude.track(`[credits] ${creditsName}`, {
+        ...pageProperties,
+        creditsName: creditsName,
+      }).promise;
+      
+      if (__DEV__) {
+        console.log(`📄 [Analytics] Page viewed: ${creditsName}`, pageProperties || {});
+      }
+    } catch (error: any) {
+      if (__DEV__) {
+        console.warn(`⚠️ [Analytics] Failed to track page: ${creditsName}`, error?.message || error);
+      }
+    }
+  }
+
+  async http(
+    http: string,
+    pageProperties?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await amplitude.track(`[http] ${http}`, {
+        ...pageProperties,
+        http: http,
+      }).promise;
+      
+      if (__DEV__) {
+        console.log(`📄 [Analytics] Page viewed: ${http}`, pageProperties || {});
+      }
+    } catch (error: any) {
+      if (__DEV__) {
+        console.warn(`⚠️ [Analytics] Failed to track page: ${http}`, error?.message || error);
+      }
+    }
+  }
+
+
+  async image(
+    image: string,
+    pageProperties?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await amplitude.track(`[image] ${image}`, {
+        ...pageProperties,
+        image: image,
+      }).promise;
+      
+      if (__DEV__) {
+        console.log(`📄 [Analytics] Page viewed: ${image}`, pageProperties || {});
+      }
+    } catch (error: any) {
+      if (__DEV__) {
+        console.warn(`⚠️ [Analytics] Failed to track page: ${image}`, error?.message || error);
+      }
+    }
+  }
+
+  async chat(
+    chat: string,
+    pageProperties?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await amplitude.track(`[chat] ${chat}`, {
+        ...pageProperties,
+        chat: chat,
+      }).promise;
+      
+      if (__DEV__) {
+        console.log(`📄 [Analytics] Page viewed: ${chat}`, pageProperties || {});
+      }
+    } catch (error: any) {
+      if (__DEV__) {
+        console.warn(`⚠️ [Analytics] Failed to track page: ${chat}`, error?.message || error);
+      }
+    }
+  }
 
   /**
    * 设置用户属性

@@ -127,7 +127,7 @@ export default function HomeScreen() {
     const trimmedText = inputText.current.trim();
     if (trimmedText) {
       // 追踪从首页发送消息
-      analytics.track('chat_message_sent', {
+      analytics.chat('send', {
         has_text: trimmedText.length > 0,
         has_image: false,
         text_length: trimmedText.length,

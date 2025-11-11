@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetch } from "expo/fetch";
 import { addImageLook } from "./addLookBook";
 import { supabase } from "@/utils/supabase";
+import analytics from "./AnalyticsService";
 
 export interface AIRequestResponse {
   status: string;
@@ -54,6 +55,11 @@ class WebWorkerAIService {
     abortController: AbortController,
   ): Promise<any> {
     console.log("🧐 执行请求", url, data)
+    analytics.http('makeRequest', {
+      url: url,
+      data: data,
+      source: 'web_worker_ai_service',
+    });
     const access_token = await AsyncStorage.getItem("access_token");
     const response = await fetch(url, {
       method: "POST",
@@ -66,11 +72,20 @@ class WebWorkerAIService {
     });
     console.log("🧐 执行请求响应", response)
     if (!response.ok) {
+      analytics.http('request_failed', {
+        url: url,
+        data: data,
+        source: 'web_worker_ai_service',
+      });
       throw new Error(`${response.status}`);
     }
 
     const result = await response.json();
-
+    analytics.http('request_success', {
+      url: url,
+      data: data,
+      source: 'web_worker_ai_service',
+    });
     return result;
   }
 
@@ -220,6 +235,20 @@ class WebWorkerAIService {
   }
 
 
+  async checkImageExist(requestId: string) {
+    const { data: user_images, error } = await supabase.from("user_images").select("image_url").eq("request_id", requestId).single();
+    if (error) {
+      console.log("🧐 检查图片是否存在错误", error)
+      return false;
+    }
+    if (user_images && user_images.image_url && user_images.image_url.length > 0) {
+      return true;
+    }
+    return false;
+  }
+
+
+
   aiRequestForYou(requestId: string, userId: string, imageUrl: string[], prompt: string, options: AIRequestOptions = {}): string[] | PromiseLike<string[]> {
     return new Promise((resolve, reject) => {
       const task: RequestTask = {
@@ -232,9 +261,13 @@ class WebWorkerAIService {
         abortController: new AbortController(),
       };
       this.addToQueue(task);
-    }).then((result) => {
+    }).then(async (result) => {
       if (result && (result as string[]).length > 0) {
-        addImageLook(userId, "foryou", result as string[]);
+        const isExist = await this.checkImageExist(requestId);
+        if (isExist) {
+          return result as string[];
+        }
+        addImageLook(userId, requestId, "foryou", result as string[]);
         return result as string[];
       }
       return [];
@@ -642,3 +675,4 @@ class WebWorkerAIService {
 }
 
 export const webWorkerAIService = WebWorkerAIService.getInstance();
+

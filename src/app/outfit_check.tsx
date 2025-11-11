@@ -170,7 +170,7 @@ export default function OutfitCheckScreen() {
       const requiredCreditsFirst = 10; // 第一次AI请求需要10积分
       const availableCreditsFirst = credits?.available_credits || 0;
       if (availableCreditsFirst < requiredCreditsFirst) {
-        analytics.track('credit_not_enough', {
+        analytics.credits('insufficient', {
           required_credits: requiredCreditsFirst,
           available_credits: availableCreditsFirst,
           source: 'outfit_check',
@@ -195,13 +195,13 @@ export default function OutfitCheckScreen() {
 
       let progressMessage = createProgressMessage(5, "Analyzing your outfit...");
       addMessage(progressMessage);
-      analytics.track('outfit_check_image_uploading', {
+      analytics.chat('image_uploading', {
         has_image: imageUri && imageUri.length > 0,
         source: 'outfit_check',
         session_id: currentSession?.id || '',
       });
       uploadImageForGeminiAnalyze(user?.id || '', imageUri).then(async ({ message, image, uploadedImage }) => {
-        analytics.track('outfit_check_image_received', {
+        analytics.chat('image_uploaded', {
           has_image: image && image.length > 0,
           source: 'outfit_check',
           session_id: currentSession?.id || '',
@@ -243,7 +243,7 @@ export default function OutfitCheckScreen() {
         });
 
         if (image.length > 0) {
-          addImageLook(user?.id || "", 'outfit_check', [image]);
+          addImageLook(user?.id || "", Date.now().toString(), 'outfit_check', [image]);
           // 成功生成图片后，扣除积分
           try {
             const deductSuccess = await paymentService.useCredits(

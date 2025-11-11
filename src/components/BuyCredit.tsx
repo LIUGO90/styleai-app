@@ -144,7 +144,7 @@ export default function BuyCredit() {
             console.log('🔄 Starting purchase...');
 
             // 追踪购买开始
-            await analytics.track('purchase_started', {
+            await analytics.credits('purchase_started', {
                 product_id: creditPackage.package.product.identifier,
                 product_type: 'credits',
                 credits: creditPackage.credits,

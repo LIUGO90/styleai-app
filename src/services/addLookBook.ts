@@ -18,6 +18,7 @@ import { imageUpdateManager } from '@/utils/imageUpdateManager';
  */
 export const addImageLook = async (
     userId: string,
+    requestId: string,
     selectedStyles: ImageStyle,
     imagesUrl: string[],
     title?: string,
@@ -30,6 +31,7 @@ export const addImageLook = async (
         const savedImages = await UserImageService.createImages(
             imagesUrl.map((url, index) => ({
                 user_id: userId,
+                request_id: requestId,
                 image_url: url,
                 style: selectedStyles,
                 title: title || `${selectedStyles} Look ${index + 1}`,

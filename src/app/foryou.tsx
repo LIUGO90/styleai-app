@@ -161,7 +161,7 @@ export default function ForYouScreen() {
 
             if (availableCredits < requiredCredits) {
                 // 追踪积分不足
-                await analytics.track('image_generation_insufficient_credits', {
+                await analytics.credits('insufficient', {
                     template_id: currentTemplateId,
                     template_name: currentTemplate.name,
                     style: imageData.name,
@@ -192,13 +192,6 @@ export default function ForYouScreen() {
             const imageUrl = onboardingDataObj.fullBodyPhoto;
 
             if (!imageUrl) {
-                // 追踪缺少 onboarding 数据
-                await analytics.track('image_generation_missing_onboarding', {
-                    template_id: currentTemplateId,
-                    template_name: currentTemplate.name,
-                    style: imageData.name,
-                    source: 'foryou_page',
-                });
                 showToast({ message: "Please complete onboarding first", type: "error" });
                 // 清除生成状态，因为提前返回了
                 setGenerating(currentTemplateId, false);
@@ -207,7 +200,7 @@ export default function ForYouScreen() {
             const selectedStyles = imageData.name;
 
             // 追踪图像生成开始
-            await analytics.track('image_generation_started', {
+            await analytics.image('generation_started', {
                 template_id: currentTemplateId,
                 template_name: currentTemplate.name,
                 style: selectedStyles,
@@ -249,6 +242,14 @@ export default function ForYouScreen() {
 
                     if (deductSuccess) {
                         console.log(`✅ [ForYou] 成功扣除 ${requiredCredits} 积分`);
+                        await analytics.credits('used', {
+                            template_id: currentTemplateId,
+                            template_name: currentTemplate.name,
+                            style: selectedStyles,
+                            required_credits: requiredCredits,
+                            available_credits: availableCredits,
+                            source: 'foryou_page',
+                        });
                         // 刷新积分信息
                         await refreshCredits();
                         creditsAfter = (credits?.available_credits || availableCredits) - requiredCredits;

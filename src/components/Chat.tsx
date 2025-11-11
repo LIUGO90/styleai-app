@@ -396,7 +396,7 @@ export function Chat({
       // }
 
       // 追踪发送消息事件
-      analytics.track('chat_message_sent', {
+      analytics.chat('send', {
         has_text: messageText.length > 0,
         has_image: hasImage,
         text_length: messageText.length,
@@ -456,7 +456,7 @@ export function Chat({
 
     // 追踪发送消息
     const startTime = Date.now();
-    analytics.track('chat_message_sent', {
+    analytics.chat('send', {
       has_text: message.length > 0,
       has_image: imageUri && imageUri.length > 0,
       text_length: message.length,
@@ -474,7 +474,7 @@ export function Chat({
     chatRequest(user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
       const responseTime = Date.now() - startTime;
       // 追踪接收AI回复
-      analytics.track('chat_message_received', {
+      analytics.chat('received', {
         has_text: message.length > 0,
         has_images: images.length > 0,
         image_count: images.length,
@@ -497,7 +497,7 @@ export function Chat({
         })),
       });
       if (images?.length > 0) {
-        addImageLook(user?.id || "", chatType, images);
+        addImageLook(user?.id || "", Date.now().toString(), chatType, images);
         // try {
         //   const deductSuccess = await paymentService.useCredits(
         //     user?.id || '',
