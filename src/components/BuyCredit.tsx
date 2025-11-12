@@ -7,6 +7,7 @@ import { validatePurchaseResult, validateDatabaseSync, isUserCancelledError } fr
 import { refresh } from "@react-native-community/netinfo";
 import { usePurchase } from "@/hooks/useRevenueCat";
 import { useCreatePayment, useCredits, usePayments } from "@/hooks/usePayment";
+import { useCredit } from "@/contexts/CreditContext";
 import { analytics } from "@/services/AnalyticsService";
 
 
@@ -21,9 +22,15 @@ export interface CreditPackage {
 export default function BuyCredit() {
     const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
     const { restore, restoring, purchase, purchasing } = usePurchase();
-    const { credits, refresh: refreshCredits } = useCredits();
+    // 使用 CreditContext 的积分和刷新方法（全局状态）
+    const { credits, refreshCredits: refreshCreditsContext } = useCredit();
+    // 本地也使用 useCredits 用于显示（备用）
+    const { credits: localCredits, refresh: refreshCreditsLocal } = useCredits();
     const { createPaymentFromRevenueCat } = useCreatePayment();
     const { payments, loading: paymentsLoading, refresh: refreshPayments } = usePayments(); // 从 Supabase 加载
+    
+    // 优先使用 CreditContext 的积分，如果没有则使用本地积分
+    const currentCredits = credits || localCredits;
 
     useEffect(() => {
         loadCreditPackages();
@@ -154,7 +161,7 @@ export default function BuyCredit() {
             });
 
             // 记录购买前的积分余额
-            const creditsBefore = credits?.available_credits || 0;
+            const creditsBefore = currentCredits?.available_credits || 0;
 
             // 1. 通过 RevenueCat 购买
             const result = await purchase(creditPackage.package);
@@ -182,7 +189,9 @@ export default function BuyCredit() {
 
             // 3. 刷新数据
             await refresh(); // 刷新 RevenueCat 数据
-            await refreshCredits(); // 刷新积分余额
+            // 优先刷新 CreditContext 的积分（全局状态），这样所有页面都会自动更新
+            await refreshCreditsContext(); // 刷新全局积分状态
+            await refreshCreditsLocal(); // 也刷新本地积分（备用）
             await refreshPayments(); // 刷新购买记录
 
             // 等待一小段时间让数据更新

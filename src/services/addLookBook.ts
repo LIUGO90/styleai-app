@@ -7,6 +7,23 @@ import { UserImageService } from '@/services/UserImageService';
 import { ImageStyle } from '@/types/userImage.types';
 import { imageUpdateManager } from '@/utils/imageUpdateManager';
 
+
+export const updateImageLook = async (requestId: string, imageUrl: string) => {
+    try {
+        const savedImages = await UserImageService.updateImageByRequestId(requestId, imageUrl);
+        
+        // 如果成功更新了图片，通知 ImageContext 刷新
+        if (savedImages && savedImages.length > 0) {
+            console.log(`🔔 [updateImageLook] 通知图片更新，request_id: ${requestId}`);
+            imageUpdateManager.notifyImageUpdate('lookbook');
+        }
+        
+        return savedImages;
+    } catch (error) {
+        console.error('❌ updateImageLook 异常:', error);
+        throw error;
+    }
+};
 /**
  * 添加 Lookbook 图片到 Supabase
  * @param userId 用户 ID
@@ -38,9 +55,9 @@ export const addImageLook = async (
                 description: description || `Generated outfit in ${selectedStyles} style`,
                 metadata: {
                     ...metadata,
-                    index: index,
-                    total: imagesUrl.length,
-                    generated_at: new Date().toISOString(),
+                    // index: index,
+                    // total: imagesUrl.length,
+                    // generated_at: new Date().toISOString(),
                 },
             }))
         );

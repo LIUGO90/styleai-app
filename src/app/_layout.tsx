@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ChatSessionList } from "@/components/ChatSessionList";
 import revenueCatService from "@/services/RevenueCatService";
+import { ImageProvider } from "@/contexts/ImageContext";
 
 // 忽略 React Native Reanimated 和 RevenueCat 警告
 LogBox.ignoreLogs([
@@ -35,6 +36,32 @@ LogBox.ignoreLogs([
   "Failed to set cookie for key: AMP_TEST",
   "AMP_TEST",
 ]);
+
+// 拦截 console.error 以过滤 Amplitude cookie 相关错误
+// 这是 React Native 环境的正常现象，因为 React Native 不支持 document.cookie
+if (typeof console !== 'undefined' && console.error) {
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    // 检查是否是 Amplitude cookie 相关错误
+    const message = String(args[0] || '');
+    const fullMessage = args.map(arg => String(arg)).join(' ');
+    
+    // 检查错误消息是否包含 Amplitude cookie 相关的关键词
+    const isAmplitudeCookieError = 
+      message.includes('Amplitude Logger') ||
+      fullMessage.includes('Failed to set cookie') ||
+      (fullMessage.includes('Cannot set property') && fullMessage.includes('cookie')) ||
+      fullMessage.includes('AMP_TEST') ||
+      (fullMessage.includes("time zone") && fullMessage.includes("not recognized"));
+    
+    if (isAmplitudeCookieError) {
+      // 静默忽略这些错误（React Native 环境正常现象，不影响功能）
+      return;
+    }
+    // 其他错误正常输出
+    originalError.apply(console, args);
+  };
+}
 
 
 export default function RootLayout() {
@@ -178,7 +205,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <CreditProvider>
-        <ToastProvider>
+        <ImageProvider>
+          <ToastProvider>
           <Drawer
         screenOptions={{
           headerShown: false,
@@ -269,7 +297,8 @@ export default function RootLayout() {
           }}
         />
       </Drawer>
-        </ToastProvider>
+          </ToastProvider>
+        </ImageProvider>
       </CreditProvider>
     </AuthProvider>
   );

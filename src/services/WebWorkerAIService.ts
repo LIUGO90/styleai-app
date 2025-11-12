@@ -1,7 +1,7 @@
 import { OnboardingData } from "@/components/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetch } from "expo/fetch";
-import { addImageLook } from "./addLookBook";
+import { addImageLook, updateImageLook } from "./addLookBook";
 import { supabase } from "@/utils/supabase";
 import analytics from "./AnalyticsService";
 
@@ -262,12 +262,13 @@ class WebWorkerAIService {
       };
       this.addToQueue(task);
     }).then(async (result) => {
+      console.log("🧐 执行ForYou请求", result)
       if (result && (result as string[]).length > 0) {
-        const isExist = await this.checkImageExist(requestId);
-        if (isExist) {
-          return result as string[];
-        }
-        addImageLook(userId, requestId, "foryou", result as string[]);
+        // addImageLook(userId, requestId, "foryou", result as string[]);
+        (result as string[]).forEach(async (imageUrl: string) => {
+          console.log("🧐 更新图片到数据库", requestId, imageUrl)
+          await updateImageLook(requestId, imageUrl);
+        });
         return result as string[];
       }
       return [];

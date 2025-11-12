@@ -52,6 +52,7 @@ export interface UserImage {
 
 export interface CreateUserImageInput {
   user_id: string;
+  request_id: string;
   image_url: string;
   style?: ImageStyle;
   title?: string;

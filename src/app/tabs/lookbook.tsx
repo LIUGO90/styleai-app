@@ -18,17 +18,113 @@ import { imageUpdateManager } from "@/utils/imageUpdateManager";
 import { useGlobalToast } from "@/utils/globalToast";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { analytics } from "@/services/AnalyticsService";
-
-
-interface ImageItem {
-  id: string;
-  image_url: string;
-  style: string;
-}
+import { useImage, type ImageItem } from "@/contexts/ImageContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+/**
+ * 呼吸动画遮罩组件
+ * 
+ * 用于显示图片正在生成中的状态
+ * 动画效果：缩放 + 透明度变化，模拟"呼吸"效果
+ */
+function BreathingAnimationOverlay() {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    /**
+     * 创建呼吸动画
+     * 
+     * 使用 Animated.loop 创建无限循环动画
+     * 同时进行缩放和透明度变化，模拟呼吸效果
+     */
+    const scaleAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.5,  // 轻微放大（8%）
+          duration: 2000, // 2秒放大
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1.0,   // 恢复原大小
+          duration: 2000, // 2秒缩小
+          useNativeDriver: true,
+        }),
+      ]),
+      { iterations: -1 } // 无限循环
+    );
+
+    const opacityAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacityAnim, {
+          toValue: 0.5,   // 更明显
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0.8,   // 更淡
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]),
+      { iterations: -1 }
+    );
+
+    // 同时启动两个动画
+    Animated.parallel([scaleAnimation, opacityAnimation]).start();
+
+    // 清理函数：组件卸载时停止动画
+    return () => {
+      scaleAnim.stopAnimation();
+      opacityAnim.stopAnimation();
+      scaleAnim.setValue(1);
+      opacityAnim.setValue(0.3);
+    };
+  }, [scaleAnim, opacityAnim]);
+
+  return (
+    <Animated.View
+      className="absolute inset-0 rounded-3xl"
+      style={{
+        transform: [{ scale: scaleAnim }],
+        opacity: opacityAnim,
+        backgroundColor: 'rgba(88, 91, 91, 0.3)', // 使用主题色
+      }}
+    >
+      {/* 中心加载指示器和文字 */}
+      <View className="absolute inset-0 justify-center items-center">
+        <View className="bg-white/95 rounded-full p-3 items-center justify-center shadow-lg">
+          <MaterialCommunityIcons name="image-edit-outline" size={24} color="#888888" />
+        </View>
+        <Text className="text-white text-xs font-semibold mt-2 drop-shadow-lg">
+          Generating...
+        </Text>
+      </View>
+      
+      {/* 可选的脉冲效果背景 */}
+      <Animated.View
+        className="absolute inset-0 rounded-3xl"
+        style={{
+          backgroundColor: 'rgba(91, 91, 88, 0.1)',
+          transform: [{ scale: scaleAnim }],
+        }}
+      />
+    </Animated.View>
+  );
+}
+
 export default function LookbookOne() {
+  // 从 ImageContext 获取全局图片状态（自动更新）
+  const { 
+    images: globalImages, 
+    allItems: globalAllItems, 
+    availableStyles: globalAvailableStyles,
+    loading: imagesLoading,
+    refreshImages 
+  } = useImage();
+  
+  // 本地状态（用于过滤等操作）
   const [images, setImages] = useState<ImageItem[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -91,51 +187,73 @@ export default function LookbookOne() {
     }
   }, []);
 
-  const loadCollections = useCallback(async () => {
-
-    try {
-      // 获取所有 items
-      const items = await UserImageService.getUserImages(user?.id || '');
-      setAllItems(items);
-
-      // 提取所有独特的风格
-      const styles = ['All', ...new Set(items.map(item => item.style || 'Unknown').filter(Boolean))];
-      setAvailableStyles(styles);
-
-      // 提取所有图片 URL
-      const allImages: ImageItem[] = items
-        .filter(item => item.image_url && item.image_url.length > 0)
+  // 同步全局状态到本地状态
+  useEffect(() => {
+    // 当全局状态更新时，同步到本地状态
+    console.log(`🔄 [Lookbook] 全局状态更新，同步到本地状态: ${globalImages.length} 张图片`);
+    setAllItems(globalAllItems);
+    setAvailableStyles(globalAvailableStyles);
+    
+    // 根据当前选择的风格过滤图片
+    if (selectedStyle === 'All') {
+      setImages(globalImages);
+    } else {
+      const filteredImages: ImageItem[] = globalAllItems
+        .filter(item => item.style === selectedStyle && item.image_url && item.image_url.length > 0)
         .map(item => ({
           id: item.id,
           image_url: item.image_url,
           style: item.style || 'Unknown',
+          metadata: item.metadata || {},
         }));
-
-      console.log(`✅ 成功获取 ${allImages.length} 张图片，${styles.length - 1} 个风格`);
-      setImages(allImages);
-
-    } catch (error) {
-      console.error('❌ Failed to load lookbook items:', error);
-      Alert.alert('Error', 'Failed to load your lookbook');
+      setImages(filteredImages);
     }
-  }, []);
+  }, [globalImages, globalAllItems, globalAvailableStyles, selectedStyle]);
+
+  // 加载图片（现在只需要刷新全局状态）
+  const loadCollections = useCallback(async () => {
+    if (!user?.id) {
+      console.warn('⚠️ 用户未登录，无法加载图片');
+      return;
+    }
+
+    try {
+      // 刷新全局图片状态（ImageContext 会自动更新所有使用该状态的组件）
+      await refreshImages();
+      console.log('✅ [Lookbook] 图片状态已刷新');
+    } catch (error) {
+      console.error('❌ [Lookbook] 刷新图片失败:', error);
+      Alert.alert('Error', 'Failed to refresh your lookbook');
+    }
+  }, [user?.id, refreshImages]);
 
   // 根据选择的风格过滤图片
   const filterImagesByStyle = useCallback((style: string) => {
     setSelectedStyle(style);
 
     if (style === 'All') {
-      const allImages = allItems
+      const allImages: ImageItem[] = allItems
         .filter(item => item.image_url && item.image_url.length > 0)
-        .map(item => item.image_url);
+        .map(item => ({
+          id: item.id,
+          image_url: item.image_url,
+          style: item.style || 'Unknown',
+          metadata: item.metadata || {},
+        }));
       setImages(allImages);
+      console.log(`🎨 筛选风格: ${style}, 图片数量: ${allImages.length}`);
     } else {
-      const filteredImages = allItems
+      const filteredImages: ImageItem[] = allItems
         .filter(item => item.style === style && item.image_url && item.image_url.length > 0)
-        .map(item => item.image_url);
+        .map(item => ({
+          id: item.id,
+          image_url: item.image_url,
+          style: item.style || 'Unknown',
+          metadata: item.metadata || {},
+        }));
       setImages(filteredImages);
+      console.log(`🎨 筛选风格: ${style}, 图片数量: ${filteredImages.length}`);
     }
-    console.log(`🎨 筛选风格: ${style}, 图片数量: ${images.length}`);
   }, [allItems]);
 
   const handleImagePress = (index: number) => {
@@ -224,10 +342,10 @@ export default function LookbookOne() {
               setSelectionMode(false);
               setSelectedImages(new Set());
 
-              // 重新加载数据
-              await loadCollections();
+              // 刷新全局图片状态（ImageContext 会自动更新所有使用该状态的组件）
+              await refreshImages();
 
-              // 通知其他页面更新
+              // 通知其他页面更新（ImageContext 已经监听，但这里也通知一下以确保同步）
               imageUpdateManager.notifyImageUpdate('lookbook');
 
               showToast({
@@ -270,10 +388,14 @@ export default function LookbookOne() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const currentImageUrl = images[currentIndex];
+              const currentImage = images[currentIndex];
+              if (!currentImage) {
+                Alert.alert('Error', 'Image not found');
+                return;
+              }
 
               // 从 allItems 中找到对应的 item
-              const itemToDelete = allItems.find(item => item.image_url === currentImageUrl);
+              const itemToDelete = allItems.find(item => item.id === currentImage.id);
 
               if (itemToDelete) {
                 // 保存删除前的索引
@@ -285,10 +407,10 @@ export default function LookbookOne() {
 
                 console.log(`✅ 成功删除图片: ${itemToDelete.id}`);
 
-                // 重新加载数据
-                await loadCollections();
+                // 刷新全局图片状态（ImageContext 会自动更新所有使用该状态的组件）
+                await refreshImages();
 
-                // 通知其他页面更新
+                // 通知其他页面更新（ImageContext 已经监听，但这里也通知一下以确保同步）
                 imageUpdateManager.notifyImageUpdate('lookbook');
 
                 // 如果删除后没有图片了，关闭 modal
@@ -336,12 +458,16 @@ export default function LookbookOne() {
   // 分享当前图片
   const handleShareImage = async () => {
     try {
-      const currentImageUrl = images[currentIndex];
+      const currentImage = images[currentIndex];
+      if (!currentImage) {
+        Alert.alert('Error', 'Image not found');
+        return;
+      }
 
       // 使用 React Native 的 Share API
       const result = await Share.share({
         message: 'Check out my look from Magic Lookbook!',
-        url: currentImageUrl.image_url,
+        url: currentImage.image_url,
         title: 'My Lookbook',
       });
 
@@ -375,25 +501,18 @@ export default function LookbookOne() {
       // 滚动到顶部
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
-      loadCollections();
+      // 刷新全局图片状态（ImageContext 会自动处理更新通知）
+      // 注意：ImageContext 已经监听了 imageUpdateManager，所以这里只需要刷新一次
+      refreshImages();
+      
       // 用户进入 lookbook 页面时清除徽章
       clearBadge('lookbook');
 
-      // 监听图片更新事件，实时刷新页面
-      const unsubscribe = imageUpdateManager.addListener((type) => {
-        console.log(`🔄 收到图片更新通知: ${type}，刷新 Lookbook 页面`);
-        // 当有新图片时，自动重新加载
-        if (type === 'lookbook' || type === 'all') {
-          loadCollections();
-        }
-      });
-
-      // 返回清理函数，用户离开页面时清除活动状态和监听器
+      // 返回清理函数，用户离开页面时清除活动状态
       return () => {
         pageActivityManager.clearActivePage();
-        unsubscribe(); // 移除监听器
       };
-    }, [loadCollections])
+    }, [refreshImages])
   );
 
   return (
@@ -511,25 +630,39 @@ export default function LookbookOne() {
           <View className="flex-row flex-wrap justify-between">
             {images.map((image, index) => {
               const isSelected = selectedImages.has(image.image_url);
-
+              
               return (
                 <TouchableOpacity
-                  key={image.id}
+                  key={`${image.id}-${image.image_url}`}
                   className="bg-gray-200 w-[48%] rounded-3xl overflow-hidden relative mb-4"
                   style={{ aspectRatio: 712 / 1247 }}
                   activeOpacity={0.8}
                   onPress={() => handleImagePress(index)}
                 >
                   <Image
-                    key={image.id}
+                    key={`${image.id}-${image.image_url}`}
                     source={{ uri: image.image_url }}
                     style={{ width: '100%', height: '100%' }}
                     contentFit="cover"
-                    placeholder="Loading..."
+                    placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
                     cachePolicy="memory-disk"
                     priority="high"
-                    recyclingKey={image.id}
+                    recyclingKey={`${image.id}-${image.image_url}`}
+                    onProgress={(progress) => {
+                      console.log(`📊 [Lookbook] 图片加载进度: ${progress.loaded}/${progress.total}`);
+                    }}
+                    onLoad={() => {
+                      // console.log(`✅ [Lookbook] 图片加载成功: ${image.image_url}`);
+                    }}
+                    onError={(error) => {
+                      console.error(`❌ [Lookbook] 图片加载失败: ${image.image_url}`, error);
+                    }}
                   />
+
+                  {/* 生成中的呼吸动画遮罩 */}
+                  {!(image.metadata?.state == 'success'|| image.metadata?.generated_at !== undefined) && (
+                    <BreathingAnimationOverlay />
+                  )}
 
                   {/* 选择模式下的复选框 */}
                   {selectionMode && (
@@ -551,6 +684,7 @@ export default function LookbookOne() {
                   )}
                 </TouchableOpacity>
               );
+
             })}
           </View>
         ) : (
@@ -658,7 +792,7 @@ export default function LookbookOne() {
           >
             {images.map((item, index) => (
               <View
-                key={`fullscreen-${index}`}
+                key={`fullscreen-${item.id}-${item.image_url}`}
                 style={{
                   width: SCREEN_WIDTH,
                   height: '100%',
@@ -668,12 +802,13 @@ export default function LookbookOne() {
                 }}
               >
                 <Image
+                  key={`fullscreen-image-${item.id}-${item.image_url}`}
                   source={{ uri: item.image_url }}
                   style={styles.fullscreenImage}
                   contentFit="cover"
                   placeholder="Loading..."
                   cachePolicy="memory-disk"
-                  recyclingKey={item.id}
+                  recyclingKey={`${item.id}-${item.image_url}`}
                 />
               </View>
             ))}

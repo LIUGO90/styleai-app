@@ -47,6 +47,91 @@ export class UserImageService {
   }
 
   /**
+   * 根据 request_id 更新图片 URL 和 metadata
+   * 
+   * @param requestId - 请求 ID
+   * @param imageUrl - 新的图片 URL
+   * @param metadata - 要更新的 metadata（可选，会与现有 metadata 合并）
+   * @param index - 图片索引（可选）
+   * @param total - 图片总数（可选）
+   * 
+   * @returns 更新后的图片记录数组
+   * 
+   * 注意：此函数会合并更新 metadata，而不是完全替换
+   */
+  static async updateImageByRequestId(
+    requestId: string, 
+    imageUrl: string,
+    metadata?: Record<string, any>,
+    index?: number,
+    total?: number
+  ): Promise<UserImage[]> {
+    try {
+      // 先查询现有记录，合并 metadata，然后更新
+      // 使用 maybeSingle() 允许记录不存在的情况
+      const { data: existingData, error: fetchError } = await supabase
+        .from(this.TABLE_NAME)
+        .select('metadata, id')
+        .eq('request_id', requestId)
+        .maybeSingle();
+
+      // 如果记录不存在，记录警告并返回空数组
+      if (fetchError) {
+        console.error('❌ 查询现有记录失败:', fetchError);
+        // 如果是记录不存在的错误，不抛出异常，直接返回
+        if (fetchError.code === 'PGRST116') {
+          console.warn(`⚠️ 未找到 request_id 为 ${requestId} 的记录，无法更新`);
+          return [];
+        }
+        throw fetchError;
+      }
+
+      // 如果记录不存在（maybeSingle 返回 null）
+      if (!existingData) {
+        console.warn(`⚠️ 未找到 request_id 为 ${requestId} 的记录，无法更新`);
+        return [];
+      }
+
+      // 构建新的 metadata，合并现有数据和新数据
+      const updatedMetadata: Record<string, any> = {
+        // 保留现有的 metadata
+        ...(existingData.metadata || {}),
+        // 添加或覆盖新的 metadata
+        ...(metadata || {state:'success'}),
+        // 添加索引和总数（如果提供）
+        ...(index !== undefined && { index }),
+        ...(total !== undefined && { total }),
+        // 更新时间戳
+        generated_at: new Date().toISOString(),
+      };
+
+      // 更新记录
+      const { data, error } = await supabase
+        .from(this.TABLE_NAME)
+        .update({ 
+          image_url: imageUrl,
+          metadata: updatedMetadata,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId)
+        .select();
+
+      if (error) {
+        console.error('❌ 更新图片记录失败:', error);
+        throw error;
+      }
+
+      console.log(`✅ 成功更新图片记录，request_id: ${requestId}`);
+      return (data || []) as UserImage[];
+
+    } catch (error) {
+      console.error('❌ 更新图片记录异常:', error);
+      return [];
+    }
+  }
+
+  
+  /**
    * 批量创建图片记录
    */
   static async createImages(inputs: CreateUserImageInput[]): Promise<UserImage[]> {
@@ -55,6 +140,7 @@ export class UserImageService {
         .from(this.TABLE_NAME)
         .insert(inputs.map(input => ({
           user_id: input.user_id,
+          request_id: input.request_id,
           image_url: input.image_url,
           style: input.style,
           title: input.title,
@@ -111,7 +197,7 @@ export class UserImageService {
       // 排序和分页
       query = query
         .order(orderBy, { ascending: orderDirection === 'asc' });
-        // .range(offset, offset + limit - 1);
+      // .range(offset, offset + limit - 1);
 
       const { data, error } = await query;
 
@@ -319,7 +405,7 @@ export class UserImageService {
   ): Promise<Record<string, UserImage[]>> {
     try {
       const images = await this.getUserImages(userId);
-      
+
       const grouped: Record<string, UserImage[]> = {};
 
       images.forEach(img => {

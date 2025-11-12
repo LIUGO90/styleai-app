@@ -31,7 +31,7 @@ function generateUUID(): string {
  * 格式: {type}_{uuid}_{userId后8位}
  * 例如: foryou_a1b2c3d4-e5f6-4g7h-8i9j-k0l1m2n3o4p5_abcd1234
  */
-function generateRequestId(type: RequestType, userId: string): string {
+export function generateRequestId(type: RequestType, userId: string): string {
   const uuid = generateUUID();
   const userIdSuffix = userId.slice(-8); // 取 userId 后 8 位
   return `${type}_${uuid}_${userIdSuffix}`;
@@ -312,11 +312,12 @@ class PersistentAIService {
    */
   async requestForYou(
     userId: string,
+    requestId: string,
     imageUrl: string[],
     prompt: string,
     options: AIRequestOptions = {}
   ): Promise<string[]> {
-    const requestId = generateRequestId("foryou", userId);
+    // const requestId = generateRequestId("foryou", userId);
 
     const persistedRequest: PersistedRequest = {
       id: requestId,
@@ -427,7 +428,7 @@ class PersistentAIService {
           // 根据类型重新执行
           switch (request.type) {
             case "foryou":
-              await this.requestForYou.apply(this, request.args as [string, string[], string, AIRequestOptions]);
+              await this.requestForYou.apply(this, request.args as [string, string, string[], string, AIRequestOptions]);
               break;
             case "lookbook":
               await this.requestLookbook.apply(this, request.args as [string, string, string[], number, AIRequestOptions]);

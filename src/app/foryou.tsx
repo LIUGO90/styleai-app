@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OnboardingData } from "@/components/types";
 import { aiRequestForYou, aiRequestLookbook } from "@/services/aiReuest";
-import { persistentAIService } from "@/services/PersistentAIService";
+import { generateRequestId, persistentAIService } from "@/services/PersistentAIService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallback } from "react";
 import { incrementBadge } from "@/utils/badgeManager";
@@ -17,7 +17,6 @@ import { StyleTemplate } from "@/types/styleTemplate.types";
 import { useTemplateGenerationStore } from "@/stores/templateGenerationStore";
 import { useGlobalToast } from "@/utils/globalToast";
 import { usePersistentRequests } from "@/hooks/usePersistentRequests";
-import { useCredits } from "@/hooks/usePayment";
 import { useCredit } from "@/contexts/CreditContext";
 import paymentService from "@/services/PaymentService";
 import { supabase } from "@/utils/supabase";
@@ -34,9 +33,8 @@ export default function ForYouScreen() {
     const [reloadKey, setReloadKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
 
-    // 积分相关状态
-    const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
-    const { showCreditModal } = useCredit();
+    // 从 CreditContext 获取积分（全局状态，确保购买后自动更新）
+    const { credits, creditsLoading, refreshCredits, showCreditModal } = useCredit();
 
     // 使用全局 Toast
     const { showToast } = useGlobalToast();
@@ -102,7 +100,10 @@ export default function ForYouScreen() {
                 category: 'features',
                 style: imageData?.name || 'unknown',
             });
-        }, [imageData?.name])
+            
+            // 页面获得焦点时刷新积分，确保积分是最新的（特别是购买后）
+            refreshCredits();
+        }, [imageData?.name, refreshCredits])
     );
 
     useFocusEffect(
@@ -140,6 +141,8 @@ export default function ForYouScreen() {
 
         const currentTemplate = foryou[currentIndex];
         const currentTemplateId = currentTemplate.id;
+        const currentImageUrl = currentTemplate.urls;  // 使用 urls 作为参考图
+        const prompt = currentTemplate.prompt;
 
         // 立即检查并设置生成状态，防止重复点击
         if (isTemplateGenerating(currentTemplateId)) {
@@ -152,8 +155,6 @@ export default function ForYouScreen() {
 
         try {
             // 安全检查：确保数据已加载
-            const currentImageUrl = currentTemplate.urls;  // 使用 urls 作为参考图
-            const prompt = currentTemplate.prompt;
 
             // 检查用户积分
             const requiredCredits = 10;
@@ -177,15 +178,15 @@ export default function ForYouScreen() {
                 });
 
                 // 延迟显示积分购买弹窗，让用户看到提示信息
+                // 注意：购买完成后，CreditContext 会自动刷新积分
                 setTimeout(() => {
-                    showCreditModal(user?.id || '', "foryou_credit_insufficient", async () => {
-                        await refreshCredits();
-                    });
+                    showCreditModal(user?.id || '', "foryou_credit_insufficient");
                 }, 1500);
                 // 清除生成状态，因为提前返回了
                 setGenerating(currentTemplateId, false);
                 return;
             }
+
 
             const onboardingData = await AsyncStorage.getItem("onboardingData") || "{}";
             const onboardingDataObj = JSON.parse(onboardingData) as OnboardingData;
@@ -208,7 +209,11 @@ export default function ForYouScreen() {
                 available_credits: availableCredits,
                 source: 'foryou_page',
             });
-
+            const requestId = generateRequestId('foryou', user?.id || '');
+            addImageLook(user?.id || '', requestId, 'foryou', [currentTemplate.post],undefined,undefined,{
+                foryou_id: currentIndex,
+                template_id: currentTemplateId,
+            });
             // 注意：生成状态已在函数开始时设置，用于防抖
             showToast({ message: "Generating Try-on", type: "info" });
 
@@ -216,6 +221,7 @@ export default function ForYouScreen() {
             const startTime = Date.now();
             const resultLookbook = await persistentAIService.requestForYou(
                 user?.id || '',
+                requestId,
                 [imageUrl, currentImageUrl],
                 prompt,
                 {
