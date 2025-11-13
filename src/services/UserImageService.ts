@@ -102,7 +102,7 @@ export class UserImageService {
         ...(index !== undefined && { index }),
         ...(total !== undefined && { total }),
         // 更新时间戳
-        generated_at: new Date().toISOString(),
+        generated_at: new Date().toLocaleString(),
       };
 
       // 更新记录
@@ -111,7 +111,7 @@ export class UserImageService {
         .update({ 
           image_url: imageUrl,
           metadata: updatedMetadata,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toLocaleString(),
         })
         .eq('request_id', requestId)
         .select();
@@ -272,7 +272,7 @@ export class UserImageService {
     try {
       const { error } = await supabase
         .from(this.TABLE_NAME)
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toLocaleString() })
         .eq('id', imageId);
 
       if (error) {
@@ -341,7 +341,7 @@ export class UserImageService {
     try {
       const { error, count } = await supabase
         .from(this.TABLE_NAME)
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toLocaleString() })
         .in('id', imageIds);
 
       if (error) {

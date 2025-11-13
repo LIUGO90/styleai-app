@@ -62,14 +62,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (state === 'active') {
           // 追踪应用打开/激活
           analytics.track('[app] app_opened', {
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toLocaleString(),
             user_id: user.id,
           });
 
         } else if (state === 'background') {
           // 追踪应用进入后台
           analytics.track('[app] app_backgrounded', {
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toLocaleString(),
             user_id: user.id,
           });
         }
@@ -206,8 +206,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 ...session.user,
                 name: userName,
                 email: userEmail,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
+                created_at: new Date().toLocaleString(),
+                updated_at: new Date().toLocaleString(),
               } as AuthUser);
               
               // 设置 Amplitude 用户ID（即使 profile 查询失败）

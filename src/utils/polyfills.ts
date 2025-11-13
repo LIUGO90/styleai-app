@@ -9,7 +9,7 @@ if (typeof global !== "undefined") {
         if (typeof obj === "string") return obj;
         if (typeof obj === "number") return obj.toString();
         if (typeof obj === "boolean") return obj.toString();
-        if (obj instanceof Date) return obj.toISOString();
+        if (obj instanceof Date) return obj.toLocaleString();
         if (typeof obj === "object") {
           try {
             return JSON.stringify(obj);
@@ -34,8 +34,8 @@ if (typeof global !== "undefined") {
 }
 
 // Ensure Date.prototype methods are available
-if (typeof Date.prototype.toISOString !== "function") {
-  Date.prototype.toISOString = function () {
+if (typeof Date.prototype.toLocaleString !== "function") {
+  Date.prototype.toLocaleString = function () {
     return (
       this.getFullYear() +
       "-" +

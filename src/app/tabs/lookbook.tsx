@@ -58,12 +58,12 @@ function BreathingAnimationOverlay() {
     const opacityAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacityAnim, {
-          toValue: 0.5,   // 更明显
+          toValue: 0.85,   // 更淡
           duration: 2000,
           useNativeDriver: true,
         }),
         Animated.timing(opacityAnim, {
-          toValue: 0.8,   // 更淡
+          toValue: 0.5,   // 更明显
           duration: 2000,
           useNativeDriver: true,
         }),
@@ -89,13 +89,13 @@ function BreathingAnimationOverlay() {
       style={{
         transform: [{ scale: scaleAnim }],
         opacity: opacityAnim,
-        backgroundColor: 'rgba(88, 91, 91, 0.3)', // 使用主题色
+        backgroundColor: 'gray', // 使用主题色
       }}
     >
       {/* 中心加载指示器和文字 */}
       <View className="absolute inset-0 justify-center items-center">
-        <View className="bg-white/95 rounded-full p-3 items-center justify-center shadow-lg">
-          <MaterialCommunityIcons name="image-edit-outline" size={24} color="#888888" />
+        <View className="bg-white rounded-full p-3 items-center justify-center shadow-lg">
+          <MaterialCommunityIcons name="image-edit-outline" size={24} color="black" />
         </View>
         <Text className="text-white text-xs font-semibold mt-2 drop-shadow-lg">
           Generating...
@@ -516,9 +516,9 @@ export default function LookbookOne() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView  edges={["top"]} className="flex-1 bg-white">
       {/* 顶部标题栏 */}
-      <View className="flex-row justify-between items-center px-4 pt-4 pb-3 bg-white border-b border-gray-100">
+      <View className="flex-row justify-between items-center px-4 pb-2 bg-white border-b border-gray-100">
         {selectionMode ? (
           <>
             <TouchableOpacity

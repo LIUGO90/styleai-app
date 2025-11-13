@@ -189,7 +189,7 @@ export class BackgroundTaskService {
         id: Date.now().toString(),
         imageUri,
         messageId,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString(),
       };
 
       uploads.push(newUpload);
@@ -211,7 +211,7 @@ export class BackgroundTaskService {
         ...message,
         id: Date.now().toString(),
         synced: false,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString(),
       };
 
       messages.push(newMessage);
