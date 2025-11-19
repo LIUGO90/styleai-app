@@ -90,7 +90,8 @@ export default function FreeChatScreen() {
         };
 
         if (imageUri && message) {
-          handleSendMessage(message, imageUri);
+          // 直接使用 session.id，因为 currentSession 状态可能还没有更新
+          handleSendMessage(message, imageUri, session?.id);
         } else if (imageUri) {
           initmessages.images = [
             ...(imageUri ? [{
@@ -132,7 +133,8 @@ export default function FreeChatScreen() {
             });
           });
         } else if (message) {
-          handleSendMessage(message);
+          // 直接使用 session.id，因为 currentSession 状态可能还没有更新
+          handleSendMessage(message, undefined, session?.id);
         } else {
           Alert.alert('No message or image provided');
         }
@@ -161,7 +163,7 @@ export default function FreeChatScreen() {
   };
 
 
-  const handleSendMessage = async (message: string, imageUri?: string) => {
+  const handleSendMessage = async (message: string, imageUri?: string, sessionIdOverride?: string) => {
     const usermessageId = generateUniqueId('user_');
     let newMessage: Message = {
       id: usermessageId,
@@ -201,7 +203,8 @@ export default function FreeChatScreen() {
         alt: 'Garment Image',
       },]
     }
-    const currentSessionId = currentSession?.id || '';
+    // 优先使用传入的 sessionId，否则使用 currentSession 状态
+    const currentSessionId = sessionIdOverride || currentSession?.id || '';
     // 追踪发送消息
     const startTime = Date.now();
     analytics.chat('send', {
@@ -245,26 +248,28 @@ export default function FreeChatScreen() {
         })),
       });
       if (images?.length > 0) {
-        addImageLook(user?.id || "", Date.now().toString(), 'free_chat', images);
-        try {
-          const deductSuccess = await paymentService.useCredits(
-            user?.id || '',
-            10 * images.length,
-            'style_analysis',
-            currentSessionId || '',
-            `Free chat for occasion: ${currentSession?.title || ''}`
-          );
+        addImageLook(user?.id || "", Date.now().toString(), 'free_chat', images, {
+          state:'success'
+        });
+        // try {
+        //   const deductSuccess = await paymentService.useCredits(
+        //     user?.id || '',
+        //     10 * images.length,
+        //     'style_analysis',
+        //     currentSessionId || '',
+        //     `Free chat for occasion: ${currentSession?.title || ''}`
+        //   );
 
-          if (deductSuccess) {
-            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
-            await refreshCredits();
-          } else {
-            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
-          }
+        //   if (deductSuccess) {
+        //     console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+        //     await refreshCredits();
+        //   } else {
+        //     console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+        //   }
 
-        } catch (error) {
-          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
-        }
+        // } catch (error) {
+        //   console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+        // }
       }
     });
 

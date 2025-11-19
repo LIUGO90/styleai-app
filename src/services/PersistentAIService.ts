@@ -188,21 +188,21 @@ class PersistentAIService {
       const now = Date.now();
 
       // 过滤掉过期的请求
-      const validRequests = queue.filter((request) => {
-        const age = now - request.timestamp;
-        return age < this.MAX_QUEUE_AGE;
-      });
+      // const validRequests = queue.filter((request) => {
+      //   const age = now - request.timestamp;
+      //   return age < this.MAX_QUEUE_AGE;
+      // });
 
-      if (validRequests.length === 0) {
-        await AsyncStorage.removeItem(this.STORAGE_KEY);
-        console.log("🧹 所有请求已过期，已清理");
-        return;
-      }
+      // if (validRequests.length === 0) {
+      //   await AsyncStorage.removeItem(this.STORAGE_KEY);
+      //   console.log("🧹 所有请求已过期，已清理");
+      //   return;
+      // }
 
-      console.log(`🔄 发现 ${validRequests.length} 个待恢复的请求`);
+      console.log(`🔄 发现 ${queue.length} 个待恢复的请求`);
 
       // 重新提交请求
-      for (const request of validRequests) {
+      for (const request of queue) {
         if (request.retryCount < request.maxRetries) {
           console.log(`  📌 待恢复请求: ${request.type} - ${request.id} (重试次数: ${request.retryCount}/${request.maxRetries})`);
           

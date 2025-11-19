@@ -4,7 +4,7 @@ import { ChatHeader } from "@/components/Chat";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ChatSessionService } from "@/services/ChatSessionService";
 import { Image } from "expo-image";
-import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform, RefreshControl, FlatList } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, TextInput, Alert, Keyboard, TouchableWithoutFeedback, ScrollView, Platform, RefreshControl, FlatList, Animated } from "react-native";
 import { BACKGROUNDS } from "@/config/imagePaths";
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -14,6 +14,7 @@ import { ForYou } from "@/types/styleTemplate.types";
 import { useCredits } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
 import { analytics } from "@/services/AnalyticsService";
+import { shadowStyles } from "@/utils/shadow";
 
 
 
@@ -27,9 +28,12 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const inputText = useRef<string>("");
   const inputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef<Animated.FlatList<any>>(null);
   const [starNumber, setStarNumber] = useState(0);
   const { credits, refresh: refreshCredits } = useCredits();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
+  
   // 加载数据函数
   const loadForYouData = useCallback(async () => {
     const data = await ForYouService.getAllActiveForYou();
@@ -44,7 +48,7 @@ export default function HomeScreen() {
         category: 'main',
         tab: 'home',
       });
-      
+
       refreshCredits();
       scrollViewRef.current?.scrollToOffset({ offset: 0, animated: false });
 
@@ -163,20 +167,55 @@ export default function HomeScreen() {
 
       <SafeAreaView edges={["top"]} className="flex-1">
         {/* Header - 固定在顶部 */}
-        <ChatHeader
-          title="Styla"
-          isOnline={true}
-          showAvatar={false}
-          onMore={handleDrawerOpen}
-          showDrawerButton={true}
-          onStar={() => {
-
+        <Animated.View
+          style={{
+            opacity: scrollY.interpolate({
+              inputRange: [0, 50, 100],
+              outputRange: [1, 0.5, 0],
+              extrapolate: 'clamp',
+            }),
+            transform: [{
+              translateY: scrollY.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, -100],
+                extrapolate: 'clamp',
+              }),
+            }],
           }}
-          startNumber={starNumber}
-        />
+        >
+          <ChatHeader
+            title="Styla"
+            isOnline={true}
+            showAvatar={false}
+            onMore={handleDrawerOpen}
+            showDrawerButton={true}
+            onStar={() => {
 
+            }}
+            startNumber={starNumber}
+          />
+        </Animated.View>
 
-        <View className="flex-col justify-center items-center bg-gray-100 backdrop-blur-sm rounded-2xl w-full p-2">
+        <Animated.View
+          className="flex-col justify-center items-center bg-white backdrop-blur-sm rounded-2xl  p-2 m-4"
+          style={[
+            shadowStyles.medium,
+            {
+              opacity: scrollY.interpolate({
+                inputRange: [0, 50, 100],
+                outputRange: [1, 0.5, 0],
+                extrapolate: 'clamp',
+              }),
+              transform: [{
+                translateY: scrollY.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: [0, -150],
+                  extrapolate: 'clamp',
+                }),
+              }],
+            },
+          ]}
+        >
           <KeyboardAvoidingView
             behavior="padding"
             className="w-full mb-2"
@@ -192,7 +231,7 @@ export default function HomeScreen() {
                 onSubmitEditing={handleSendMessage}
                 returnKeyType="send"
                 blurOnSubmit={false}
-                placeholder="Anything about style..."
+                placeholder="Chat anything about style..."
                 placeholderTextColor="#9CA3AF"
                 multiline={false}
                 maxLength={500}
@@ -209,7 +248,7 @@ export default function HomeScreen() {
           </KeyboardAvoidingView>
 
           {/* 第二行：按钮 */}
-          <View className="flex-row justify-between w-full gap-3">
+          <View className="flex-row w-full gap-2">
 
             <TouchableOpacity
               className="bg-gray-200 rounded-xl p-2 flex-row items-center justify-center"
@@ -218,8 +257,9 @@ export default function HomeScreen() {
             >
               <MaterialCommunityIcons name="camera" size={24} color="#000000" />
             </TouchableOpacity>
+
             <TouchableOpacity
-              className="flex-1 bg-gray-200 rounded-xl p-2 flex-row items-center justify-center"
+              className="bg-gray-200 rounded-xl p-2 items-center justify-center w-auto"
               onPress={async () => {
                 const session = await ChatSessionService.createSession(user?.id || '', "style_an_item");
                 if (session) {
@@ -234,8 +274,9 @@ export default function HomeScreen() {
             >
               <Text className="text-black text-center font-medium">👗Style Item</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              className="flex-1 bg-gray-200 backdrop-blur-sm rounded-xl p-2 flex-row items-center justify-center"
+              className=" bg-gray-200 backdrop-blur-sm rounded-xl p-2 items-center justify-center"
               onPress={async () => {
                 const session = await ChatSessionService.createSession(user?.id || '', "outfit_check");
                 if (session) {
@@ -250,19 +291,37 @@ export default function HomeScreen() {
               <Text className="text-black text-center font-medium">🪞Outfit Check</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          {/* For You 部分 - 显示所有风格图片 */}
-          <View className="flex-1 bg-white rounded-t-3xl px-6 border border-gray-200 w-full">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-2xl font-bold text-black">For You</Text>
-              <Text className="text-gray-500 text-sm">{foryou.length} styles</Text>
-            </View>
+        <Animated.View
+          style={{
+            flex: 1,
+            transform: [{
+              translateY: scrollY.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, -190], // 向上移动，占据 Header 和输入卡片的空间
+                extrapolate: 'clamp',
+              }),
+            }],
+          }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} className="flex-1">
+            {/* For You 部分 - 显示所有风格图片 */}
+            <Animated.View 
+              className="bg-white rounded-t-3xl px-6 border border-gray-200 w-full pb-20"
+              style={{
+                flex: 1,
+                minHeight: '110%', // 确保最小高度为100%
+              }}
+            >
+              <View className="flex-row justify-between items-center">
+                <Text className="text-2xl font-bold text-black">For You</Text>
+                <Text className="text-gray-500 text-sm">{foryou.length} styles</Text>
+              </View>
 
-            {/* 可滚动内容 */}
-            <View className="flex-1">
-              <FlatList
+              {/* 可滚动内容 */}
+              <View className="flex-1 mt-6">
+              <Animated.FlatList
                 ref={scrollViewRef}
                 data={foryou}
                 numColumns={2}
@@ -270,70 +329,72 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{
-                  paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
+                  // paddingBottom: paddingBottom, // 动态底部间距，滑动后减少以消除空白
+                  flexGrow: 1, // 确保内容可以扩展填满空间
                 }}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    colors={['#000000']} // Android 颜色
-                    tintColor="#000000" // iOS 颜色
-                  />
-                }
-                columnWrapperStyle={{ justifyContent: 'space-between' }}
-                renderItem={({ item: image, index }) => (
-                  <TouchableOpacity
-                    className="bg-gray-200 w-[48%] rounded-2xl overflow-hidden relative mb-4"
-                    style={{ aspectRatio: 712 / 1247 }}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      const imageData = {
-                        id: image.id,
-                        name: image.name,
-                        url: image.url
-                      };
-                      router.push({
-                        pathname: "/foryou",
-                        params: {
-                          image: JSON.stringify(imageData)
-                        }
-                      });
-                    }}
-                  >
-                    <Image
-                      key={`style-image-${refreshKey}-${index}-${image.id}`}
-                      source={image.url}
-                      style={{ width: '100%', height: '100%' }}
-                      contentFit="cover"
-                      placeholder="Loading..."
-                      cachePolicy="memory-disk"
-                      priority="high"
-                      recyclingKey={`home-style-${refreshKey}-${index}`}
-                    />
-                    {/* 图片名称标签 */}
-                    <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
-                      <Text className="text-white text-sm font-semibold text-center">
-                        {image.name}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                  { useNativeDriver: true }
                 )}
-              />
-            </View>
+                scrollEventThrottle={16}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      colors={['#000000']} // Android 颜色
+                      tintColor="#000000" // iOS 颜色
+                    />
+                  }
+                  columnWrapperStyle={{ justifyContent: 'space-between' }}
+                  renderItem={({ item: image, index }) => (
+                    <View className="flex-1 items-start w-[48%] px-2 mb-4">
+                      <TouchableOpacity
+                        className="bg-gray-200 rounded-2xl w-full overflow-hidden relative"
+                        style={{ aspectRatio: 712 / 990 }}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          const imageData = {
+                            id: image.id,
+                            name: image.name,
+                            url: image.url
+                          };
+                          router.push({
+                            pathname: "/foryou",
+                            params: {
+                              image: JSON.stringify(imageData)
+                            }
+                          });
+                        }}
+                      >
+                        <Image
+                          key={`style-image-${refreshKey}-${index}-${image.id}`}
+                          source={image.url}
+                          style={{ width: '100%', height: '100%' }}
+                          contentFit="cover"
+                          placeholder="Loading..."
+                          cachePolicy="memory-disk"
+                          priority="high"
+                          recyclingKey={`home-style-${refreshKey}-${index}`}
+                        />
+                      </TouchableOpacity>
+                      {/* 图片名称标签 */}
+                      <View className="flex-col justify-left items-left">
+                        <Text className="text-black font-weight-500 style-medium font-size-14">
+                          {image.name}
+                        </Text>
+                        <Text className="text-gray-500  font-avenirNextDemi font-weight-400 font-size-12 style-regular">
+                          {image.state} outfits
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
 
-          </View>
-        </TouchableWithoutFeedback>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  gradientText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'left',
-    lineHeight: 36,
-    backgroundColor: 'transparent',
-  },
-});

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/utils/supabase';
+import { refreshCreditsGlobal } from '@/stores/creditsStore';
 import type {
   Payment,
   CreatePaymentParams,
@@ -248,6 +249,12 @@ class PaymentService {
       }
 
       console.log(`✅ [PaymentService] Added ${amount} credits to user`);
+      
+      // 更新全局积分 store（异步，不阻塞）
+      refreshCreditsGlobal(userId).catch((error) => {
+        console.error('[PaymentService] Error refreshing credits store:', error);
+      });
+      
       return true;
     } catch (error) {
       console.error('[PaymentService] Exception adding credits:', error);
@@ -294,6 +301,12 @@ class PaymentService {
       }
 
       console.log(`✅ [PaymentService] Used ${amount} credits`);
+      
+      // 更新全局积分 store（异步，不阻塞）
+      refreshCreditsGlobal(userId).catch((error) => {
+        console.error('[PaymentService] Error refreshing credits store:', error);
+      });
+      
       return true;
     } catch (error) {
       console.error('[PaymentService] Exception using credits:', error);

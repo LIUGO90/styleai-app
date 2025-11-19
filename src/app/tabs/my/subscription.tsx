@@ -3,7 +3,9 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Lin
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSubscription, usePurchase, useManageSubscription } from '@/hooks/useRevenueCat';
-import { useActiveSubscriptions, useCreatePayment, useCredits, usePayments } from '@/hooks/usePayment';
+import { useActiveSubscriptions, useCreatePayment, usePayments } from '@/hooks/usePayment';
+import { useCreditsStore } from '@/stores/creditsStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BaseSix from './BaseSix';
 import BuyCredit, { CreditPackage } from '@/components/BuyCredit';
@@ -15,20 +17,32 @@ import { useCallback } from 'react';
 
 export default function SubscriptionScreen() {
   const { isActive, expirationDate, loading, customerInfo } = useSubscription();
-
+  const { user } = useAuth();
   const { subscriptions, loading: subscriptionsLoading, refresh: refreshSubscriptions } = useActiveSubscriptions();
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
 
-  // 页面浏览追踪
+  // 使用 Zustand store 的积分（全局状态，自动更新）
+  const credits = useCreditsStore((state) => state.credits);
+  const refreshCreditsStore = useCreditsStore((state) => state.refreshCredits);
+
+  // 页面浏览追踪和刷新积分
   useFocusEffect(
     useCallback(() => {
       analytics.page('subscription_management', {
         category: 'settings',
         section: 'my',
       });
-    }, [])
+
+      // 进入页面时刷新积分（从全局 store 获取最新数据）
+      if (user?.id) {
+        console.log('🔄 [Subscription] 页面获得焦点，刷新积分数据...');
+        refreshCreditsStore(user.id).catch((error) => {
+          console.error('❌ [Subscription] 刷新积分失败:', error);
+        });
+      }
+    }, [user?.id, refreshCreditsStore])
   );
 
   // 检查是否为订阅产品（而非积分包）

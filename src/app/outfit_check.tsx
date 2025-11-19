@@ -32,7 +32,7 @@ const initMessages: Message[] = [
     id: "1",
     text: "Outfit Check",
     sender: "user",
-    senderName: "AI助手",
+    senderName: "AI",
     timestamp: new Date(Date.now() - 60000),
     showAvatars: true,
   },
@@ -47,7 +47,7 @@ const initMessages: Message[] = [
     id: "3",
     text: "",
     sender: "ai",
-    senderName: "AI助手",
+    senderName: "AI",
     timestamp: new Date(Date.now() - 30000),
     showAvatars: false,
     card: {
@@ -243,7 +243,10 @@ export default function OutfitCheckScreen() {
         });
 
         if (image.length > 0) {
-          addImageLook(user?.id || "", Date.now().toString(), 'outfit_check', [image]);
+          addImageLook(user?.id || "", Date.now().toString(), 'outfit_check', [image], {
+            state: 'success'
+          });
+          
           // 成功生成图片后，扣除积分
           try {
             const deductSuccess = await paymentService.useCredits(

@@ -823,7 +823,7 @@ export default function LookbookOne() {
               bottom: inputBottomPosition
             }}
           >
-            <View className="flex-row items-end bg-white/90 rounded-lg border border-gray-300">
+            <View className="flex-row items-end bg-white/90 rounded-lg border border-gray-300 top-2">
               <TextInput
                 className="flex-1 px-4 py-3 text-black text-base"
                 placeholder="Chat with AI..."

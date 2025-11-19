@@ -38,9 +38,9 @@ export const addImageLook = async (
     requestId: string,
     selectedStyles: ImageStyle,
     imagesUrl: string[],
+    metadata: Record<string, any>,
     title?: string,
     description?: string,
-    metadata?: Record<string, any>
 ) => {
     try {
         console.log(`📸 开始保存 ${imagesUrl.length} 张 ${selectedStyles} 风格的图片...`);

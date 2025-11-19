@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Alert, FlatList, ViewToken, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Alert, FlatList, ViewToken, ActivityIndicator, RefreshControl, Share } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -21,6 +21,7 @@ import { useCredit } from "@/contexts/CreditContext";
 import paymentService from "@/services/PaymentService";
 import { supabase } from "@/utils/supabase";
 import { analytics } from "@/services/AnalyticsService";
+import { shadowStyles } from "@/utils/shadow";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -100,7 +101,7 @@ export default function ForYouScreen() {
                 category: 'features',
                 style: imageData?.name || 'unknown',
             });
-            
+
             // 页面获得焦点时刷新积分，确保积分是最新的（特别是购买后）
             refreshCredits();
         }, [imageData?.name, refreshCredits])
@@ -132,6 +133,56 @@ export default function ForYouScreen() {
             setCurrentIndex(viewableItems[0].index);
         }
     }).current;
+
+    // 使用积分
+    const useCredits = async (currentTemplateId: string, currentTemplateName: string, selectedStyles: string) => {
+        const requiredCredits = 10;
+        const availableCredits = credits?.available_credits || 0;
+        let creditsAfter = availableCredits;
+        try {
+            const deductSuccess = await paymentService.useCredits(
+                user?.id || '',
+                requiredCredits,
+                'image_generation',
+                currentTemplateId,
+                `Generated ${selectedStyles} lookbook`
+            );
+
+            if (deductSuccess) {
+                console.log(`✅ [ForYou] 成功扣除 ${requiredCredits} 积分`);
+                await analytics.credits('used', {
+                    template_id: currentTemplateId,
+                    template_name: currentTemplateName,
+                    style: selectedStyles,
+                    required_credits: requiredCredits,
+                    available_credits: availableCredits,
+                    source: 'foryou_page',
+                });
+                // 刷新积分信息
+                await refreshCredits();
+                creditsAfter = (credits?.available_credits || availableCredits) - requiredCredits;
+
+
+                await analytics.trackCreditUsage(
+                    'image_generation_foryou',
+                    requiredCredits,
+                    creditsAfter,
+                    {
+                        template_id: currentTemplateId,
+                        template_name: currentTemplateName,
+                        style: selectedStyles,
+                    }
+                );
+
+                return true;
+            } else {
+                console.warn('⚠️ [ForYou] 积分扣除失败，但图片已生成');
+            }
+        } catch (creditError) {
+            console.error('❌ [ForYou] 积分扣除异常:', creditError);
+        }
+        return false;
+    }
 
     const handleNext = async () => {
         // 防抖：立即检查并设置生成状态，防止快速重复点击
@@ -209,13 +260,27 @@ export default function ForYouScreen() {
                 available_credits: availableCredits,
                 source: 'foryou_page',
             });
+
+            // 扣除积分
+            const deductSuccess = await useCredits(currentTemplateId, currentTemplate.name, selectedStyles);
+            if (!deductSuccess) {
+                Alert.alert('Insufficient credits', 'You need more credits to generate this lookbook');
+                setGenerating(currentTemplateId, false);
+                return;
+            }
+
             const requestId = generateRequestId('foryou', user?.id || '');
-            addImageLook(user?.id || '', requestId, 'foryou', [currentTemplate.post],undefined,undefined,{
+            addImageLook(user?.id || '', requestId, 'foryou', [currentTemplate.post], {
                 foryou_id: currentIndex,
                 template_id: currentTemplateId,
             });
             // 注意：生成状态已在函数开始时设置，用于防抖
-            showToast({ message: "Generating Try-on", type: "info" });
+            showToast({ message: "Generating Try-on", type: "info",action: {
+                label: "Check the Progress in My Looks",
+                onPress: () => {
+                    router.replace("/tabs/lookbook");
+                }
+            } });
 
             // 使用持久化 AI 服务发起请求，支持中断恢复
             const startTime = Date.now();
@@ -234,65 +299,6 @@ export default function ForYouScreen() {
             const generationTime = Date.now() - startTime;
 
             if (resultLookbook && resultLookbook.length > 0) {
-
-                // 图片生成成功，扣除积分
-                let creditsAfter = availableCredits;
-                try {
-                    const deductSuccess = await paymentService.useCredits(
-                        user?.id || '',
-                        requiredCredits,
-                        'image_generation',
-                        currentTemplateId,
-                        `Generated ${selectedStyles} lookbook`
-                    );
-
-                    if (deductSuccess) {
-                        console.log(`✅ [ForYou] 成功扣除 ${requiredCredits} 积分`);
-                        await analytics.credits('used', {
-                            template_id: currentTemplateId,
-                            template_name: currentTemplate.name,
-                            style: selectedStyles,
-                            required_credits: requiredCredits,
-                            available_credits: availableCredits,
-                            source: 'foryou_page',
-                        });
-                        // 刷新积分信息
-                        await refreshCredits();
-                        creditsAfter = (credits?.available_credits || availableCredits) - requiredCredits;
-                    } else {
-                        console.warn('⚠️ [ForYou] 积分扣除失败，但图片已生成');
-                    }
-                } catch (creditError) {
-                    console.error('❌ [ForYou] 积分扣除异常:', creditError);
-                }
-
-                // 追踪图像生成成功和积分使用
-                await analytics.trackImageGeneration(
-                    selectedStyles,
-                    requiredCredits,
-                    true, // success
-                    {
-                        template_id: currentTemplateId,
-                        template_name: currentTemplate.name,
-                        generation_time_ms: generationTime,
-                        credits_before: availableCredits,
-                        credits_after: creditsAfter,
-                        images_count: resultLookbook.length,
-                        source: 'foryou_page',
-                    }
-                );
-
-                await analytics.trackCreditUsage(
-                    'image_generation_foryou',
-                    requiredCredits,
-                    creditsAfter,
-                    {
-                        template_id: currentTemplateId,
-                        template_name: currentTemplate.name,
-                        style: selectedStyles,
-                    }
-                );
-
                 // 显示成功消息
                 showToast({
                     message: `Your look is ready`,
@@ -432,78 +438,108 @@ export default function ForYouScreen() {
                             extraData={reloadKey}
                         />
 
-                        {/* 页面指示器（圆点） */}
+                        {/* 底部操作栏：分享、导航点、Try On 按钮 */}
                         {foryou.length > 0 && (
-                            <View className="absolute bottom-8 left-0 right-0 flex-row justify-center items-center">
-                                {foryou.map((_, index) => (
+                            <>
+
+                                {/* 中间：页面指示器（圆点） */}
+                                <View className="absolute bottom-24 left-0 right-0 flex-row items-center justify-center">
+                                    {foryou.map((_, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            onPress={() => {
+                                                flatListRef.current?.scrollToIndex({ index, animated: true });
+                                            }}
+                                            className="mx-1"
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.indicator,
+                                                    index === currentIndex ? styles.indicatorActive : styles.indicatorInactive
+                                                ]}
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                <View className="flex-row items-center justify-between px-6 my-2">
+                                    {/* 左侧：分享按钮 */}
                                     <TouchableOpacity
-                                        key={index}
-                                        onPress={() => {
-                                            flatListRef.current?.scrollToIndex({ index, animated: true });
+                                        className="bg-white w-12 h-12 rounded-lg items-center justify-center"
+                                        activeOpacity={0.8}
+                                        onPress={async () => {
+                                            try {
+                                                const currentTemplate = foryou[currentIndex];
+                                                if (!currentTemplate) {
+                                                    Alert.alert('Error', 'No image to share');
+                                                    return;
+                                                }
+
+                                                const result = await Share.share({
+                                                    message: 'Check out this amazing look!',
+                                                    url: currentTemplate.post,
+                                                    title: 'My Style Look',
+                                                });
+
+                                                if (result.action === Share.sharedAction) {
+                                                    console.log('✅ 分享成功');
+                                                    analytics.track('share_foryou', {
+                                                        template_id: currentTemplate.id,
+                                                        template_name: currentTemplate.name,
+                                                        source: 'foryou_screen',
+                                                    });
+                                                } else if (result.action === Share.dismissedAction) {
+                                                    console.log('📤 分享已取消');
+                                                }
+                                            } catch (error) {
+                                                console.error('❌ 分享失败:', error);
+                                                Alert.alert('Error', 'Failed to share. Please try again.');
+                                            }
                                         }}
-                                        className="mx-1"
+                                        style={shadowStyles.small}
                                     >
-                                        <View
-                                            style={[
-                                                styles.indicator,
-                                                index === currentIndex ? styles.indicatorActive : styles.indicatorInactive
-                                            ]}
-                                        />
+                                        <MaterialCommunityIcons name="arrow-up" size={24} color="#000" />
                                     </TouchableOpacity>
-                                ))}
-                            </View>
+
+
+
+                                    {/* 右侧：Try On 按钮 */}
+                                    {!(foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id)) ? (
+                                        <TouchableOpacity
+                                            className="px-6 py-3 rounded-full"
+                                            activeOpacity={0.8}
+                                            onPress={handleNext}
+                                            disabled={
+                                                foryou.length === 0 ||
+                                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
+                                            }
+                                            style={{
+                                                backgroundColor: '#FF7F50', // 珊瑚橙色
+                                                opacity: (foryou.length === 0 || (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))) ? 0.5 : 1,
+                                            }}
+                                        >
+                                            <Text className="text-white text-base font-semibold">
+                                                Try On
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            className="px-8 py-3 rounded-full"
+                                            activeOpacity={1}
+                                            disabled={true}
+                                            style={{
+                                                backgroundColor: '#FFE5D9', // 浅桃色，匹配图片样式
+                                            }}
+                                        >
+                                            <Text className="text-white text-base font-semibold">
+                                                Generating
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </>
                         )}
                     </>
                 )}
-
-            </View>
-
-            {/* Bottom Info Card */}
-            <View className="bg-white border-t border-gray-200 p-2 mx-2 rounded-3xl shadow-lg">
-                <View className="items-center">
-                    {/* 显示当前选择的图片信息 */}
-                    <View className="bg-gray-100 px-4 py-2 rounded-full mb-4">
-                        <Text className="text-gray-600 text-sm">
-                            Selected Look {currentIndex + 1} of {foryou.length}
-                        </Text>
-                    </View>
-
-                    {foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id) ? (
-                        <View className="flex-row  items-center justify-center bg-white border-gray-200 border-2 w-full py-4 rounded-xl">
-
-                            <ActivityIndicator size="small" color="black" />
-                            <Text className="text-black  text-lg font-semibold ml-2">
-                                Generating...
-                            </Text>
-                        </View>
-                    ) : (
-
-                        <TouchableOpacity
-                            className="bg-black w-full py-4 rounded-xl"
-                            activeOpacity={0.8}
-                            onPress={handleNext}
-                            disabled={
-                                foryou.length === 0 ||
-                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
-                            }
-
-                        >
-                            <View className="flex-row items-center justify-center">
-                                <MaterialCommunityIcons name="shimmer" size={20} color="#ffffff" />
-                                <Text className="text-white text-lg font-semibold ml-2">
-                                    Try On This Look
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-
-                    )}
-
-
-                    {/* 提示文字 */}
-                    <Text className="text-gray-500 text-xs text-center mt-3">
-                        Swipe to explore different looks
-                    </Text>
-                </View>
             </View>
         </SafeAreaView>
     );
@@ -516,23 +552,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mainImage: {
-        // width: SCREEN_WIDTH * 0.8,
-        height: SCREEN_HEIGHT * 0.65,
+        width: SCREEN_WIDTH * 0.9,
+        // height: SCREEN_HEIGHT * 0.65,
         aspectRatio: 712 / 1247,  // 使用实际图片的宽高比
-        maxHeight: SCREEN_HEIGHT * 0.65,  // 最大高度限制
+        maxHeight: SCREEN_HEIGHT * 0.8,  // 最大高度限制
         borderRadius: 16,
         overflow: 'hidden',
     },
     indicator: {
+        width: 8,
         height: 8,
         borderRadius: 4,
     },
     indicatorActive: {
-        width: 32,
-        backgroundColor: '#000000',
+        backgroundColor: '#FF7F50', // 珊瑚橙色，匹配 Try On 按钮
     },
     indicatorInactive: {
-        width: 8,
-        backgroundColor: '#9CA3AF',
+        backgroundColor: '#FFFFFF', // 白色圆点
     },
 });

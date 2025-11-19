@@ -101,8 +101,8 @@ export class UserImageService {
         // 添加索引和总数（如果提供）
         ...(index !== undefined && { index }),
         ...(total !== undefined && { total }),
-        // 更新时间戳
-        generated_at: new Date().toLocaleString(),
+        // 更新时间戳（使用 ISO 8601 格式，确保所有设备都能正确解析）
+        generated_at: new Date().toISOString(),
       };
 
       // 更新记录
@@ -111,7 +111,7 @@ export class UserImageService {
         .update({ 
           image_url: imageUrl,
           metadata: updatedMetadata,
-          updated_at: new Date().toLocaleString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('request_id', requestId)
         .select();
@@ -270,9 +270,10 @@ export class UserImageService {
    */
   static async softDeleteImage(imageId: string): Promise<boolean> {
     try {
+      // 使用 ISO 8601 格式，确保所有设备都能正确解析
       const { error } = await supabase
         .from(this.TABLE_NAME)
-        .update({ deleted_at: new Date().toLocaleString() })
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', imageId);
 
       if (error) {
@@ -341,7 +342,7 @@ export class UserImageService {
     try {
       const { error, count } = await supabase
         .from(this.TABLE_NAME)
-        .update({ deleted_at: new Date().toLocaleString() })
+        .update({ deleted_at: new Date().toISOString() })
         .in('id', imageIds);
 
       if (error) {

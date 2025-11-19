@@ -52,8 +52,8 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
             key={image.id || `image-${index}`}
             source={image.url}
             style={{
-              width: 90,
-              height: 180,
+              width: '32%',
+              aspectRatio: 712 / 1245,
               borderRadius: 16
             }}
             contentFit="cover"
@@ -66,11 +66,15 @@ export function renderMessageImages(images: MessageImage[], isUser: boolean) {
   }
   if (images.length === 3) {
     return (
-      <View className="mt-2 flex-row flex-wrap items-center" style={{ gap: 8 }}>
+      <View className="mt-2 flex-row flex-wrap items-center" style={{ gap: 4 }}>
         {images.map((image, index) => (
-          <Image key={image.id || `image-${index}`} source={image.url} style={{
-            height: 180, flexGrow: 1, flexShrink: 0, flexBasis: '30%', borderRadius: 16
-          }} contentFit="cover" transition={200} />
+          <Image
+            key={image.id || `image-${index}`} source={image.url}
+            style={{
+              width: '32%',
+              borderRadius: 16,
+              aspectRatio: 712 / 1245
+            }} contentFit="cover" transition={200} />
         ))}
       </View>
     );

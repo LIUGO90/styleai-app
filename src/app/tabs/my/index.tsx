@@ -16,6 +16,8 @@ import { useSubscription } from "@/hooks/useRevenueCat";
 import { analytics } from "@/services/AnalyticsService";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
+import { shadowStyles } from "@/utils/shadow";
+import { globalToast } from "@/utils/globalToast";
 
 
 export default function MyProfile() {
@@ -24,6 +26,7 @@ export default function MyProfile() {
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userAvatar, setUserAvatar] = useState<string>("");
+  const [avatarKey, setAvatarKey] = useState<string>(""); // 用于强制刷新图片
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
 
@@ -117,17 +120,23 @@ export default function MyProfile() {
       // 3. Save to local AsyncStorage
       const imageUrl = await uploadImageWithFileSystem(user?.id || "", manipResult.uri);
       console.log("🎈imageUrl", imageUrl);
-      await AsyncStorage.setItem('userAvatar', imageUrl || "");;
+      
+      // 更新数据库
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', user?.id || "");
       if (updateError) {
         console.log("error ", updateError)
+        throw new Error(`Failed to update avatar: ${updateError.message}`);
       }
 
-      // 4. Update local state
-      setUserAvatar(imageUrl || "");
+      // 等待数据库更新完成
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // 5. Force refresh the page to ensure latest avatar is displayed
-      await loadUserData(true);
+      // 4. 更新本地存储和状态
+      await AsyncStorage.setItem('userAvatar', imageUrl || "");
+      
+      // 直接更新状态和 key，强制图片重新加载
+      setUserAvatar(imageUrl || "");
+      setAvatarKey(Date.now().toString()); // 更新 key 来强制重新渲染图片
 
       Alert.alert("✅ Success", "Avatar updated successfully!");
 
@@ -218,6 +227,25 @@ export default function MyProfile() {
       color: "#f59e0b",
       onPress: () => router.push("/tabs/my/subscription"),
     },
+    // {
+    //   id: "DebugToast",
+    //   title: "Message Debug",
+    //   icon: "bug" as const,
+    //   color: "#8b5cf6",
+    //   onPress: () => {
+    //     // 测试不同类型的 Toast 消息
+    //     const toastTypes = ['success', 'error', 'info', 'warning'] as const;
+    //     const randomType = toastTypes[Math.floor(Math.random() * toastTypes.length)];
+        
+    //       globalToast.info("Generating Try-on", {
+    //         label: "Check the progress in My Looks",
+    //         onPress: () => {
+    //           router.push("/tabs/lookbook");
+    //         }
+    //       },10000*10);
+
+    //   },
+    // },
     // {
     //   id: "Credits",
     //   title: "Test Credits Store",
@@ -366,7 +394,7 @@ export default function MyProfile() {
               className="relative mr-4 rounded-full"
             >
               <Image
-                source={{ uri: userAvatar }}
+                source={{ uri: userAvatar && avatarKey ? `${userAvatar}?t=${avatarKey}` : userAvatar }}
                 style={{
                   width: 80,
                   height: 80,
@@ -374,6 +402,7 @@ export default function MyProfile() {
                 }}
                 cachePolicy="memory-disk"
                 contentFit="cover"
+                key={avatarKey || userAvatar} // 使用 avatarKey 来强制重新渲染
               />
               {uploading ? (
                 <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
@@ -430,7 +459,7 @@ export default function MyProfile() {
         </View>
 
         {/* Menu Items */}
-        <View className="bg-white rounded-2xl p-4 m-2">
+        <View className="bg-white rounded-2xl p-4 m-4" style={shadowStyles.medium}>
           <Text className="text-lg font-semibold text-gray-800 mb-4">
             Settings & Preferences
           </Text>

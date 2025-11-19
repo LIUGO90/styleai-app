@@ -264,15 +264,31 @@ class WebWorkerAIService {
     }).then(async (result) => {
       console.log("🧐 执行ForYou请求", result)
       if (result && (result as string[]).length > 0) {
-        // addImageLook(userId, requestId, "foryou", result as string[]);
-        (result as string[]).forEach(async (imageUrl: string) => {
-          console.log("🧐 更新图片到数据库", requestId, imageUrl)
-          await updateImageLook(requestId, imageUrl);
-        });
+        // 使用 Promise.all 等待所有异步操作完成，而不是 forEach
+        try {
+          const updatePromises = (result as string[]).map(async (imageUrl: string) => {
+            try {
+              console.log("🧐 更新图片到数据库", requestId, imageUrl)
+              await updateImageLook(requestId, imageUrl);
+              console.log("✅ 图片更新成功", requestId, imageUrl)
+            } catch (error) {
+              console.error(`❌ 更新图片失败 [${imageUrl}]:`, error);
+              // 不抛出错误，继续处理其他图片
+            }
+          });
+          
+          // 等待所有更新操作完成
+          await Promise.all(updatePromises);
+          console.log(`✅ 所有图片更新完成，共 ${(result as string[]).length} 张`);
+        } catch (error) {
+          console.error('❌ 批量更新图片时发生错误:', error);
+          // 即使更新失败，也返回结果，因为图片已经生成
+        }
         return result as string[];
       }
       return [];
     }).catch((error) => {
+      console.error('❌ ForYou请求处理失败:', error);
       throw error;
     });
   }

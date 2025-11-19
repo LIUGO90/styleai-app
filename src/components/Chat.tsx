@@ -497,26 +497,33 @@ export function Chat({
         })),
       });
       if (images?.length > 0) {
-        addImageLook(user?.id || "", Date.now().toString(), chatType, images);
-        // try {
-        //   const deductSuccess = await paymentService.useCredits(
-        //     user?.id || '',
-        //     10 * images.length,
-        //     'style_analysis',
-        //     currentSessionId || '',
-        //     `Style analysis for occasion: ${selectedButtons}`
-        //   );
+        addImageLook(user?.id || "", Date.now().toString(), chatType, images, {
+          state:'success'
+        });
+        analytics.credits('used', {
+          amount: 10 * images.length,
+          source: 'chat_usage',
+          session_id: currentSessionId || '',
+        });
+        try {
+          const deductSuccess = await paymentService.useCredits(
+            user?.id || '',
+            10 * images.length,
+            'chat_usage',
+            currentSessionId || '',
+            `Chat usage for occasion: ${selectedButtons}`
+          );
 
-        //   if (deductSuccess) {
-        //     console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
-        //     await refreshCredits();
-        //   } else {
-        //     console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
-        //   }
+          if (deductSuccess) {
+            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+            await refreshCredits();
+          } else {
+            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+          }
 
-        // } catch (error) {
-        //   console.error('❌ [StyleAnItem] 积分扣除异常:', error);
-        // }
+        } catch (error) {
+          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+        }
       }
     });
 

@@ -121,14 +121,18 @@ export default function Five() {
           // const resultLookbook = ["https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/users/6a4465c8-1970-4398-a271-a747b8aff9a0/gemini_gemini_1760746610422_0.png", "https://aft07xnw52tcy9ig.public.blob.vercel-storage.com/app/users/6a4465c8-1970-4398-a271-a747b8aff9a0/gemini_gemini_1760746610652_1.png"];
 
           imagesUrl.push(...resultLookbook);
-          addImageLook(user?.id || "", selectedStyles[0], imagesUrl.slice(0, 1));
-          addImageLook(user?.id || "", selectedStyles[1], imagesUrl.slice(1, 2));
 
           // 尝试初始化用户积分账户
-          if (user?.id) {
-            await initializeUserCredits(user.id);
-          }
-          
+          addImageLook(user?.id || "", "", selectedStyles[1], imagesUrl.slice(1, 2), {
+            state:'success'
+          }, "onboarding", "onboarding");
+          addImageLook(user?.id || "", "", selectedStyles[1], imagesUrl.slice(1, 2), {
+            state:'success'
+
+          });
+          await initializeUserCredits(user?.id || "");
+
+
         } catch (error) {
           // console.error(`Error generating ${i} lookbook:`, error);
         }

@@ -7,6 +7,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import ToastMessage from 'react-native-toast-message';
 import { Platform, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -32,9 +33,9 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 /**
  * 自定义 Toast 组件 - 匹配设计图
  */
-const CustomToast = ({ text1, text2, onPress, type = 'success' }: any) => {
-  console.log('🎨 CustomToast 渲染:', { text1, text2, type, onPress });
-  
+const CustomToast = ({ text1, text2, onPress, type = 'success', ...props }: any) => {
+  console.log('🎨 CustomToast 渲染:', { text1, text2, type, onPress, hasText1: !!text1, hasText2: !!text2, allProps: props });
+
   const iconConfig = {
     success: { name: 'check-circle' as const, color: '#10b981' },
     error: { name: 'alert-circle' as const, color: '#ef4444' },
@@ -55,17 +56,33 @@ const CustomToast = ({ text1, text2, onPress, type = 'success' }: any) => {
     >
       <View style={styles.customToastContent}>
         {/* 左侧图标 */}
-        <View style={[styles.iconCircle, { borderColor: icon.color }]}>
-          <MaterialCommunityIcons name={icon.name} size={24} color={icon.color} />
-        </View>
+        {type == 'info' ? (
+            <Image
+              source={require('../../assets/wait.gif')}
+              style={styles.gifIcon}
+              contentFit="cover"
+            />
 
-        <Text className='wrap-text' style={styles.mainText}>{text1}</Text>
+        ) : (
+          <View style={[styles.iconCircle, { borderColor: icon.color }]}>
+            <MaterialCommunityIcons name={icon.name} size={24} color={icon.color} />
+          </View>
+        )}
+
+        {/* 中间文本区域 */}
+        <View style={styles.textContainer}>
+          {text1 ? (
+            <Text style={styles.mainText} numberOfLines={2}>{text1}</Text>
+          ) : null}
+          {text2 ? (
+            <Text style={styles.subText} numberOfLines={2}>{text2}</Text>
+          ) : null}
+        </View>
 
         {/* 右侧箭头 - 仅在有有效 onPress 时显示 */}
         {hasValidOnPress && (
           <View style={styles.actionContainer}>
-            <Text style={styles.actionText}>View</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#6b7280" />
           </View>
         )}
       </View>
@@ -101,6 +118,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     } else {
       // 完整用法：传递所有选项
       const duration = options.duration || (options.type === 'info' ? 2000 : 3000);
+
+      console.log('📤 ToastMessage.show 调用:', {
+        type: options.type,
+        text1: options.message,
+        text2: options.action?.label,
+        duration
+      });
 
       ToastMessage.show({
         type: options.type || 'success',
@@ -187,8 +211,8 @@ class GlobalToastManager {
   /**
    * 显示信息消息
    */
-  info(message: string, action?: ToastAction) {
-    this.show({ message, type: 'info', action });
+  info(message: string, action?: ToastAction, duration?: number) {
+    this.show({ message, type: 'info', action, duration });
   }
 
   /**
@@ -221,40 +245,56 @@ const styles = StyleSheet.create({
   customToastContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 300, // 确保 flex 子元素可以正确收缩
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
+  iconCircleInfo: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    backgroundColor: 'transparent',
+  },
   textContainer: {
     flex: 1,
     marginRight: 8,
+    justifyContent: 'center',
+    minWidth: 100, // 设置最小宽度确保文本有空间显示
+    paddingVertical: 2, // 添加垂直内边距确保文本可见
   },
   mainText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: '#000000', // 使用纯黑色确保可见
     marginBottom: 2,
+    lineHeight: 20,
   },
   subText: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '400',
-    color: '#6b7280',
+    color: '#4b5563', // 使用更深的灰色
+    marginTop: 2,
+    lineHeight: 18,
   },
   actionContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
+    justifyContent: 'center',
+    marginLeft: 8,
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#9ca3af',
-    marginRight: 2,
+  gifIcon: {
+    width:56,
+    height:56,
+    borderRadius: 28,
   },
 });

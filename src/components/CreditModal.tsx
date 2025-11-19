@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
+import { useCredit } from '@/contexts/CreditContext';
 import BuyCredit from './BuyCredit';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,11 +27,15 @@ interface CreditModalProps {
 export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) => {
   const { user } = useAuth();
   const router = useRouter();
+  const { refreshCredits } = useCredit();
   const [scaleAnim] = useState(new Animated.Value(0.3));
   const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
     if (visible) {
+      // 每次打开 Modal 时刷新积分，确保显示最新数据
+      refreshCredits();
+      
       // 弹出动画 - 缩放 + 淡入
       Animated.parallel([
         Animated.spring(scaleAnim, {
@@ -60,7 +65,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({ visible, onClose }) =>
       ]).start();
     }
 
-  }, [visible]);
+  }, [visible, refreshCredits]);
 
 
   return (

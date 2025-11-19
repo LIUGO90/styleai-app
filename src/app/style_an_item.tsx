@@ -144,7 +144,7 @@ export default function StyleAnItemScreen() {
   // 积分相关状态
   const { credits, loading: creditsLoading, refresh: refreshCredits } = useCredits();
   const { showCreditModal } = useCredit();
-  
+
   // 页面浏览追踪
   useFocusEffect(
     useCallback(() => {
@@ -274,6 +274,37 @@ export default function StyleAnItemScreen() {
           Alert.alert('Please select an occasion');
           return;
         }
+
+        refreshCredits();
+        // 检查用户积分是否足够（第一次AI请求）
+        const requiredCreditsFirst = 10; // 第一次AI请求需要10积分
+        const availableCreditsFirst = credits?.available_credits || 0;
+
+        if (availableCreditsFirst < requiredCreditsFirst) {
+          analytics.credits('insufficient', {
+            required_credits: requiredCreditsFirst,
+            available_credits: availableCreditsFirst,
+            source: 'style_an_item',
+            session_id: currentSession?.id || '',
+          });
+          Alert.alert(
+            'Insufficient Credits',
+            `Style analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
+            [
+              {
+                text: 'Buy Credits',
+                onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
+              },
+              {
+                text: 'Cancel',
+                style: 'cancel'
+              }
+            ]
+          );
+          return;
+        }
+
+
         dateleMessage(selectedIdRef.current);
         const usermessageId = generateUniqueId('user_');
         let newMessage: Message = {
@@ -318,33 +349,7 @@ export default function StyleAnItemScreen() {
           source: 'style_an_item',
           session_id: currentSession?.id || '',
         });
-        // 检查用户积分是否足够（第一次AI请求）
-        const requiredCreditsFirst = 20; // 第一次AI请求需要10积分
-        const availableCreditsFirst = credits?.available_credits || 0;
 
-        if (availableCreditsFirst < requiredCreditsFirst) {
-          analytics.credits('insufficient', {
-            required_credits: requiredCreditsFirst,
-            available_credits: availableCreditsFirst,
-            source: 'style_an_item',
-            session_id: currentSession?.id || '',
-          });
-          Alert.alert(
-            'Insufficient Credits',
-            `Style analysis requires ${requiredCreditsFirst} credits, but you only have ${availableCreditsFirst} credits. Please purchase more credits and try again.`,
-            [
-              {
-                text: 'Buy Credits',
-                onPress: () => showCreditModal(user?.id || '', "style_an_item_credit_insufficient")
-              },
-              {
-                text: 'Cancel',
-                style: 'cancel'
-              }
-            ]
-          );
-          return;
-        }
 
         progressMessage1.progress = {
           current: 5,
@@ -416,7 +421,9 @@ export default function StyleAnItemScreen() {
                     alt: 'Garment Image',
                   })),
                 });
-                addImageLook(user?.id || "", Date.now().toString(), 'style_an_item', images);
+                addImageLook(user?.id || "", Date.now().toString(), 'style_an_item', images, {
+                  state: 'success'
+                });
               } else {
                 dateleMessage(progressMessage1.id);
                 Alert.alert('AI request failed');

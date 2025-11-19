@@ -10,6 +10,8 @@ export const tabStyles = {
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
+    borderTopLeftRadius: 36, // 左上角圆角
+    borderTopRightRadius: 36, // 右上角圆角
     elevation: 8, // Android 阴影
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
@@ -48,8 +50,8 @@ export const tabStyles = {
   },
 
   // 活跃状态样式
-  activeTintColor: "#0000ff", // teal
-  inactiveTintColor: "#6b7280", // gray-500
+  activeTintColor: "#000000",
+  inactiveTintColor: "#E6E8EC",
 };
 
 // 获取图标大小的函数

@@ -15,7 +15,7 @@ export class ForYouService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .eq('state', 1)
+        .gte('state', 1)
         .order('created_at', { ascending: false });
 
       if (error) {

@@ -2,6 +2,7 @@ import { Tabs, router } from "expo-router";
 import "../../../global.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
+import { View, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { configureWebEnvironment } from "../../utils/web-config";
 import { setupWebPolyfills } from "../../utils/web-polyfill";
@@ -63,15 +64,16 @@ export default function RootLayout() {
   return (
     <AuthGuard>
       <StatusBar style="auto" />
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: tabStyles.activeTintColor,
-          tabBarInactiveTintColor: tabStyles.inactiveTintColor,
-          headerShown: false,
-          ...tabStyles,
-        }}
-        backBehavior="order"
-      >
+      <View className="flex-1 bg-white">
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: tabStyles.activeTintColor,
+            tabBarInactiveTintColor: tabStyles.inactiveTintColor,
+            headerShown: false,
+            ...tabStyles,
+          }}
+          backBehavior="order"
+        >
         <Tabs.Screen
           name="home"
           options={{
@@ -169,7 +171,8 @@ export default function RootLayout() {
           }}
         />
 
-      </Tabs>
+        </Tabs>
+      </View>
     </AuthGuard>
   );
 }
