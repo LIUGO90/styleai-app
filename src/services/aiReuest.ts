@@ -20,6 +20,7 @@ export const analyzeRequest = async (
   });
 };
 export const chatRequest = async (
+  chatType: string,
   userId:string,
   bodyShape: string,
   bodySize: string,
@@ -29,7 +30,7 @@ export const chatRequest = async (
   imageUrl: string[],
   sessionId: string,
 ): Promise<AiRequestResponse> => {
-  return await webWorkerAIService.chatRequest(userId,bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId,{
+  return await webWorkerAIService.chatRequest(chatType,userId,bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId,{
     onProgress: (progress) => {
 
     },

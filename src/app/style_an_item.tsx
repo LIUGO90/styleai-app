@@ -372,7 +372,7 @@ export default function StyleAnItemScreen() {
             source: 'style_an_item',
             session_id: currentSession?.id || '',
           });
-          await chatRequest(user?.id || '',
+          await chatRequest('stylechat', user?.id || '',
             data.bodyType,
             data.bodyStructure,
             data.skinTone,
@@ -628,7 +628,7 @@ export default function StyleAnItemScreen() {
       <Chat
         messages={messages}
         currentSessionId={currentSession?.id || ''}
-        chatType="style_an_item"
+        chatType="stylechat"
         setMessages={setMessages}
         getMessage={getMessage}
         hideMessage={hideMessage}
