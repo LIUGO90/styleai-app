@@ -471,7 +471,7 @@ export function Chat({
     };
     updateMessage(progressMessage);
 
-    chatRequest(user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
+    chatRequest(chatType,user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
       const responseTime = Date.now() - startTime;
       // 追踪接收AI回复
       analytics.chat('received', {

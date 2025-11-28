@@ -59,7 +59,7 @@ if (typeof console !== 'undefined' && console.error) {
       return;
     }
     // 其他错误正常输出
-    originalError.apply(console, args);
+    // originalError.apply(console, args);
   };
 }
 

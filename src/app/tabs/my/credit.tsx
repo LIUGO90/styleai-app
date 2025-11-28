@@ -613,7 +613,7 @@ export default function CreditManagement() {
           <>
             {/* Credits Balance Card */}
             <View className="px-6 mb-6">
-              <View className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-orange-200">
+              <View className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-orange-200" style={{ marginTop: 24 }}>
                 <View className="flex-row items-center justify-between mb-4">
                   <View className="flex-1">
                     <Text className="text-sm text-orange-700 mb-1">Available Credits</Text>
@@ -652,35 +652,51 @@ export default function CreditManagement() {
             {/* Buy Credits Section */}
             {creditPackages.length > 0 && (
               <View className="px-6 mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-4">Buy More Credits</Text>
-                <View className="flex-row flex-wrap justify-between">
-                  {creditPackages.map((creditPkg, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => handlePurchaseCredits(creditPkg)}
-                      disabled={purchasing}
-                      className="w-[32%] bg-white border border-gray-200 rounded-xl p-4 mb-4"
-                    >
-
-                        <Text className="text-orange-500 text-xs font-semibold mb-2">{creditPkg.discount}</Text>
-
-                      
-                      <View className="flex-row items-center mb-3">
-                        <MaterialCommunityIcons name="star" size={20} color="#fbbf24" />
-                        <Text className="text-lg font-bold text-black ml-2">{creditPkg.credits}</Text>
-                      </View>
-                      
-                      <View className={`rounded-lg py-2 ${purchasing ? 'bg-gray-400' : 'bg-orange-500'}`}>
-                        {purchasing ? (
-                          <ActivityIndicator color="white" size="small" />
-                        ) : (
-                          <Text className="text-white text-center font-semibold">
-                            {creditPkg.package.product.priceString}
-                          </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-xl font-bold text-gray-900">Get more credits</Text>
+                  <View className="flex-row items-center">
+                    <MaterialCommunityIcons name="star" size={20} color="#fbbf24" />
+                    <Text className="text-lg font-bold text-gray-900 ml-1">
+                      {credits?.available_credits || 0}
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row flex-wrap">
+                  {creditPackages.map((creditPkg, index) => {
+                    const isLastInRow = (index + 1) % 3 === 0;
+                    const isLastRow = index >= creditPackages.length - 3;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => handlePurchaseCredits(creditPkg)}
+                        disabled={purchasing}
+                        className="bg-white border border-gray-200 rounded-[10px] p-4"
+                        style={{ 
+                          width: '31%',
+                          aspectRatio: 1,
+                          marginRight: isLastInRow ? 0 : 8,
+                          marginBottom: isLastRow ? 0 : 8,
+                        }}
+                      >
+                        <View className="flex-1 justify-between">
+                          <View className="flex-row items-center justify-center mb-2">
+                            <MaterialCommunityIcons name="star" size={20} color="#fbbf24" />
+                            <Text className="text-lg font-bold text-black ml-2">{creditPkg.credits}</Text>
+                          </View>
+                          
+                          <View className={`rounded-full py-2 ${purchasing ? 'bg-gray-400' : 'bg-orange-500'}`}>
+                            {purchasing ? (
+                              <ActivityIndicator color="white" size="small" />
+                            ) : (
+                              <Text className="text-white text-center font-semibold text-sm">
+                                {creditPkg.package.product.priceString}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
             )}
@@ -747,7 +763,7 @@ export default function CreditManagement() {
             )}
 
             {/* Credits Purchase History */}
-            <View className="px-6 mb-6">
+            <View className="px-6 mb-6" style={{ marginTop: 24 }}>
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-lg font-semibold text-gray-900">Credits Purchase History</Text>
                 <TouchableOpacity onPress={() => refreshPayments()}>
@@ -832,7 +848,7 @@ export default function CreditManagement() {
 
 
             {/* Information */}
-            <View className="px-6 mb-6">
+            <View className="px-6 mb-6" style={{ marginTop: 24 }}>
               <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                 <View className="flex-row items-start">
                   <MaterialCommunityIcons name="information" size={20} color="#3b82f6" />

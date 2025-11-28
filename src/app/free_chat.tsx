@@ -5,6 +5,7 @@ import {
   Message,
   MessageButton,
   ImageUploadCallback,
+  OnboardingData,
 } from "@/components/types";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -105,33 +106,63 @@ export default function FreeChatScreen() {
           await ChatSessionService.updateSessionMessages(session?.id || '', [initmessages]);
           let progressMessage = createProgressMessage(5);
           addMessage(progressMessage);
-          uploadImageForGeminiAnalyze(user?.id || '', imageUri || '').then(({ message, image, uploadedImage }) => {
-            updateMessage({
-              ...initmessages,
-              images: [
-                ...(uploadedImage ? [{
-                  id: generateUniqueId('img_'),
-                  url: uploadedImage,
-                  alt: 'Garment Image',
-                }] : []),
-              ],
-              timestamp: new Date(),
-            });
-            dateleMessage(progressMessage.id);
-            addMessage({
-              id: generateUniqueId('msg_'),
-              text: message,
-              sender: "ai",
-              images: [
-                ...(image ? [{
-                  id: generateUniqueId('img_'),
-                  url: image,
-                  alt: 'Garment Image',
-                }] : []),
-              ],
-              timestamp: new Date(),
-            });
+
+          let image: string = '';
+          if (imageUri.startsWith('http')) {
+            image = imageUri;
+          } else {
+            image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+          }
+          analytics.chat('send', {
+            has_text: initmessages.text.length > 0,
+            has_images: initmessages.images.length > 0,
+            image_count: initmessages.images.length,
+            source: 'style_an_item',
+            session_id: currentSession?.id || '',
           });
+          let images: string[] = [];
+          const onboardingData = await AsyncStorage.getItem("onboardingData");
+          if (onboardingData) {
+            const data: OnboardingData = JSON.parse(onboardingData);
+            images = [data.fullBodyPhoto];
+            images.push(image);
+
+
+            // uploadImageForGeminiAnalyze(user?.id || '', imageUri || '').then(({ message, image, uploadedImage }) => {
+            await chatRequest('outfitcheck', user?.id || '',
+              data.bodyType,
+              data.bodyStructure,
+              data.skinTone,
+              "",
+              "",
+              images, currentSession?.id || '').then(async ({ status, message, images }) => {
+                updateMessage({
+                  ...initmessages,
+                  images: [
+                    ...(images ? [{
+                      id: generateUniqueId('img_'),
+                      url: image,
+                      alt: 'Garment Image',
+                    }] : []),
+                  ],
+                  timestamp: new Date(),
+                });
+                dateleMessage(progressMessage.id);
+                addMessage({
+                  id: generateUniqueId('msg_'),
+                  text: message,
+                  sender: "ai",
+                  images: [
+                    ...(image ? [{
+                      id: generateUniqueId('img_'),
+                      url: image,
+                      alt: 'Garment Image',
+                    }] : []),
+                  ],
+                  timestamp: new Date(),
+                });
+              });
+          }
         } else if (message) {
           // 直接使用 session.id，因为 currentSession 状态可能还没有更新
           handleSendMessage(message, undefined, session?.id);
@@ -222,7 +253,7 @@ export default function FreeChatScreen() {
     };
     updateMessage(progressMessage);
 
-    chatRequest(user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
+    chatRequest('freechat', user?.id || '', '', '', '', '', message, [image], currentSessionId).then(async ({ status, message, images }) => {
       const responseTime = Date.now() - startTime;
       // 追踪接收AI回复
       analytics.chat('received', {
@@ -249,27 +280,27 @@ export default function FreeChatScreen() {
       });
       if (images?.length > 0) {
         addImageLook(user?.id || "", Date.now().toString(), 'free_chat', images, {
-          state:'success'
+          state: 'success'
         });
-        // try {
-        //   const deductSuccess = await paymentService.useCredits(
-        //     user?.id || '',
-        //     10 * images.length,
-        //     'style_analysis',
-        //     currentSessionId || '',
-        //     `Free chat for occasion: ${currentSession?.title || ''}`
-        //   );
+        try {
+          const deductSuccess = await paymentService.useCredits(
+            user?.id || '',
+            10 * images.length,
+            'style_analysis',
+            currentSessionId || '',
+            `Free chat for occasion: ${currentSession?.title || ''}`
+          );
 
-        //   if (deductSuccess) {
-        //     console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
-        //     await refreshCredits();
-        //   } else {
-        //     console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
-        //   }
+          if (deductSuccess) {
+            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
+            await refreshCredits();
+          } else {
+            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+          }
 
-        // } catch (error) {
-        //   console.error('❌ [StyleAnItem] 积分扣除异常:', error);
-        // }
+        } catch (error) {
+          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+        }
       }
     });
 
@@ -297,7 +328,7 @@ export default function FreeChatScreen() {
       />
 
       <Chat
-        chatType="free_chat"
+        chatType="freechat"
         currentSessionId={currentSession?.id || ''}
         messages={messages}
         onSendMessage={handleSendMessage}

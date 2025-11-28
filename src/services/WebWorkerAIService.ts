@@ -165,6 +165,7 @@ class WebWorkerAIService {
             args[5],
             args[6],
             args[7],
+            args[8],
             options,
             abortController,
           );
@@ -336,6 +337,7 @@ class WebWorkerAIService {
   }
 
   async chatRequest(
+    chatType: string,
     userId: string,
     bodyShape: string,
     bodySize: string,
@@ -352,7 +354,7 @@ class WebWorkerAIService {
         const controller = new AbortController()
         const response = await this.makeRequest(
           `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
-          { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId, trycount },
+          { chatType, userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId, trycount },
           controller
         );
         setTimeout(() => {
@@ -461,6 +463,7 @@ class WebWorkerAIService {
    * 执行Chat请求的具体实现
    */
   private async executeChatRequest(
+    chatType: string,
     userId: string,
     bodyShape: string,
     bodySize: string,
@@ -476,7 +479,7 @@ class WebWorkerAIService {
 
     const response = await this.makeRequest(
       `${process.env.EXPO_PUBLIC_API_URL}/api/apple/chat`,
-      { userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
+      { chatType, userId, bodyShape, bodySize, skinTone, stylePreferences, message, imageUrl, sessionId },
       abortController,
     );
     options.onProgress?.(80);

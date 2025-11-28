@@ -51,7 +51,7 @@ export interface ImageUploadCallback {
 // 聊天组件属性
 export interface ChatProps {
   currentSessionId: string;
-  chatType: "free_chat" | "style_an_item" | "outfit_check",
+  chatType: "freechat" | "stylechat" | "outfitcheck",
   messages?: Message[];
   onSendMessage?: (message: string,imageUri?: string) => void;
   onTyping?: (isTyping: boolean) => void;

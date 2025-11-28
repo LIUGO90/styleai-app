@@ -15,7 +15,8 @@ export class ForYouService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .gte('state', 1)
+        .eq('state', 1)
+        .order('order', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -24,6 +25,7 @@ export class ForYouService {
       }
 
       console.log(`✅ [ForYouService] 获取到 ${data?.length || 0} 个 ForYou 项目`);
+
       return data as ForYou[];
     } catch (error) {
       console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);

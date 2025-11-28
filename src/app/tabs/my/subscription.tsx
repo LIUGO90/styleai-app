@@ -220,16 +220,16 @@ export default function SubscriptionScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-6 pt-4 pb-2">
-        <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-center px-6 py-1">
+        <Text className="text-black text-xl font-bold text-center">Credits Store</Text>
+
           <TouchableOpacity
             onPress={() => router.replace("/tabs/my")}
-            className="p-2"
+            className="p-2 absolute left-4"
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
-          <Text className="text-black text-xl font-bold">Subscription</Text>
-          <View className="flex-row items-center">
+          <View className="flex-row items-center absolute right-4">
             <TouchableOpacity
               onPress={handleRefresh}
               disabled={subscriptionsLoading}
@@ -248,7 +248,6 @@ export default function SubscriptionScreen() {
               <MaterialCommunityIcons name="information-outline" size={24} color="black" />
             </TouchableOpacity>
           </View>
-        </View>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

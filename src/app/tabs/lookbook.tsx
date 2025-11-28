@@ -518,7 +518,7 @@ export default function LookbookOne() {
   return (
     <SafeAreaView  edges={["top"]} className="flex-1 bg-white">
       {/* 顶部标题栏 */}
-      <View className="flex-row justify-between items-center px-4 pb-2 bg-white border-b border-gray-100">
+      <View className="flex-row justify-between items-center bg-white" style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
         {selectionMode ? (
           <>
             <TouchableOpacity
@@ -546,7 +546,16 @@ export default function LookbookOne() {
           </>
         ) : (
           <>
-            <Text className="text-2xl font-bold text-black">MY LOOKBOOK</Text>
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="mr-2"
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="chevron-left" size={28} color="#000" />
+              </TouchableOpacity>
+              <Text className="text-xl font-bold text-black">My Looks</Text>
+            </View>
             <View className="flex-row items-center gap-2">
               <TouchableOpacity
                 onPress={toggleSelectionMode}
@@ -555,21 +564,6 @@ export default function LookbookOne() {
               >
                 <MaterialCommunityIcons name="checkbox-multiple-marked" size={20} color="#000" />
               </TouchableOpacity>
-
-              {/* <TouchableOpacity
-                onPress={() => setShowStyleFilter(!showStyleFilter)}
-                className="bg-black px-4 py-2 rounded-full flex-row items-center"
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name={showStyleFilter ? "close" : "filter-variant"}
-                  size={18}
-                  color="#fff"
-                />
-                <Text className="text-white text-sm font-medium ml-1">
-                  {selectedStyle === 'All' ? 'Filter' : selectedStyle}
-                </Text>
-              </TouchableOpacity> */}
             </View>
           </>
         )}
@@ -611,9 +605,11 @@ export default function LookbookOne() {
 
       <ScrollView
         ref={scrollViewRef}
-        className="flex-1 px-4 pt-4"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          paddingHorizontal: 16, // 左右边距 16pt
+          paddingTop: 16, // 内容之间的行间距 16pt
           paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
         }}
       >
@@ -630,12 +626,19 @@ export default function LookbookOne() {
           <View className="flex-row flex-wrap justify-between">
             {images.map((image, index) => {
               const isSelected = selectedImages.has(image.image_url);
+              const isEven = index % 2 === 0;
               
               return (
                 <TouchableOpacity
                   key={`${image.id}-${image.image_url}`}
-                  className="bg-gray-200 w-[48%] rounded-3xl overflow-hidden relative mb-4"
-                  style={{ aspectRatio: 712 / 1247 }}
+                  className="bg-gray-200 overflow-hidden relative"
+                  style={{ 
+                    width: '48%',
+                    aspectRatio: 3 / 4, // 缩略图比例 3:4
+                    borderRadius: 10, // 圆角 10
+                    marginBottom: 16, // 内容之间的行间距 16pt
+                    marginRight: isEven ? 12 : 0, // 列间距 12pt
+                  }}
                   activeOpacity={0.8}
                   onPress={() => handleImagePress(index)}
                 >
@@ -748,13 +751,13 @@ export default function LookbookOne() {
 
             {/* Action buttons row */}
             <View className="flex-row justify-center items-center gap-4">
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={handleShareImage}
                 className="bg-white/20 p-3 rounded-full"
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons name="share-variant" size={24} color="#black" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
 
               <TouchableOpacity
@@ -800,6 +803,7 @@ export default function LookbookOne() {
                   alignItems: 'center',
                   // backgroundColor: index % 2 === 0 ? '#f5f5f5' : '#e8e8e8', // 交替背景色，便于调试
                 }}
+                // className="py-2"
               >
                 <Image
                   key={`fullscreen-image-${item.id}-${item.image_url}`}
@@ -823,7 +827,7 @@ export default function LookbookOne() {
               bottom: inputBottomPosition
             }}
           >
-            <View className="flex-row items-end bg-white/90 rounded-lg border border-gray-300 top-2">
+            <View className="flex-row items-end bg-white/90 rounded-lg border border-gray-300 top-2 ">
               <TextInput
                 className="flex-1 px-4 py-3 text-black text-base"
                 placeholder="Chat with AI..."

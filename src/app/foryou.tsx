@@ -14,6 +14,7 @@ import { incrementBadge } from "@/utils/badgeManager";
 import { addImageLook } from "@/services/addLookBook";
 import { StyleTemplateService } from "@/services/StyleTemplateService";
 import { StyleTemplate } from "@/types/styleTemplate.types";
+import { ShopLookService, ShopLook } from "@/services/ShopLookService";
 import { useTemplateGenerationStore } from "@/stores/templateGenerationStore";
 import { useGlobalToast } from "@/utils/globalToast";
 import { usePersistentRequests } from "@/hooks/usePersistentRequests";
@@ -22,6 +23,8 @@ import paymentService from "@/services/PaymentService";
 import { supabase } from "@/utils/supabase";
 import { analytics } from "@/services/AnalyticsService";
 import { shadowStyles } from "@/utils/shadow";
+import { ScrollView } from "react-native-gesture-handler";
+import * as Linking from "expo-linking";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -47,6 +50,7 @@ export default function ForYouScreen() {
     const imageData = params.image ? JSON.parse(params.image as string) : null;
 
     const [foryou, setForyou] = useState<StyleTemplate[]>([]);
+    const [shoplooksMap, setShoplooksMap] = useState<Map<string, ShopLook[]>>(new Map());
 
     // 使用持久化请求 Hook（启用自动恢复）
     const { pendingRequests, isRestoring, isInitialized, setAutoRestore } = usePersistentRequests({
@@ -60,6 +64,22 @@ export default function ForYouScreen() {
         }
     });
 
+    // 获取单个模板的 ShopLook
+    const getShoplook = async (lookId: string) => {
+        const shoplooks = await ShopLookService.getShopLookByLookid(lookId);
+        return shoplooks;
+    };
+
+    // 批量加载所有模板的 ShopLook
+    const loadShoplooks = async (templates: StyleTemplate[]) => {
+        if (templates.length === 0) return;
+
+        const lookIds = templates.map(t => t.id);
+        const shoplooksData = await ShopLookService.getShopLooksByLookIds(lookIds);
+        console.log(`✅ [ForYou] shoplooksData size: ${shoplooksData.size}, keys: ${[...shoplooksData.keys()].join(',')}`);
+        setShoplooksMap(shoplooksData);
+        console.log(`✅ [ForYou] 加载 ShopLook 完成，共 ${shoplooksData.size} 个模板有关联资源`);
+    };
     // 加载模板数据的函数
     const loadTemplates = async () => {
         if (imageData?.name) {
@@ -70,6 +90,9 @@ export default function ForYouScreen() {
                 if (templates && templates.length > 0) {
                     setForyou(templates);
                     setCurrentIndex(0);
+
+                    // 加载关联的 ShopLook 资源
+                    await loadShoplooks(templates);
 
                     // 确保数据设置后再滚动
                     setTimeout(() => {
@@ -275,12 +298,14 @@ export default function ForYouScreen() {
                 template_id: currentTemplateId,
             });
             // 注意：生成状态已在函数开始时设置，用于防抖
-            showToast({ message: "Generating Try-on", type: "info",action: {
-                label: "Check the Progress in My Looks",
-                onPress: () => {
-                    router.replace("/tabs/lookbook");
+            showToast({
+                message: "Generating Try-on", type: "info", action: {
+                    label: "Check the Progress in My Looks",
+                    onPress: () => {
+                        router.replace("/tabs/lookbook");
+                    }
                 }
-            } });
+            });
 
             // 使用持久化 AI 服务发起请求，支持中断恢复
             const startTime = Date.now();
@@ -423,121 +448,150 @@ export default function ForYouScreen() {
                             }}
                             keyExtractor={(item, index) => `image-${item.id}-${index}-${reloadKey}`}
                             renderItem={({ item, index }) => (
-                                <View style={styles.imageContainer}>
-                                    <Image
-                                        source={{ uri: item.post }}
-                                        style={styles.mainImage}
-                                        contentFit="cover"
-                                        placeholder="Loading..."
-                                        cachePolicy="memory-disk"
-                                        priority="high"
-                                        recyclingKey={`foryou-${item.id}-${index}-${reloadKey}`}
-                                    />
-                                </View>
+                                <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 200 }}>
+                                    <View style={styles.imageContainer}>
+                                        <Image
+                                            source={{ uri: item.post }}
+                                            style={styles.mainImage}
+                                            contentFit="cover"
+                                            placeholder="Loading..."
+                                            cachePolicy="memory-disk"
+                                            priority="high"
+                                            recyclingKey={`foryou-${item.id}-${index}-${reloadKey}`}
+                                        />
+                                        {/* 中间：页面指示器（圆点） */}
+                                        <View className="absolute bottom-12 left-0 right-0 flex-row items-center justify-center">
+                                            {foryou.map((_, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    onPress={() => {
+                                                        flatListRef.current?.scrollToIndex({ index, animated: true });
+                                                    }}
+                                                    className="mx-1"
+                                                >
+                                                    <View
+                                                        style={[
+                                                            styles.indicator,
+                                                            index === currentIndex ? styles.indicatorActive : styles.indicatorInactive
+                                                        ]}
+                                                    />
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+
+                                    {/* 操作按钮区域 */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 16, marginTop: 16 }}>
+                                        {/* 分享按钮 */}
+                                        {/* <TouchableOpacity
+                                            style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...shadowStyles.small }}
+                                            activeOpacity={0.8}
+                                            onPress={async () => {
+                                                try {
+                                                    const currentTemplate = foryou[currentIndex];
+                                                    if (!currentTemplate) return;
+                                                    await Share.share({
+                                                        message: 'Check out this amazing look!',
+                                                        url: currentTemplate.post,
+                                                        title: 'My Style Look',
+                                                    });
+                                                } catch (error) {
+                                                    console.error('分享失败:', error);
+                                                }
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name="export-variant" size={24} color="#000" />
+                                        </TouchableOpacity> */}
+
+                                        {/* Try On 按钮 */}
+                                        {!(foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id)) ? (
+                                            <TouchableOpacity
+                                                style={{
+                                                    paddingHorizontal: 36,
+                                                    paddingVertical: 10,
+                                                    borderRadius: 999,
+                                                    backgroundColor: '#FF7F50',
+                                                    opacity: (foryou.length === 0 || (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))) ? 0.5 : 1,
+                                                }}
+                                                activeOpacity={0.8}
+                                                onPress={handleNext}
+                                                disabled={
+                                                    foryou.length === 0 ||
+                                                    (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
+                                                }
+                                            >
+                                                <Text className="text-white text-lg font-semibold">
+                                                    Try On
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <TouchableOpacity
+                                                style={{
+                                                    paddingHorizontal: 48,
+                                                    paddingVertical: 14,
+                                                    borderRadius: 999,
+                                                    backgroundColor: '#FFE5D9',
+                                                }}
+                                                activeOpacity={1}
+                                                disabled={true}
+                                            >
+                                                <Text className="text-white text-base font-semibold">
+                                                    Generating
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+
+                                    {/* Shop this look 区块 */}
+                                    {foryou[currentIndex] && (shoplooksMap.get(foryou[currentIndex].id)?.length ?? 0) > 0 && (
+                                        <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+                                            <Text className="text-xl font-semibold text-gray-900 mb-4">Shop this look</Text>
+                                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                                                {(shoplooksMap.get(foryou[currentIndex].id) || []).map((shoplook, idx) => (
+                                                    <TouchableOpacity
+                                                        key={shoplook.id}
+                                                        style={[styles.shopCard, { marginRight: idx % 2 === 0 ? 12 : 0 }]}
+                                                        activeOpacity={0.8}
+                                                        onPress={() => {
+                                                            if (shoplook.resource?.shopurl) {
+                                                                // 使用外部浏览器打开
+                                                                Linking.openURL(shoplook.resource.shopurl);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {shoplook.resource?.url && (
+                                                            <Image
+                                                                source={{ uri: shoplook.resource.url }}
+                                                                style={styles.shopImage}
+                                                                contentFit="contain"
+                                                            />
+                                                        )}
+                                                        {/* 商品信息 */}
+                                                        <View style={{ paddingVertical: 8 }}>
+                                                            {shoplook.resource?.name && (
+                                                                <Text
+                                                                    className="text-sm text-gray-900 font-medium"
+                                                                    numberOfLines={1}
+                                                                >
+                                                                    {shoplook.resource.name}
+                                                                </Text>
+                                                            )}
+                                                            {/* 价格信息 - 如果有的话
+                                                            {shoplook.resource?.type && (
+                                                                <Text className="text-xs text-gray-500 mt-1">
+                                                                    {shoplook.resource.type}
+                                                                </Text>
+                                                            )} */}
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </ScrollView>
                             )}
                             extraData={reloadKey}
                         />
-
-                        {/* 底部操作栏：分享、导航点、Try On 按钮 */}
-                        {foryou.length > 0 && (
-                            <>
-
-                                {/* 中间：页面指示器（圆点） */}
-                                <View className="absolute bottom-24 left-0 right-0 flex-row items-center justify-center">
-                                    {foryou.map((_, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            onPress={() => {
-                                                flatListRef.current?.scrollToIndex({ index, animated: true });
-                                            }}
-                                            className="mx-1"
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.indicator,
-                                                    index === currentIndex ? styles.indicatorActive : styles.indicatorInactive
-                                                ]}
-                                            />
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                                <View className="flex-row items-center justify-between px-6 my-2">
-                                    {/* 左侧：分享按钮 */}
-                                    <TouchableOpacity
-                                        className="bg-white w-12 h-12 rounded-lg items-center justify-center"
-                                        activeOpacity={0.8}
-                                        onPress={async () => {
-                                            try {
-                                                const currentTemplate = foryou[currentIndex];
-                                                if (!currentTemplate) {
-                                                    Alert.alert('Error', 'No image to share');
-                                                    return;
-                                                }
-
-                                                const result = await Share.share({
-                                                    message: 'Check out this amazing look!',
-                                                    url: currentTemplate.post,
-                                                    title: 'My Style Look',
-                                                });
-
-                                                if (result.action === Share.sharedAction) {
-                                                    console.log('✅ 分享成功');
-                                                    analytics.track('share_foryou', {
-                                                        template_id: currentTemplate.id,
-                                                        template_name: currentTemplate.name,
-                                                        source: 'foryou_screen',
-                                                    });
-                                                } else if (result.action === Share.dismissedAction) {
-                                                    console.log('📤 分享已取消');
-                                                }
-                                            } catch (error) {
-                                                console.error('❌ 分享失败:', error);
-                                                Alert.alert('Error', 'Failed to share. Please try again.');
-                                            }
-                                        }}
-                                        style={shadowStyles.small}
-                                    >
-                                        <MaterialCommunityIcons name="arrow-up" size={24} color="#000" />
-                                    </TouchableOpacity>
-
-
-
-                                    {/* 右侧：Try On 按钮 */}
-                                    {!(foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id)) ? (
-                                        <TouchableOpacity
-                                            className="px-6 py-3 rounded-full"
-                                            activeOpacity={0.8}
-                                            onPress={handleNext}
-                                            disabled={
-                                                foryou.length === 0 ||
-                                                (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))
-                                            }
-                                            style={{
-                                                backgroundColor: '#FF7F50', // 珊瑚橙色
-                                                opacity: (foryou.length === 0 || (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))) ? 0.5 : 1,
-                                            }}
-                                        >
-                                            <Text className="text-white text-base font-semibold">
-                                                Try On
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <TouchableOpacity
-                                            className="px-8 py-3 rounded-full"
-                                            activeOpacity={1}
-                                            disabled={true}
-                                            style={{
-                                                backgroundColor: '#FFE5D9', // 浅桃色，匹配图片样式
-                                            }}
-                                        >
-                                            <Text className="text-white text-base font-semibold">
-                                                Generating
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            </>
-                        )}
                     </>
                 )}
             </View>
@@ -548,15 +602,13 @@ export default function ForYouScreen() {
 const styles = StyleSheet.create({
     imageContainer: {
         width: SCREEN_WIDTH,
-        justifyContent: 'center',
-        alignItems: 'center',
+        paddingHorizontal: 16, // 左右边距 16pt
+        paddingTop: 16, // 内容之间的行间距 16pt
     },
     mainImage: {
-        width: SCREEN_WIDTH * 0.9,
-        // height: SCREEN_HEIGHT * 0.65,
-        aspectRatio: 712 / 1247,  // 使用实际图片的宽高比
-        maxHeight: SCREEN_HEIGHT * 0.8,  // 最大高度限制
-        borderRadius: 16,
+        width: SCREEN_WIDTH - 32, // 减去左右边距
+        aspectRatio: 2 / 3, // look详情图比例 2:3
+        borderRadius: 10, // 圆角 10
         overflow: 'hidden',
     },
     indicator: {
@@ -569,5 +621,17 @@ const styles = StyleSheet.create({
     },
     indicatorInactive: {
         backgroundColor: '#FFFFFF', // 白色圆点
+    },
+    // 商品卡片样式
+    shopCard: {
+        width: (SCREEN_WIDTH - 32 - 12) / 2, // 两列，减去边距和间距
+        borderRadius: 10, // 圆角 10
+        backgroundColor: '#fff',
+        marginBottom: 16, // 内容之间的行间距 16pt
+    },
+    shopImage: {
+        width: '100%',
+        aspectRatio: 1, // 商品缩略图比例 1:1
+        borderRadius: 10,
     },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,6 +29,10 @@ export default function MyProfile() {
   const [avatarKey, setAvatarKey] = useState<string>(""); // 用于强制刷新图片
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingName, setEditingName] = useState<string>("");
+  const [editingEmail, setEditingEmail] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // 获取订阅状态
   const { subscriptionStatus, isActive, loading: subscriptionLoading } = useSubscription();
@@ -42,9 +46,13 @@ export default function MyProfile() {
       const storedEmail = await AsyncStorage.getItem("userEmail");
       // console.log("🎈storedName", storedName);
       // console.log("🎈storedEmail", storedEmail);
-      setName(storedName || "");
-      setEmail(storedEmail || "");
 
+      setName(storedName || "user");
+      if (storedEmail?.endsWith("@privaterelay.appleid.com")) {
+        setEmail("user@example.com");
+      } else {
+        setEmail(storedEmail || "");
+      }
       // Load avatar
       const savedAvatar = await AsyncStorage.getItem('userAvatar');
       if (savedAvatar) {
@@ -120,7 +128,7 @@ export default function MyProfile() {
       // 3. Save to local AsyncStorage
       const imageUrl = await uploadImageWithFileSystem(user?.id || "", manipResult.uri);
       console.log("🎈imageUrl", imageUrl);
-      
+
       // 更新数据库
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', user?.id || "");
       if (updateError) {
@@ -133,7 +141,7 @@ export default function MyProfile() {
 
       // 4. 更新本地存储和状态
       await AsyncStorage.setItem('userAvatar', imageUrl || "");
-      
+
       // 直接更新状态和 key，强制图片重新加载
       setUserAvatar(imageUrl || "");
       setAvatarKey(Date.now().toString()); // 更新 key 来强制重新渲染图片
@@ -208,17 +216,24 @@ export default function MyProfile() {
       color: "#3b82f6",
       onPress: () => {
         router.replace({
-          pathname: '/tabs/my/BaseFive',
+          pathname: '/tabs/my/profilePhoto',
           params: { isUpdate: "true" }
         });
       },
     },
     {
-      id: "Style Preference",
-      title: "Style Preference",
+      id: "Physical Profile",
+      title: "Physical Profile",
       icon: "heart" as const,
       color: "#ef4444",
-      onPress: () => router.replace("/onboarding/YourRangeOne"),
+      onPress: () => router.replace("/tabs/my/PhysicalProfile"),
+    },
+    {
+      id: "Style Preference",
+      title: "Style Preference",
+      icon: "palette" as const,
+      color: "green",
+      onPress: () => router.replace("/tabs/my/stylePreference"),
     },
     {
       id: "Subscription",
@@ -236,7 +251,7 @@ export default function MyProfile() {
     //     // 测试不同类型的 Toast 消息
     //     const toastTypes = ['success', 'error', 'info', 'warning'] as const;
     //     const randomType = toastTypes[Math.floor(Math.random() * toastTypes.length)];
-        
+
     //       globalToast.info("Generating Try-on", {
     //         label: "Check the progress in My Looks",
     //         onPress: () => {
@@ -452,8 +467,15 @@ export default function MyProfile() {
                     </View>
                   )} */}
             </View>
-            <Pressable className="p-2">
-              <MaterialCommunityIcons name="pencil" size={20} color="white" />
+            <Pressable
+              className="p-2"
+              onPress={() => {
+                setEditingName(name);
+                setEditingEmail(email);
+                setIsEditModalVisible(true);
+              }}
+            >
+              <MaterialCommunityIcons name="pencil" size={20} color="#000000" />
             </Pressable>
           </View>
         </View>
@@ -539,6 +561,169 @@ export default function MyProfile() {
             </View>
           )}
       </ScrollView>
+
+      {/* 编辑用户名和邮箱的 Modal */}
+      <Modal
+        visible={isEditModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <Pressable
+              className="flex-1"
+              onPress={() => setIsEditModalVisible(false)}
+            />
+            <View className="bg-white rounded-t-3xl p-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-xl font-bold text-gray-800">Edit Profile</Text>
+                <Pressable onPress={() => setIsEditModalVisible(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#000000" />
+                </Pressable>
+              </View>
+
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-gray-700 mb-4">Name</Text>
+                  <TextInput
+                    value={editingName}
+                    onChangeText={setEditingName}
+                    placeholder="Enter your name"
+                    className="bg-gray-100 rounded-xl px-4 text-base"
+                    style={{
+                      paddingVertical: 16,
+                      minHeight: 52,
+                      fontSize: 16,
+                      lineHeight: 20,
+                      includeFontPadding: false,
+                    }}
+                    autoCapitalize="words"
+                  />
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
+                  <TextInput
+                    value={editingEmail}
+                    onChangeText={setEditingEmail}
+                    placeholder="Enter your email"
+                    className="bg-gray-100 rounded-xl px-4 text-base"
+                    style={{
+                      paddingVertical: 16,
+                      minHeight: 52,
+                      fontSize: 16,
+                      lineHeight: 20,
+                      includeFontPadding: false,
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+              </ScrollView>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!editingName.trim() || !editingEmail.trim()) {
+                    Alert.alert("Error", "Name and email cannot be empty");
+                    return;
+                  }
+
+                  // 验证邮箱格式
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(editingEmail.trim())) {
+                    Alert.alert("Error", "Please enter a valid email address");
+                    return;
+                  }
+
+                  setIsSaving(true);
+                  try {
+                    const trimmedName = editingName.trim();
+                    const trimmedEmail = editingEmail.trim();
+
+                    // 1. 先检查 profiles 表是否存在记录
+                    const { data: existingProfile, error: checkError } = await supabase
+                      .from('profiles')
+                      .select('id')
+                      .eq('id', user?.id || "")
+                      .maybeSingle();
+
+                    let updateError;
+                    if (existingProfile && !checkError) {
+                      // 如果记录存在，执行更新
+                      const { error } = await supabase
+                        .from('profiles')
+                        .update({
+                          name: trimmedName,
+                          email: trimmedEmail,
+                          updated_at: new Date().toISOString(),
+                        })
+                        .eq('id', user?.id || "");
+                      updateError = error;
+                    } else {
+                      // 如果记录不存在，执行插入（使用 upsert 更安全）
+                      const { error } = await supabase
+                        .from('profiles')
+                        .upsert({
+                          id: user?.id || "",
+                          name: trimmedName,
+                          email: trimmedEmail,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                        }, {
+                          onConflict: 'id'
+                        });
+                      updateError = error;
+                    }
+
+                    if (updateError) {
+                      console.error('❌ Database update error:', updateError);
+                      throw new Error(updateError.message);
+                    }
+
+                    // 2. 更新本地存储
+                    await AsyncStorage.setItem('userName', trimmedName);
+                    await AsyncStorage.setItem('userEmail', trimmedEmail);
+
+                    // 3. 实时更新显示
+                    setName(trimmedName);
+                    setEmail(trimmedEmail);
+
+                    setIsEditModalVisible(false);
+                    globalToast.success("Profile updated successfully!");
+
+                    // 4. 触发数据刷新以确保同步
+                    setTimeout(() => {
+                      loadUserData(true);
+                    }, 500);
+                  } catch (error: any) {
+                    console.error('❌ Error updating profile:', error);
+                    Alert.alert("Error", `Failed to update profile: ${error?.message || 'Unknown error'}`);
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving}
+                className={`bg-black rounded-xl py-4 items-center ${isSaving ? 'opacity-50' : ''}`}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-semibold text-base">Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

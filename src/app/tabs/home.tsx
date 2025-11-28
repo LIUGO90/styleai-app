@@ -32,8 +32,8 @@ export default function HomeScreen() {
   const [starNumber, setStarNumber] = useState(0);
   const { credits, refresh: refreshCredits } = useCredits();
   const scrollY = useRef(new Animated.Value(0)).current;
-  
-  
+
+
   // 加载数据函数
   const loadForYouData = useCallback(async () => {
     const data = await ForYouService.getAllActiveForYou();
@@ -197,10 +197,13 @@ export default function HomeScreen() {
         </Animated.View>
 
         <Animated.View
-          className="flex-col justify-center items-center bg-white backdrop-blur-sm rounded-2xl  p-2 m-4"
+          className="flex-col justify-center items-center bg-white backdrop-blur-sm rounded-2xl p-2"
           style={[
             shadowStyles.medium,
             {
+              marginHorizontal: 16, // 左右边距 16pt
+              marginTop: 24, // 板块之间的行间距 24pt
+              marginBottom: 24, // 板块之间的行间距 24pt
               opacity: scrollY.interpolate({
                 inputRange: [0, 50, 100],
                 outputRange: [1, 0.5, 0],
@@ -218,38 +221,39 @@ export default function HomeScreen() {
         >
           <KeyboardAvoidingView
             behavior="padding"
-            className="w-full mb-2"
+            className="w-full"
             pointerEvents="box-none"
             accessibilityRole="none"
           >
             {/* 第一行：输入框 */}
-            <View className="rounded-xl border border-gray-200">
-              <TextInput
-                ref={inputRef}
-                // value={inputText.current}
-                onChangeText={handleInputChange}
-                onSubmitEditing={handleSendMessage}
-                returnKeyType="send"
-                blurOnSubmit={false}
-                placeholder="Chat anything about style..."
-                placeholderTextColor="#9CA3AF"
-                multiline={false}
-                maxLength={500}
-                editable={true}
-                className="bg-gray-100 rounded-xl px-2 text-lg min-h-[46px] max-h-[100px]"
-                style={{
-                  textAlignVertical: "center",
-                }}
-                accessibilityRole="text"
-                accessibilityLabel="add styling message..."
-                accessibilityHint="Type your message and press send to submit"
-              />
+            <View className="rounded-xl border border-gray-200" style={{ marginBottom: 16 }}> {/* 内容之间的行间距 16pt */}
+              <View className="flex-row items-center bg-gray-100 rounded-xl px-3">
+                <MaterialCommunityIcons name="image-outline" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <TextInput
+                  ref={inputRef}
+                  onChangeText={handleInputChange}
+                  onSubmitEditing={handleSendMessage}
+                  returnKeyType="send"
+                  blurOnSubmit={false}
+                  placeholder="Chat anything about styling..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline={false}
+                  maxLength={500}
+                  editable={true}
+                  className="flex-1 text-lg min-h-[46px] max-h-[100px]"
+                  style={{
+                    textAlignVertical: "center",
+                  }}
+                  accessibilityRole="text"
+                  accessibilityLabel="add styling message..."
+                  accessibilityHint="Type your message and press send to submit"
+                />
+              </View>
             </View>
           </KeyboardAvoidingView>
 
           {/* 第二行：按钮 */}
-          <View className="flex-row w-full gap-2">
-
+          <View className="flex-row w-full" style={{ gap: 8 }}>
             <TouchableOpacity
               className="bg-gray-200 rounded-xl p-2 flex-row items-center justify-center"
               onPress={showImagePickerOptions}
@@ -259,7 +263,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-gray-200 rounded-xl p-2 items-center justify-center w-auto"
+              className="bg-gray-200 rounded-full px-4 py-2 flex-row items-center justify-center"
               onPress={async () => {
                 const session = await ChatSessionService.createSession(user?.id || '', "style_an_item");
                 if (session) {
@@ -268,15 +272,15 @@ export default function HomeScreen() {
                     params: { sessionId: session.id }
                   });
                 }
-                // router.push("/onboarding/BaseSix");
               }}
-              activeOpacity={1}
+              activeOpacity={0.7}
             >
+
               <Text className="text-black text-center font-medium">👗Style Item</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className=" bg-gray-200 backdrop-blur-sm rounded-xl p-2 items-center justify-center"
+              className="bg-gray-200 rounded-full px-4 py-2 items-center justify-center"
               onPress={async () => {
                 const session = await ChatSessionService.createSession(user?.id || '', "outfit_check");
                 if (session) {
@@ -286,9 +290,9 @@ export default function HomeScreen() {
                   });
                 }
               }}
-              activeOpacity={1}
+              activeOpacity={0.7}
             >
-              <Text className="text-black text-center font-medium">🪞Outfit Check</Text>
+              <Text className="text-black text-center font-medium">🪞outfit check</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -307,36 +311,36 @@ export default function HomeScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss} className="flex-1">
             {/* For You 部分 - 显示所有风格图片 */}
-            <Animated.View 
-              className="bg-white rounded-t-3xl px-6 border border-gray-200 w-full pb-20"
+            <Animated.View
+              className="bg-white rounded-t-3xl border border-gray-200 w-full pb-20"
               style={{
                 flex: 1,
                 minHeight: '110%', // 确保最小高度为100%
+                paddingHorizontal: 16, // 左右边距 16pt
+                paddingTop: 24, // 板块之间的行间距 24pt
               }}
             >
-              <View className="flex-row justify-between items-center">
+              <View className="flex-row justify-between items-center mb-6" style={{ marginBottom: 24 }}> {/* 板块之间的行间距 24pt */}
                 <Text className="text-2xl font-bold text-black">For You</Text>
-                <Text className="text-gray-500 text-sm">{foryou.length} styles</Text>
               </View>
 
               {/* 可滚动内容 */}
-              <View className="flex-1 mt-6">
-              <Animated.FlatList
-                ref={scrollViewRef}
-                data={foryou}
-                numColumns={2}
-                keyExtractor={(item, index) => `${refreshKey}-${index}-${item.id}`}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{
-                  // paddingBottom: paddingBottom, // 动态底部间距，滑动后减少以消除空白
-                  flexGrow: 1, // 确保内容可以扩展填满空间
-                }}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                  { useNativeDriver: true }
-                )}
-                scrollEventThrottle={16}
+              <View className="flex-1">
+                <Animated.FlatList
+                  ref={scrollViewRef}
+                  data={foryou}
+                  numColumns={2}
+                  keyExtractor={(item, index) => `${refreshKey}-${index}-${item.id}`}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{
+                    flexGrow: 1, // 确保内容可以扩展填满空间
+                  }}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                  )}
+                  scrollEventThrottle={16}
                   refreshControl={
                     <RefreshControl
                       refreshing={refreshing}
@@ -345,49 +349,62 @@ export default function HomeScreen() {
                       tintColor="#000000" // iOS 颜色
                     />
                   }
-                  columnWrapperStyle={{ justifyContent: 'space-between' }}
-                  renderItem={({ item: image, index }) => (
-                    <View className="flex-1 items-start w-[48%] px-2 mb-4">
-                      <TouchableOpacity
-                        className="bg-gray-200 rounded-2xl w-full overflow-hidden relative"
-                        style={{ aspectRatio: 712 / 990 }}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          const imageData = {
-                            id: image.id,
-                            name: image.name,
-                            url: image.url
-                          };
-                          router.push({
-                            pathname: "/foryou",
-                            params: {
-                              image: JSON.stringify(imageData)
-                            }
-                          });
+                  columnWrapperStyle={{
+                    justifyContent: 'space-between',
+                    marginBottom: 16, // 内容之间的行间距 16pt
+                  }}
+                  renderItem={({ item: image, index }) => {
+                    const isEven = index % 2 === 0;
+                    return (
+                      <View
+                        className="flex-1 items-start"
+                        style={{
+                          width: '48%',
+                          marginBottom: 16, // 内容之间的行间距 16pt
+                          marginRight: isEven ? 12 : 0, // 列间距 12pt（只在左侧列添加）
                         }}
                       >
-                        <Image
-                          key={`style-image-${refreshKey}-${index}-${image.id}`}
-                          source={image.url}
-                          style={{ width: '100%', height: '100%' }}
-                          contentFit="cover"
-                          placeholder="Loading..."
-                          cachePolicy="memory-disk"
-                          priority="high"
-                          recyclingKey={`home-style-${refreshKey}-${index}`}
-                        />
-                      </TouchableOpacity>
-                      {/* 图片名称标签 */}
-                      <View className="flex-col justify-left items-left">
-                        <Text className="text-black font-weight-500 style-medium font-size-14">
-                          {image.name}
-                        </Text>
-                        <Text className="text-gray-500  font-avenirNextDemi font-weight-400 font-size-12 style-regular">
-                          {image.state} outfits
-                        </Text>
+                        <TouchableOpacity
+                          className="bg-gray-200 w-full overflow-hidden relative"
+                          style={{
+                            aspectRatio: 3 / 4, // 缩略图比例 3:4
+                            borderRadius: 10, // 圆角 10
+                          }}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            const imageData = {
+                              id: image.id,
+                              name: image.name,
+                              url: image.url
+                            };
+                            router.push({
+                              pathname: "/foryou",
+                              params: {
+                                image: JSON.stringify(imageData)
+                              }
+                            });
+                          }}
+                        >
+                          <Image
+                            key={`style-image-${refreshKey}-${index}-${image.id}`}
+                            source={image.url}
+                            style={{ width: '100%', height: '100%' }}
+                            contentFit="cover"
+                            placeholder="Loading..."
+                            cachePolicy="memory-disk"
+                            priority="high"
+                            recyclingKey={`home-style-${refreshKey}-${index}`}
+                          />
+                        </TouchableOpacity>
+                        {/* 图片名称标签 */}
+                        <View className="flex-col justify-left items-left mt-1" style={{ marginTop: 4 }}> {/* 细节之间的行间距 4pt */}
+                          <Text className="text-black font-weight-500 style-medium font-size-14">
+                            {image.name}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    );
+                  }}
                 />
               </View>
 

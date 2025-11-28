@@ -44,6 +44,24 @@ export default function Layout() {
           animation: 'none',
         }} 
       />
+      <Stack.Screen 
+        name="profilePhoto" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
+        name="PhysicalProfile" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
+      <Stack.Screen 
+        name="stylePreference" 
+        options={{ 
+          animation: 'none',
+        }} 
+      />
     </Stack>
   );
 }

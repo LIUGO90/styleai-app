@@ -5,6 +5,7 @@ import {
   Message,
   MessageButton,
   ImageUploadCallback,
+  OnboardingData,
 } from "@/components/types";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -149,24 +150,8 @@ export default function OutfitCheckScreen() {
 
 
   const handleImageUpload: ImageUploadCallback = {
-    onImageSelect: (imageUri: string, messageId?: string) => {
+    onImageSelect: async (imageUri: string, messageId?: string) => {
 
-      if (messageId) {
-        // 直接更新指定消息的卡片图片
-        setMessages((prev: Message[]) => prev.map((msg: Message) => {
-          if (msg.id === messageId && msg.card) {
-            return {
-              ...msg,
-              card: {
-                isDeleted: true,
-                ...msg.card,
-                image: imageUri || undefined // 如果 imageUri 为空字符串，则删除图片
-              }
-            };
-          }
-          return msg;
-        }));
-      }
       const requiredCreditsFirst = 10; // 第一次AI请求需要10积分
       const availableCreditsFirst = credits?.available_credits || 0;
       if (availableCreditsFirst < requiredCreditsFirst) {
@@ -193,6 +178,25 @@ export default function OutfitCheckScreen() {
         return;
       }
 
+
+      if (messageId) {
+        // 直接更新指定消息的卡片图片
+        setMessages((prev: Message[]) => prev.map((msg: Message) => {
+          if (msg.id === messageId && msg.card) {
+            return {
+              ...msg,
+              card: {
+                isDeleted: true,
+                ...msg.card,
+                image: imageUri || undefined // 如果 imageUri 为空字符串，则删除图片
+              }
+            };
+          }
+          return msg;
+        }));
+      }
+
+
       let progressMessage = createProgressMessage(5, "Analyzing your outfit...");
       addMessage(progressMessage);
       analytics.chat('image_uploading', {
@@ -200,76 +204,105 @@ export default function OutfitCheckScreen() {
         source: 'outfit_check',
         session_id: currentSession?.id || '',
       });
-      uploadImageForGeminiAnalyze(user?.id || '', imageUri).then(async ({ message, image, uploadedImage }) => {
-        analytics.chat('image_uploaded', {
-          has_image: image && image.length > 0,
-          source: 'outfit_check',
-          session_id: currentSession?.id || '',
-        });
 
-        dateleMessage('3')
-        dateleMessage(progressMessage.id);
-        addMessage({
-          id: generateUniqueId('msg_'),
-          text: "",
-          sender: 'user',
-          images: [
-            ...(uploadedImage ? [{
-              id: generateUniqueId('img_'),
-              url: uploadedImage,
-              alt: 'Garment Image',
-            }] : []),
-          ],
-          timestamp: new Date(),
-        });
-        addMessage({
-          id: generateUniqueId('msg_'),
-          text: "",
-          sender: 'ai',
-          images: [
-            ...(image ? [{
-              id: generateUniqueId('img_'),
-              url: image,
-              alt: 'Garment Image',
-            }] : []),
-          ],
-          timestamp: new Date(),
-        });
-        addMessage({
-          id: generateUniqueId('msg_'),
-          text: message,
-          sender: 'ai',
-          timestamp: new Date(),
-        });
-
-        if (image.length > 0) {
-          addImageLook(user?.id || "", Date.now().toString(), 'outfit_check', [image], {
-            state: 'success'
-          });
-          
-          // 成功生成图片后，扣除积分
-          try {
-            const deductSuccess = await paymentService.useCredits(
-              user?.id || '',
-              requiredCreditsFirst,
-              'style_analysis',
-              currentSession?.id || '',
-              `Outfit check for occasion: ${currentSession?.title || ''}`
-            );
-
-            if (deductSuccess) {
-              console.log(`✅ [StyleAnItem] 成功扣除 ${requiredCreditsFirst} 积分`);
-              // 刷新积分信息
-              await refreshCredits();
-            } else {
-              console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
-            }
-          } catch (creditError) {
-            console.error('❌ [StyleAnItem] 积分扣除异常:', creditError);
-          }
-        }
+      let image: string = '';
+      if (imageUri.startsWith('http')) {
+        image = imageUri;
+      } else {
+        image = await uploadImageWithFileSystem(user?.id || '', imageUri) || '';
+      }
+      analytics.chat('send', {
+        has_text: 0,
+        has_images: 0,
+        image_count: 0,
+        source: 'style_an_item',
+        session_id: currentSession?.id || '',
       });
+      let images: string[] = [];
+      const onboardingData = await AsyncStorage.getItem("onboardingData");
+      if (onboardingData) {
+        const data: OnboardingData = JSON.parse(onboardingData);
+        images = [data.fullBodyPhoto];
+        images.push(image);
 
+
+        // uploadImageForGeminiAnalyze(user?.id || '', imageUri || '').then(({ message, image, uploadedImage }) => {
+        await chatRequest('outfitcheck', user?.id || '',
+          data.bodyType,
+          data.bodyStructure,
+          data.skinTone,
+          "",
+          "",
+          images, currentSession?.id || '').then(async ({ status, message, images }) => {
+            analytics.chat('image_uploaded', {
+              has_image: image && image.length > 0,
+              source: 'outfit_check',
+              session_id: currentSession?.id || '',
+            });
+
+            dateleMessage('3')
+            dateleMessage(progressMessage.id);
+            addMessage({
+              id: generateUniqueId('msg_'),
+              text: "",
+              sender: 'user',
+              images: [
+                ...(images ? [{
+                  id: generateUniqueId('img_'),
+                  url: image,
+                  alt: 'Garment Image',
+                }] : []),
+              ],
+              timestamp: new Date(),
+            });
+            addMessage({
+              id: generateUniqueId('msg_'),
+              text: "",
+              sender: 'ai',
+              images: [
+                ...(image ? [{
+                  id: generateUniqueId('img_'),
+                  url: image,
+                  alt: 'Garment Image',
+                }] : []),
+              ],
+              timestamp: new Date(),
+            });
+            addMessage({
+              id: generateUniqueId('msg_'),
+              text: message,
+              sender: 'ai',
+              timestamp: new Date(),
+            });
+
+            if (image.length > 0) {
+              addImageLook(user?.id || "", Date.now().toString(), 'outfit_check', [image], {
+                state: 'success'
+              });
+
+              // 成功生成图片后，扣除积分
+              try {
+                const deductSuccess = await paymentService.useCredits(
+                  user?.id || '',
+                  requiredCreditsFirst,
+                  'style_analysis',
+                  currentSession?.id || '',
+                  `Outfit check for occasion: ${currentSession?.title || ''}`
+                );
+
+                if (deductSuccess) {
+                  console.log(`✅ [StyleAnItem] 成功扣除 ${requiredCreditsFirst} 积分`);
+                  // 刷新积分信息
+                  await refreshCredits();
+                } else {
+                  console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
+                }
+              } catch (creditError) {
+                console.error('❌ [StyleAnItem] 积分扣除异常:', creditError);
+              }
+            }
+          });
+      }
       setCanInput(true);
 
     },
@@ -291,7 +324,7 @@ export default function OutfitCheckScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" >
       <ChatHeader
         title={currentSession?.title || "Outfit Check"}
         // subtitle="AI智能搭配分析"
@@ -309,7 +342,7 @@ export default function OutfitCheckScreen() {
       <Chat
         messages={messages}
         currentSessionId={currentSession?.id || ''}
-        chatType="outfit_check"
+        chatType="outfitcheck"
         setMessages={setMessages}
         getMessage={getMessage}
         hideMessage={hideMessage}
@@ -322,6 +355,6 @@ export default function OutfitCheckScreen() {
         showAvatars={false}
         canInput={canInput}
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }

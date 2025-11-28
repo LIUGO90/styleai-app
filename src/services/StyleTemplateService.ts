@@ -15,7 +15,8 @@ export class StyleTemplateService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .order('order', { ascending: true });
+        .eq('state', true)
+        .order('order', { ascending: false });
 
       if (error) {
         console.error('❌ [StyleTemplateService] 获取风格模板失败:', error);
@@ -39,7 +40,8 @@ export class StyleTemplateService {
         .from(this.TABLE_NAME)
         .select('*')
         .eq('name', name)
-        .order('order', { ascending: true });
+        .eq('state', true)
+        .order('order', { ascending: false });
 
       if (error) {
         console.error('❌ [StyleTemplateService] 获取风格模板失败:', error);

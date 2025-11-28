@@ -62,6 +62,40 @@ export default function YourRangeOne() {
     },
   ];
 
+    // 体型选项数据
+    const BODY_TYPE_OPTIONS = [
+      {
+        id: "Hourglass",
+        label: "Hourglass",
+        image: require("../../../assets/onboarding/BodyType/hourglass.jpeg"),
+      },
+      {
+        id: "Pear",
+        label: "Pear",
+        image: require("../../../assets/onboarding/BodyType/pear.jpeg"),
+      },
+      {
+        id: "Triangle",
+        label: "Triangle",
+        image: require("../../../assets/onboarding/BodyType/triangle.jpeg"),
+      },
+      {
+        id: "Inverted Triangle",
+        label: "Inverted",
+        image: require("../../../assets/onboarding/BodyType/invertedTriangle.jpeg"),
+      },
+      {
+        id: "Rectangle",
+        label: "Rectangle",
+        image: require("../../../assets/onboarding/BodyType/rectangle.jpeg"),
+      },
+      {
+        id: "Apple",
+        label: "Apple",
+        image: require("../../../assets/onboarding/BodyType/apple.jpeg"),
+      },
+    ];
+
   const router = useRouter();
   const [selectedSkinTone, setSelectedSkinTone] = useState<string | null>(null);
   useEffect(() => {
