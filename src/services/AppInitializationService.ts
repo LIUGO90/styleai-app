@@ -1,7 +1,7 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
 import revenueCatService from "./RevenueCatService";
 import * as amplitude from '@amplitude/analytics-react-native';
-import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
+// import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
 class AppInitializationService {
   private static instance: AppInitializationService;
@@ -35,15 +35,21 @@ class AppInitializationService {
         await amplitude.init('7f0e31c0f1412366694f89231ca79125').promise;
         console.log("✅ [AppInit] Amplitude 基础 SDK 初始化成功");
 
+        // 临时禁用 Session Replay 以排查崩溃问题
+        /*
         // 尝试添加 Session Replay 插件（可选）
         try {
-          await amplitude.add(new SessionReplayPlugin()).promise;
+          console.log("📦 [AppInit] 尝试添加 Session Replay 插件...");
+          // await amplitude.add(new SessionReplayPlugin()).promise;
           console.log("✅ [AppInit] Amplitude Session Replay 插件添加成功");
         } catch (replayError: any) {
           console.warn("⚠️ [AppInit] Session Replay 插件添加失败（分析功能仍可用）");
           console.warn("⚠️ [AppInit] 错误详情:", replayError?.message || replayError);
           // 继续执行，不影响基础分析功能
         }
+        */
+       console.log("⚠️ [AppInit] Session Replay 插件已临时禁用以防止崩溃");
+
       } catch (error: any) {
         // 忽略 cookie 相关错误（React Native 中正常现象）
         if (error?.message?.includes('cookie') || error?.message?.includes('Cookie')) {
