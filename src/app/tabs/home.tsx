@@ -357,7 +357,7 @@ export default function HomeScreen() {
                     const isEven = index % 2 === 0;
                     return (
                       <View
-                        className="flex-1 items-start"
+                        className="items-start"
                         style={{
                           width: '48%',
                           marginBottom: 16, // 内容之间的行间距 16pt
@@ -388,7 +388,7 @@ export default function HomeScreen() {
                           <Image
                             key={`style-image-${refreshKey}-${index}-${image.id}`}
                             source={image.url}
-                            style={{ width: '100%', height: '100%' }}
+                            style={{ width: '100%', height: '120%' }}
                             contentFit="cover"
                             placeholder="Loading..."
                             cachePolicy="memory-disk"

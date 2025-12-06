@@ -448,7 +448,7 @@ export default function ForYouScreen() {
                             }}
                             keyExtractor={(item, index) => `image-${item.id}-${index}-${reloadKey}`}
                             renderItem={({ item, index }) => (
-                                <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 200 }}>
+                                <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
                                     <View style={styles.imageContainer}>
                                         <Image
                                             source={{ uri: item.post }}

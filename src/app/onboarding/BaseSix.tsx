@@ -8,6 +8,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -60,9 +61,10 @@ export default function BaseSix() {
 
   // RevenueCat hooks
   const { currentOffering, loading: offeringsLoading } = useOfferings();
-  const { purchase, purchasing } = usePurchase();
+
   const { refresh: refreshSubscription } = useSubscription();
   const { createPaymentFromRevenueCat } = useCreatePayment();
+  const { purchase, purchasing, restore, restoring } = usePurchase();
 
   useEffect(() => {
     loadImagesUrl();
@@ -128,6 +130,50 @@ export default function BaseSix() {
     loadAllSubscriptionPackages();
   }, []);
 
+  const handleRestore = async () => {
+    try {
+      const customerInfo = await restore();
+      await refreshSubscription();
+
+      const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
+
+      if (hasActiveSubscription) {
+        Alert.alert(
+          'Restore Success!',
+          'Your purchases have been restored.',
+          [
+            {
+              text: 'OK',
+              onPress: handleNext,
+            },
+          ]
+        );
+      } else {
+        Alert.alert('No Purchases Found', 'We could not find any previous purchases for this account.');
+      }
+    } catch (error) {
+      Alert.alert('Restore Failed', 'Unable to restore purchases, please try again later.');
+    }
+  };
+
+  const handleTermsPress = () => {
+    // 替换为您的实际 Terms of Service URL
+    const termsUrl = process.env.EXPO_PUBLIC_API_URL + '/terms.html';
+    Linking.openURL(termsUrl).catch(err => {
+      console.error('Failed to open Terms of Service:', err);
+      Alert.alert('Error', 'Unable to open Terms of Service page');
+    });
+  };
+
+  const handlePrivacyPress = () => {
+    // 替换为您的实际 Privacy Policy URL
+    const privacyUrl = process.env.EXPO_PUBLIC_API_URL + '/privacy.html';
+    Linking.openURL(privacyUrl).catch(err => {
+      console.error('Failed to open Privacy Policy:', err);
+      Alert.alert('Error', 'Unable to open Privacy Policy page');
+    });
+  };
+
   const loadImagesUrl = async () => {
     console.log('🔍loadImagesUrl');
     try {
@@ -180,7 +226,7 @@ export default function BaseSix() {
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('提示', '请选择订阅计划');
+      Alert.alert('Notice', 'Please select a subscription plan');
       return;
     }
 
@@ -274,7 +320,7 @@ export default function BaseSix() {
       }
 
       console.error('❌ Subscription error:', error);
-      
+
       // 追踪订阅失败
       const planType = selectedPackage ? getPackageTitle(selectedPackage).toLowerCase() : 'unknown';
       await analytics.track('subscription_failed', {
@@ -311,11 +357,11 @@ export default function BaseSix() {
     const identifier = pkg.identifier.toLowerCase();
 
     if (identifier.includes('annual') || identifier.includes('yearly')) {
-      return `$${(price / 365).toFixed(2)} per day`;
-    } else if (identifier.includes('quarter')) {
-      return `$${(price / 90).toFixed(2)} per day`;
+      return `$${(price / 12).toFixed(2)}/mo`;
+    } else if (identifier.includes('quarterly') || identifier.includes('three_month')) {
+      return `$${(price / 3).toFixed(2)}/mo`;
     } else if (identifier.includes('monthly')) {
-      return `$${(price / 30).toFixed(2)} per day`;
+      return `$${(price / 1).toFixed(2)}/mo`;
     }
     return pkg.product.priceString;
   };
@@ -491,7 +537,29 @@ export default function BaseSix() {
               </Text>
             )}
           </View>
+          <View className="px-6 py-2 flex-row justify-between">
 
+            <Text
+              className="underline text-gray-600"
+              onPress={handleRestore}
+            >
+              Restore Purchases
+            </Text>
+            <Text
+              className="underline text-gray-600"
+              onPress={handleTermsPress}
+            >
+              Terms
+            </Text>
+
+            <Text
+              className="underline text-gray-600"
+              onPress={handlePrivacyPress}
+            >
+              Privacy
+            </Text>
+
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
