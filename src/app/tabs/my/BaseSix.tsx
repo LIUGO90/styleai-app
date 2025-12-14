@@ -8,10 +8,11 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import DotsContainer from "@/components/dotsContainer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import revenueCatService from "@/services/RevenueCatService";
@@ -59,7 +60,7 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
   // RevenueCat hooks
   const { currentOffering, loading: offeringsLoading } = useOfferings();
-  const { purchase, purchasing } = usePurchase();
+  const { purchase, purchasing, restore, restoring } = usePurchase();
   const { refresh: refreshSubscription } = useSubscription();
   const { createPaymentFromRevenueCat } = useCreatePayment();
 
@@ -185,7 +186,7 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('提示', '请选择订阅计划');
+      Alert.alert('Notice', 'Please select a subscription plan');
       return;
     }
 
@@ -231,8 +232,8 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
         console.log('🎉 Subscription purchase completed successfully!');
 
         Alert.alert(
-          '订阅成功！',
-          `您的订阅已激活，现在可以使用所有高级功能了！\n\n${syncValidation.success ? '所有数据已同步完成' : '数据正在后台同步'}`,
+          'Subscription Success!',
+          `Your subscription is now active, you can now use all premium features!\n\n${syncValidation.success ? 'All data has been synced' : 'Data is syncing in the background'}`,
           [
             {
               text: 'OK',
@@ -250,11 +251,55 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
       console.error('❌ Subscription error:', error);
       Alert.alert(
-        '订阅失败',
-        '无法完成订阅，请稍后重试',
+        'Subscription Failed',
+        'Unable to complete subscription, please try again later',
         [{ text: 'OK' }]
       );
     }
+  };
+
+  const handleRestore = async () => {
+    try {
+      const customerInfo = await restore();
+      await refreshSubscription();
+
+      const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
+
+      if (hasActiveSubscription) {
+        Alert.alert(
+          'Restore Success!',
+          'Your purchases have been restored.',
+          [
+            {
+              text: 'OK',
+              onPress: handleNext,
+            },
+          ]
+        );
+      } else {
+        Alert.alert('No Purchases Found', 'We could not find any previous purchases for this account.');
+      }
+    } catch (error) {
+      Alert.alert('Restore Failed', 'Unable to restore purchases, please try again later.');
+    }
+  };
+
+  const handleTermsPress = () => {
+    // 替换为您的实际 Terms of Service URL
+    const termsUrl = 'https://magiclookbook.com/tos';
+    Linking.openURL(termsUrl).catch(err => {
+      console.error('Failed to open Terms of Service:', err);
+      Alert.alert('Error', 'Unable to open Terms of Service page');
+    });
+  };
+
+  const handlePrivacyPress = () => {
+    // 替换为您的实际 Privacy Policy URL
+    const privacyUrl = 'https://magiclookbook.com/privacy';
+    Linking.openURL(privacyUrl).catch(err => {
+      console.error('Failed to open Privacy Policy:', err);
+      Alert.alert('Error', 'Unable to open Privacy Policy page');
+    });
   };
 
   // 获取套餐标题
@@ -274,13 +319,13 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   const getDailyPrice = (pkg: PurchasesPackage): string => {
     const price = pkg.product.price;
     const identifier = pkg.identifier.toLowerCase();
-
+    console.log('🔍identifier', identifier, price);
     if (identifier.includes('annual') || identifier.includes('yearly')) {
-      return `$${(price / 365).toFixed(2)} per day`;
-    } else if (identifier.includes('quarter')) {
-      return `$${(price / 90).toFixed(2)} per day`;
+      return `$${(price / 12).toFixed(2)}/mo`;
+    } else if (identifier.includes('quarterly') || identifier.includes('three_month')) {
+      return `$${(price / 3).toFixed(2)}/mo`;
     } else if (identifier.includes('monthly')) {
-      return `$${(price / 30).toFixed(2)} per day`;
+      return `$${(price / 1).toFixed(2)}/mo`;
     }
     return pkg.product.priceString;
   };
@@ -350,13 +395,13 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
         <View className="flex-1 justify-center px-5 py-2">
           {isPaywall ?
-           <Text className="text-2xl font-bold text-start mb-6 text-gray-800 text-center">
-            Unlock Premium Features
-          </Text>
-           : 
-           <Text className="text-2xl font-bold text-start mb-6 text-gray-800">
-            Your Personalized Lookbook is ready. Unlock NOW!
-          </Text>}
+            <Text className="text-2xl font-bold text-start mb-6 text-gray-800 text-center">
+              Unlock Premium Features
+            </Text>
+            :
+            <Text className="text-2xl font-bold text-start mb-6 text-gray-800">
+              Your Personalized Lookbook is ready. Unlock NOW!
+            </Text>}
 
           <Text className="text-sm font-bold text-start  text-gray-800">
             √ Find your personal style to dress confidently{"\n"}√ Get new
@@ -454,9 +499,32 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
             {/* 法律说明 */}
             {currentOffering && currentOffering.availablePackages.length > 0 && (
               <Text className="text-xs text-gray-500 text-center mt-2 px-4 leading-5">
-                Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
+                Subscription required after free trial.
               </Text>
             )}
+          </View>
+          <View className="px-6 py-2 flex-row justify-between">
+
+            <Text
+              className="underline text-gray-600"
+              onPress={handleRestore}
+            >
+              Restore Purchases
+            </Text>
+            <Text
+              className="underline text-gray-600"
+              onPress={handleTermsPress}
+            >
+              Terms
+            </Text>
+
+            <Text
+              className="underline text-gray-600"
+              onPress={handlePrivacyPress}
+            >
+              Privacy
+            </Text>
+
           </View>
         </View>
       </View>

@@ -14,14 +14,21 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "bundleIdentifier": "com.styleai.app",
+      "bundleIdentifier": "com.kumath.app",
       "appleTeamId": "D2F9RZT54S",
+      "buildNumber": "1",
       "supportsTablet": true,
       "deploymentTarget": "16.0",
       "infoPlist": {
-        "NSCameraUsageDescription": "此应用需要访问相机来拍摄照片",
-        "NSPhotoLibraryUsageDescription": "此应用需要访问相册来选择照片",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSCameraUsageDescription": "Styla uses your camera to capture photos of your clothing and outfits for personalized styling advice. For example, when you take a photo of a jacket you own, our AI analyzes it and suggests which pants and accessories would create a great outfit combination.",
+        "NSPhotoLibraryUsageDescription": "Styla accesses your photo library so you can choose existing pictures of your clothes to get styling recommendations. For example, if you have a photo of a dress saved in your camera roll, you can select it to receive suggestions on shoes, bags, and jewelry that match your personal style.",
+        "NSPhotoLibraryAddUsageDescription": "Styla saves the outfit recommendations and style boards created by our AI directly to your Photos app for easy access. For example, when we generate three different outfit ideas for your navy blazer, you can save these styled images to your photo library to reference when getting dressed or while shopping.",
+        "NSLocalNetworkUsageDescription": "Styla needs local network access to connect to our cloud-based AI styling service over your WiFi connection. This enables the app to upload your clothing photos for instant AI analysis and download personalized outfit suggestions. For example, when you photograph a sweater, the image is sent securely through your network to our servers where AI processes it and returns styling recommendations within seconds.",
+        "NSUserTrackingUsageDescription": "Styla personalizes your experience by remembering your style preferences, body type, and favorite looks across app sessions. This helps our AI provide increasingly accurate fashion recommendations tailored specifically to you. For example, if you frequently select 'casual' and 'minimalist' styles, the app will prioritize showing you outfit suggestions that match these preferences.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -36,18 +43,29 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
       [
+        "expo-apple-authentication",
+        {
+          "iosUrlScheme": "com.kumath.app",
+          "iosBundleIdentifier": "com.kumath.app",
+          "appleAuthentication": {
+            "appleTeamId": "D2F9RZT54S"
+          }
+        }
+      ],
+      [
         "expo-image-picker",
         {
-          "photosPermission": "The app needs access to your photos to let you share them with your friends.",
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
+          "photosPermission": "Styla accesses your photo library so you can choose existing pictures of your clothes to get styling recommendations. For example, if you have a photo of a dress saved in your camera roll, you can select it to receive suggestions on shoes, bags, and jewelry that match your personal style.",
+          "cameraPermission": "Styla uses your camera to capture photos of your clothing and outfits for personalized styling advice. For example, when you take a photo of a jacket you own, our AI analyzes it and suggests which pants and accessories would create a great outfit combination."
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

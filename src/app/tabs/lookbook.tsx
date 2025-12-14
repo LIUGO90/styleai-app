@@ -645,7 +645,7 @@ export default function LookbookOne() {
                   <Image
                     key={`${image.id}-${image.image_url}`}
                     source={{ uri: image.image_url }}
-                    style={{ width: '100%', height: '100%' }}
+                    style={{ width: '100%', height: '120%' }}
                     contentFit="cover"
                     placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
                     cachePolicy="memory-disk"
