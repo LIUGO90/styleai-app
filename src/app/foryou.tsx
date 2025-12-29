@@ -506,10 +506,9 @@ export default function ForYouScreen() {
                                         {/* Try On 按钮 */}
                                         {!(foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id)) ? (
                                             <TouchableOpacity
+                                            className="flex-1 items-center justify-center bg-orange-500 rounded-full mx-2"
                                                 style={{
-                                                    paddingHorizontal: 36,
                                                     paddingVertical: 10,
-                                                    borderRadius: 999,
                                                     backgroundColor: '#FF7F50',
                                                     opacity: (foryou.length === 0 || (foryou[currentIndex] && isTemplateGenerating(foryou[currentIndex].id))) ? 0.5 : 1,
                                                 }}
@@ -522,6 +521,9 @@ export default function ForYouScreen() {
                                             >
                                                 <Text className="text-white text-lg font-semibold">
                                                     Try On
+                                                </Text>
+                                                <Text className="absolute justify-center right-4 text-white text-base font-semibold">
+                                                    ✨10
                                                 </Text>
                                             </TouchableOpacity>
                                         ) : (
