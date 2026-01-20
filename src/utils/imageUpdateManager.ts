@@ -18,12 +18,10 @@ class ImageUpdateManager {
    */
   addListener(listener: ImageUpdateListener): () => void {
     this.listeners.add(listener);
-    console.log(`📢 添加图片更新监听器，当前监听器数量: ${this.listeners.size}`);
-    
+
     // 返回取消监听的函数
     return () => {
       this.listeners.delete(listener);
-      console.log(`📢 移除图片更新监听器，当前监听器数量: ${this.listeners.size}`);
     };
   }
 
@@ -32,7 +30,6 @@ class ImageUpdateManager {
    * @param type 图片更新类型
    */
   notifyImageUpdate(type: ImageUpdateType = 'all'): void {
-    console.log(`🔔 通知图片更新: ${type}，监听器数量: ${this.listeners.size}`);
     this.listeners.forEach(listener => {
       try {
         listener(type);
@@ -47,7 +44,6 @@ class ImageUpdateManager {
    */
   clearAllListeners(): void {
     this.listeners.clear();
-    console.log('📢 清除所有图片更新监听器');
   }
 
   /**

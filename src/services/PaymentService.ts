@@ -5,6 +5,8 @@
 
 import { supabase } from '@/utils/supabase';
 import { refreshCreditsGlobal } from '@/stores/creditsStore';
+import { logger } from '@/utils/logger';
+import { analytics } from '@/services/AnalyticsService';
 import type {
   Payment,
   CreatePaymentParams,
@@ -14,6 +16,9 @@ import type {
   ActiveSubscription,
   TransactionType,
 } from '@/types/payment';
+
+// 创建模块专用 logger
+const log = logger.createModuleLogger('PaymentService');
 
 class PaymentService {
   /**
@@ -36,12 +41,11 @@ class PaymentService {
         .single();
 
       if (error) {
-        console.error('[PaymentService] Error creating payment:', error);
+        log.error('Error creating payment', error, { params });
+        analytics.trackPaymentError('sync_failed', error, { action: 'create_payment' });
         return null;
       }
 
-      console.log('✅ [PaymentService] Payment created:', data.id);
-      
       // 如果是积分购买，自动添加积分
       if (params.product_type === 'credits' && params.credits_amount && params.credits_amount > 0) {
         await this.addCreditsFromPayment(params.user_id, params.credits_amount, data.id);
@@ -54,7 +58,8 @@ class PaymentService {
 
       return data;
     } catch (error) {
-      console.error('[PaymentService] Exception creating payment:', error);
+      log.error('Exception creating payment', error);
+      analytics.trackPaymentError('sync_failed', error, { action: 'create_payment' });
       return null;
     }
   }
@@ -67,7 +72,6 @@ class PaymentService {
     customerInfo: any,
     purchasePackage: any
   ): Promise<Payment | null> {
-    console.log('🎈 createPaymentFromRevenueCat', customerInfo, purchasePackage);
     try {
       const productId = purchasePackage.product.identifier;
       const isSubscription = purchasePackage.packageType !== 'CUSTOM';
@@ -136,8 +140,8 @@ class PaymentService {
 
       return await this.createPayment(params);
     } catch (error) {
-      console.error('[PaymentService] Error creating payment from RevenueCat:', error);
-      console.error('[PaymentService] Error details:', error instanceof Error ? error.message : error);
+      log.error('Error creating payment from RevenueCat', error, { userId, productId: purchasePackage?.product?.identifier });
+      analytics.trackPaymentError('sync_failed', error, { action: 'create_from_revenuecat', product_id: purchasePackage?.product?.identifier });
       return null;
     }
   }
@@ -155,13 +159,13 @@ class PaymentService {
         .limit(limit);
 
       if (error) {
-        console.error('[PaymentService] Error fetching payments:', error);
+        log.error('Error fetching payments', error, { userId });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('[PaymentService] Exception fetching payments:', error);
+      log.error('Exception fetching payments', error, { userId });
       return [];
     }
   }
@@ -193,13 +197,13 @@ class PaymentService {
       }
 
       if (error) {
-        console.error('[PaymentService] Error fetching user credits:', error);
+        log.error('Error fetching user credits', error, { userId });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('[PaymentService] Exception fetching user credits:', error);
+      log.error('Exception fetching user credits', error, { userId });
       return null;
     }
   }
@@ -214,14 +218,13 @@ class PaymentService {
       });
 
       if (error) {
-        console.error('[PaymentService] Error initializing user credits:', error);
+        log.error('Error initializing user credits', error, { userId });
         return false;
       }
 
-      console.log('✅ [PaymentService] User credits initialized');
       return true;
     } catch (error) {
-      console.error('[PaymentService] Exception initializing user credits:', error);
+      log.error('Exception initializing user credits', error, { userId });
       return false;
     }
   }
@@ -244,20 +247,20 @@ class PaymentService {
       });
 
       if (error) {
-        console.error('[PaymentService] Error adding credits:', error);
+        log.error('Error adding credits', error, { userId, amount, paymentId });
+        analytics.trackPaymentError('credits_deduct_failed', error, { action: 'add_credits', amount });
         return false;
       }
 
-      console.log(`✅ [PaymentService] Added ${amount} credits to user`);
-      
       // 更新全局积分 store（异步，不阻塞）
-      refreshCreditsGlobal(userId).catch((error) => {
-        console.error('[PaymentService] Error refreshing credits store:', error);
+      refreshCreditsGlobal(userId).catch((err) => {
+        log.warn('Error refreshing credits store', err);
       });
-      
+
       return true;
     } catch (error) {
-      console.error('[PaymentService] Exception adding credits:', error);
+      log.error('Exception adding credits', error, { userId, amount });
+      analytics.trackPaymentError('credits_deduct_failed', error, { action: 'add_credits', amount });
       return false;
     }
   }
@@ -291,25 +294,23 @@ class PaymentService {
       });
 
       if (error) {
-        console.error('[PaymentService] Error using credits:', error);
+        log.error('Error using credits', error, { userId, amount });
+        analytics.trackPaymentError('credits_deduct_failed', error, { action: 'use_credits', amount });
         return false;
       }
 
       if (data === false) {
-        console.warn('[PaymentService] Insufficient credits');
+        log.warn('Insufficient credits', { userId, amount });
         return false;
       }
 
-      console.log(`✅ [PaymentService] Used ${amount} credits`);
-      
       // 更新全局积分 store（异步，不阻塞）
-      refreshCreditsGlobal(userId).catch((error) => {
-        console.error('[PaymentService] Error refreshing credits store:', error);
-      });
-      
+      refreshCreditsGlobal(userId).catch(() => {});
+
       return true;
     } catch (error) {
-      console.error('[PaymentService] Exception using credits:', error);
+      log.error('Exception using credits', error, { userId, amount });
+      analytics.trackPaymentError('credits_deduct_failed', error, { action: 'use_credits', amount });
       return false;
     }
   }
@@ -327,13 +328,13 @@ class PaymentService {
         .limit(limit);
 
       if (error) {
-        console.error('[PaymentService] Error fetching credit transactions:', error);
+        log.error('Error fetching credit transactions', error, { userId });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('[PaymentService] Exception fetching credit transactions:', error);
+      log.error('Exception fetching credit transactions', error, { userId });
       return [];
     }
   }
@@ -350,13 +351,13 @@ class PaymentService {
         .single();
 
       if (error) {
-        console.error('[PaymentService] Error fetching payment statistics:', error);
+        log.error('Error fetching payment statistics', error, { userId });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('[PaymentService] Exception fetching payment statistics:', error);
+      log.error('Exception fetching payment statistics', error, { userId });
       return null;
     }
   }
@@ -372,13 +373,13 @@ class PaymentService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[PaymentService] Error fetching active subscriptions:', error);
+        log.error('Error fetching active subscriptions', error, { userId });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('[PaymentService] Exception fetching active subscriptions:', error);
+      log.error('Exception fetching active subscriptions', error, { userId });
       return [];
     }
   }
@@ -401,14 +402,13 @@ class PaymentService {
         .eq('id', paymentId);
 
       if (error) {
-        console.error('[PaymentService] Error updating payment status:', error);
+        log.error('Error updating payment status', error, { paymentId, status });
         return false;
       }
 
-      console.log(`✅ [PaymentService] Payment status updated to ${status}`);
       return true;
     } catch (error) {
-      console.error('[PaymentService] Exception updating payment status:', error);
+      log.error('Exception updating payment status', error, { paymentId, status });
       return false;
     }
   }

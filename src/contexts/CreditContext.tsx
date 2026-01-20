@@ -48,7 +48,6 @@ export const CreditProvider: React.FC<CreditProviderProps> = ({ children }) => {
   }, [user?.id, loadCreditsStore, clearCreditsStore]);
 
   const showCreditModal = useCallback(async (id: string, action: string, callback?: () => Promise<void>) => {
-    console.log('🔔 显示积分 Modal');
     // 打开 Modal 前先刷新积分，确保显示最新数据
     if (user?.id) {
       await refreshCreditsStore(user.id);
@@ -60,7 +59,6 @@ export const CreditProvider: React.FC<CreditProviderProps> = ({ children }) => {
   }, [user?.id, refreshCreditsStore]);
 
   const hideCreditModal = useCallback(() => {
-    console.log('🔕 隐藏积分 Modal');
     setIsModalVisible(false);
     // 关闭 Modal 后刷新积分，确保购买后的积分是最新的
     if (user?.id) {

@@ -51,13 +51,7 @@ export const useCreditsStore = create<CreditsState>()(
 
       // 加载积分（从缓存或服务器）
       loadCredits: async (userId: string) => {
-        // 如果已经有缓存数据且用户ID匹配，先使用缓存
-        const currentState = get();
-        if (currentState.credits && currentState.userId === userId) {
-          console.log('📦 [CreditsStore] 使用缓存的积分数据');
-        }
-
-        // 然后从服务器获取最新数据
+        // 从服务器获取最新数据
         await get().refreshCredits(userId);
       },
 
@@ -70,18 +64,15 @@ export const useCreditsStore = create<CreditsState>()(
 
         try {
           set({ creditsLoading: true });
-          console.log('🔄 [CreditsStore] 正在从服务器刷新积分...');
-          
+
           const data = await paymentService.getUserCredits(userId);
-          
+
           set({
             credits: data,
             creditsLoading: false,
             lastUpdated: Date.now(),
             userId: userId,
           });
-          
-          console.log('✅ [CreditsStore] 积分已刷新:', data?.available_credits || 0);
         } catch (error) {
           console.error('❌ [CreditsStore] 刷新积分失败:', error);
           set({ creditsLoading: false });
@@ -94,7 +85,6 @@ export const useCreditsStore = create<CreditsState>()(
           credits,
           lastUpdated: Date.now(),
         });
-        console.log('✅ [CreditsStore] 积分已更新（本地）:', credits?.available_credits || 0);
       },
 
       // 清除积分（用户登出时调用）
@@ -105,7 +95,6 @@ export const useCreditsStore = create<CreditsState>()(
           lastUpdated: null,
           userId: null,
         });
-        console.log('🧹 [CreditsStore] 积分已清除');
       },
 
       // 检查积分是否足够

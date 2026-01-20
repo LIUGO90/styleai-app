@@ -54,53 +54,20 @@ export default function CreditManagement() {
     }, [])
   );
 
-  // Debug: 输出 offerings 信息
-  useEffect(() => {
-    console.log('🔍 [Credit Page] RevenueCat 初始化状态:', revenueCatService.isInitialized());
-    console.log('🔍 [Credit Page] Current Offering:', currentOffering);
-    console.log('🔍 [Credit Page] Offerings Loading:', offeringsLoading);
-    console.log('🔍 [Credit Page] Offerings Error:', offeringsError);
-    
-    if (currentOffering) {
-      console.log('🔍 [Credit Page] Offering ID:', currentOffering.identifier);
-      console.log('🔍 [Credit Page] Offering Description:', currentOffering.serverDescription);
-      console.log('🔍 [Credit Page] Available Packages:', currentOffering.availablePackages.length);
-      
-      currentOffering.availablePackages.forEach((pkg, index) => {
-        console.log(`  ${index + 1}. Product ID: ${pkg.product.identifier}`);
-        console.log(`     Title: ${pkg.product.title}`);
-        console.log(`     Price: ${pkg.product.priceString}`);
-        console.log(`     Type: ${pkg.product.productType}`);
-        console.log(`     Package Type: ${pkg.packageType}`);
-        console.log('     ---');
-      });
-    } else {
-      console.log('🔍 [Credit Page] No current offering available');
-    }
-  }, [currentOffering, offeringsLoading, offeringsError]);
-
-  // 强制刷新 RevenueCat 数据（调试用）
+  // 初始化 RevenueCat 数据
   useEffect(() => {
     const forceRefresh = async () => {
-      console.log('🔄 [Credit Page] 强制刷新 RevenueCat 数据...');
       try {
-        // 检查初始化状态
         const isInit = revenueCatService.isInitialized();
-        console.log('🔄 [Credit Page] RevenueCat 初始化状态:', isInit);
-        
         if (!isInit) {
-          console.log('🔄 [Credit Page] RevenueCat 未初始化，尝试重新初始化...');
           await revenueCatService.initialize();
         }
-        
-        // 重新加载积分包
         await loadCreditPackages();
       } catch (error) {
-        console.error('🔄 [Credit Page] 强制刷新失败:', error);
-        console.error('🔄 [Credit Page] 错误详情:', (error as Error).message);
+        // 静默失败
       }
     };
-    
+
     // 延迟 3 秒后执行，确保 RevenueCat 已初始化
     const timer = setTimeout(forceRefresh, 3000);
     return () => clearTimeout(timer);
@@ -108,10 +75,6 @@ export default function CreditManagement() {
 
   // 从 Supabase 加载购买历史
   useEffect(() => {
-    console.log('🔄 [Credit Page] Supabase payments 更新');
-    console.log('🔄 [Credit Page] payments 数量:', payments.length);
-    console.log('🔄 [Credit Page] paymentsLoading:', paymentsLoading);
-    
     if (!paymentsLoading && payments.length >= 0) {
       loadPurchaseHistoryFromSupabase();
     }
@@ -123,90 +86,37 @@ export default function CreditManagement() {
   }, []);
 
   const loadCreditPackages = async () => {
-    console.log('📦 [Credit Page] Loading credit packages from ALL offerings...');
-    
     try {
-      // 获取所有 Offerings，而不是只从 Current Offering
+      // 获取所有 Offerings
       const allOfferings = await revenueCatService.getOfferings();
-      console.log('📦 [Credit Page] All Offerings:', Object.keys(allOfferings.all));
-      console.log('📦 [Credit Page] Total Offerings count:', Object.keys(allOfferings.all).length);
-      
-      // 检查是否包含 AIPoints_100 Offering
-      const aiPointsOfferings = Object.keys(allOfferings.all).filter(key => key.includes('AIPoints'));
-      console.log('📦 [Credit Page] AIPoints Offerings:', aiPointsOfferings);
-      
+
       const packages: CreditPackage[] = [];
-      
+
       // 遍历所有 Offerings 寻找积分产品
-      Object.values(allOfferings.all).forEach((offering, offeringIndex) => {
-        console.log(`📦 [Credit Page] Checking Offering ${offeringIndex + 1}: ${offering.identifier}`);
-        console.log(`📦 [Credit Page] Packages in ${offering.identifier}:`, offering.availablePackages.length);
-        
-        offering.availablePackages.forEach((pkg, index) => {
+      Object.values(allOfferings.all).forEach((offering) => {
+        offering.availablePackages.forEach((pkg) => {
           const productId = pkg.product.identifier;
-          const productTitle = pkg.product.title;
-          const productType = pkg.product.productType;
-          
-          console.log(`🔍 [Credit Page] Package ${index + 1}:`, {
-            id: productId,
-            title: productTitle,
-            price: pkg.product.priceString,
-            type: productType,
-            packageType: pkg.packageType,
-          });
-          
-          // 特别检查 AIPoints_100
-          if (productId === 'AIPoints_100') {
-            console.log('🎯 [Credit Page] Found AIPoints_100!', {
-              productId,
-              productType,
-              packageType: pkg.packageType,
-              price: pkg.product.priceString,
-              title: pkg.product.title
-            });
-          }
-          
+
           // 只添加积分产品（AIPoints）
           if (productId.includes('AIPoints')) {
             const credits = extractCreditsFromProductId(productId);
             const discount = getPackageDiscount(pkg);
-            
-            console.log(`  ✅ Added AIPoints product: ${productId} (${credits} credits, ${pkg.product.priceString})`);
-            console.log(`  ✅ Discount: ${discount || 'none'}`);
-            
+
             packages.push({
               package: pkg,
               credits,
               discount,
             });
-          } else {
-            console.log(`  ⏭️ Skipped (not AIPoints): ${productId}`);
           }
         });
       });
 
-      console.log('📦 [Credit Page] Total AIPoints packages found:', packages.length);
-      console.log('📦 [Credit Page] Package IDs:', packages.map(p => p.package.product.identifier).join(', '));
-      
-      // 检查是否包含 AIPoints_100
-      const hasAIPoints100 = packages.some(p => p.package.product.identifier === 'AIPoints_100');
-      console.log('📦 [Credit Page] Contains AIPoints_100:', hasAIPoints100);
-      
-      if (hasAIPoints100) {
-        const aiPoints100 = packages.find(p => p.package.product.identifier === 'AIPoints_100');
-        console.log('📦 [Credit Page] AIPoints_100 details:', {
-          credits: aiPoints100?.credits,
-          discount: aiPoints100?.discount,
-          price: aiPoints100?.package.product.priceString
-        });
-      }
-      
       // 按积分数量排序
       packages.sort((a, b) => a.credits - b.credits);
       setCreditPackages(packages);
-      
+
     } catch (error) {
-      console.error('📦 [Credit Page] Failed to load credit packages:', error);
+      // 静默失败
     }
   };
 
@@ -231,32 +141,18 @@ export default function CreditManagement() {
 
   // 从 Supabase 数据库加载购买历史
   const loadPurchaseHistoryFromSupabase = () => {
-    console.log('📜 [Credit Page] 从 Supabase 加载购买历史...');
-    console.log('📜 [Credit Page] payments 数量:', payments.length);
-    
     if (payments.length === 0) {
-      console.log('📜 [Credit Page] 没有找到任何支付记录');
       setPurchaseHistory([]);
       return;
     }
 
     const purchases: PurchaseItem[] = [];
 
-    console.log('📜 [Credit Page] 所有支付记录(只打印5个记录):');
-    payments.slice(0,5).forEach((payment, idx) => {
-      console.log(`  ${idx + 1}. Product ID: ${payment.product_id}`);
-      console.log(`     Product Type: ${payment.product_type}`);
-      console.log(`     Credits: ${payment.credits_amount}`);
-      console.log(`     Status: ${payment.status}`);
-      console.log(`     Purchase Date: ${payment.purchase_date}`);
-      console.log(`     Is Subscription: ${payment.is_subscription}`);
-      
+    payments.forEach((payment) => {
       // 只添加积分产品（非订阅产品）
-      const isCreditProduct = payment.product_type === 'credits' || 
+      const isCreditProduct = payment.product_type === 'credits' ||
                              (payment.credits_amount > 0 && !payment.is_subscription);
-      
-      console.log(`     是积分产品: ${isCreditProduct}`);
-      
+
       if (isCreditProduct) {
         purchases.push({
           id: payment.id,
@@ -267,9 +163,6 @@ export default function CreditManagement() {
           status: mapPaymentStatus(payment.status),
           type: 'Credits',
         });
-        console.log(`     ✅ 已添加到购买历史 (${payment.credits_amount} 积分)`);
-      } else {
-        console.log(`     ⏭️ 跳过（订阅产品或非积分产品）`);
       }
     });
 
@@ -277,13 +170,6 @@ export default function CreditManagement() {
     purchases.sort((a, b) => {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
-
-    console.log('📜 [Credit Page] 最终购买历史数量:', purchases.length);
-    if (purchases.length > 0) {
-      console.log('📜 [Credit Page] 购买记录详情:', purchases.map(p => 
-        `${p.productId} - ${p.price || 'N/A'} - ${p.date}`
-      ));
-    }
 
     setPurchaseHistory(purchases);
   };
@@ -353,8 +239,6 @@ export default function CreditManagement() {
             text: 'Purchase',
             onPress: async () => {
               try {
-                console.log('🔄 Starting purchase...');
-                
                 // 追踪购买开始
                 await analytics.track('purchase_started', {
                   product_id: creditPackage.package.product.identifier,
@@ -374,8 +258,7 @@ export default function CreditManagement() {
                 
                 // 验证购买结果
                 const purchaseValidation = validatePurchaseResult(result);
-                console.log(purchaseValidation.success ? '✅' : '❌', 'Phase 1:', purchaseValidation.message);
-                
+
                 if (!purchaseValidation.success) {
                   throw new Error(purchaseValidation.message);
                 }
@@ -391,8 +274,7 @@ export default function CreditManagement() {
                   payment,
                   creditPackage.package.product.identifier
                 );
-                console.log(syncValidation.success ? '✅' : '⚠️', 'Phase 2:', syncValidation.message);
-                
+
                 // 3. 刷新数据
                 await refresh(); // 刷新 RevenueCat 数据
                 await refreshCredits(); // 刷新积分余额
@@ -402,15 +284,11 @@ export default function CreditManagement() {
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 // 获取更新后的积分余额（从 state 获取最新值）
-                // 注意：由于 React state 更新可能异步，这里使用购买前余额 + 购买数量作为预期
                 const expectedCreditsAfter = creditsBefore + creditPackage.credits;
-                
-                console.log(`✅ Phase 3: Expected credits increase from ${creditsBefore} to ${expectedCreditsAfter}`);
-                
+
                 // 根据验证结果显示消息
                 if (purchaseValidation.success && syncValidation.success) {
                   // 所有步骤成功
-                  console.log('🎉 All phases completed successfully!');
                   
                   // 追踪购买成功
                   await analytics.trackPurchase(
@@ -442,8 +320,6 @@ export default function CreditManagement() {
                   );
                 } else if (purchaseValidation.success) {
                   // 购买成功但同步有问题
-                  console.warn('⚠️ Purchase successful but sync had issues');
-                  
                   // 追踪购买成功但同步失败
                   await analytics.trackPurchase(
                     creditPackage.package.product.identifier,
@@ -479,7 +355,6 @@ export default function CreditManagement() {
                 
               } catch (error: any) {
                 if (isUserCancelledError(error)) {
-                  console.log('ℹ️ User cancelled purchase');
                   // 追踪用户取消
                   await analytics.track('purchase_cancelled', {
                     product_id: creditPackage.package.product.identifier,
@@ -489,9 +364,7 @@ export default function CreditManagement() {
                   });
                   return;
                 }
-                
-                console.error('❌ Purchase error:', error);
-                
+
                 // 追踪购买失败
                 await analytics.track('purchase_failed', {
                   product_id: creditPackage.package.product.identifier,
@@ -508,7 +381,6 @@ export default function CreditManagement() {
         ]
       );
     } catch (error) {
-      console.error('❌ Purchase credits error:', error);
       Alert.alert('Error', 'An error occurred. Please try again.');
     }
   };
@@ -573,8 +445,6 @@ export default function CreditManagement() {
       packages: creditPackages.length,
     };
 
-    console.log('📊 Complete Credits Data:', JSON.stringify(data, null, 2));
-    
     Alert.alert(
       'Credits Information',
       `Available: ${credits.available_credits}\n` +
@@ -734,7 +604,6 @@ export default function CreditManagement() {
                   </Text>
                   <TouchableOpacity
                     onPress={() => {
-                      console.log('🔄 手动刷新 offerings...');
                       refreshOfferings();
                     }}
                     className="bg-orange-500 py-2 px-4 rounded-lg mt-2"

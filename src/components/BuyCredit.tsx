@@ -63,90 +63,35 @@ export default function BuyCredit() {
     };
 
     const loadCreditPackages = async () => {
-        console.log('📦 [Credit Page] Loading credit packages from ALL offerings...');
-
         try {
-            // 获取所有 Offerings，而不是只从 Current Offering
             const allOfferings = await revenueCatService.getOfferings();
-            console.log('📦 [Credit Page] All Offerings:', Object.keys(allOfferings.all));
-            console.log('📦 [Credit Page] Total Offerings count:', Object.keys(allOfferings.all).length);
-
-            // 检查是否包含 AIPoints_100 Offering
-            const aiPointsOfferings = Object.keys(allOfferings.all).filter(key => key.includes('AIPoints'));
-            console.log('📦 [Credit Page] AIPoints Offerings:', aiPointsOfferings);
-
             const packages: CreditPackage[] = [];
 
             // 遍历所有 Offerings 寻找积分产品
-            Object.values(allOfferings.all).forEach((offering, offeringIndex) => {
-                console.log(`📦 [Credit Page] Checking Offering ${offeringIndex + 1}: ${offering.identifier}`);
-                console.log(`📦 [Credit Page] Packages in ${offering.identifier}:`, offering.availablePackages.length);
-
-                offering.availablePackages.forEach((pkg, index) => {
+            Object.values(allOfferings.all).forEach((offering) => {
+                offering.availablePackages.forEach((pkg) => {
                     const productId = pkg.product.identifier;
-                    const productTitle = pkg.product.title;
-                    const productType = pkg.product.productType;
-
-                    console.log(`🔍 [Credit Page] Package ${index + 1}:`, {
-                        id: productId,
-                        title: productTitle,
-                        price: pkg.product.priceString,
-                        type: productType,
-                        packageType: pkg.packageType,
-                    });
-
-                    // 特别检查 AIPoints_100
-                    if (productId === 'AIPoints_100') {
-                        console.log('🎯 [Credit Page] Found AIPoints_100!', {
-                            productId,
-                            productType,
-                            packageType: pkg.packageType,
-                            price: pkg.product.priceString,
-                            title: pkg.product.title
-                        });
-                    }
 
                     // 只添加积分产品（AIPoints）
                     if (productId.includes('AIPoints')) {
                         const credits = extractCreditsFromProductId(productId);
                         const discount = getPackageDiscount(pkg);
 
-                        console.log(`  ✅ Added AIPoints product: ${productId} (${credits} credits, ${pkg.product.priceString})`);
-                        console.log(`  ✅ Discount: ${discount || 'none'}`);
-
                         packages.push({
                             package: pkg,
                             credits,
                             discount,
                         });
-                    } else {
-                        console.log(`  ⏭️ Skipped (not AIPoints): ${productId}`);
                     }
                 });
             });
-
-            console.log('📦 [Credit Page] Total AIPoints packages found:', packages.length);
-            console.log('📦 [Credit Page] Package IDs:', packages.map(p => p.package.product.identifier).join(', '));
-
-            // 检查是否包含 AIPoints_100
-            const hasAIPoints100 = packages.some(p => p.package.product.identifier === 'AIPoints_100');
-            console.log('📦 [Credit Page] Contains AIPoints_100:', hasAIPoints100);
-
-            if (hasAIPoints100) {
-                const aiPoints100 = packages.find(p => p.package.product.identifier === 'AIPoints_100');
-                console.log('📦 [Credit Page] AIPoints_100 details:', {
-                    credits: aiPoints100?.credits,
-                    discount: aiPoints100?.discount,
-                    price: aiPoints100?.package.product.priceString
-                });
-            }
 
             // 按积分数量排序
             packages.sort((a, b) => a.credits - b.credits);
             setCreditPackages(packages);
 
         } catch (error) {
-            console.error('📦 [Credit Page] Failed to load credit packages:', error);
+            // 静默失败
         }
     };
 
@@ -155,8 +100,6 @@ export default function BuyCredit() {
     const handlePurchaseCredits = async (creditPackage: CreditPackage) => {
 
         try {
-            console.log('🔄 Starting purchase...');
-
             // 追踪购买开始
             await analytics.credits('purchase_started', {
                 product_id: creditPackage.package.product.identifier,
@@ -175,7 +118,6 @@ export default function BuyCredit() {
 
             // 验证购买结果
             const purchaseValidation = validatePurchaseResult(result);
-            console.log(purchaseValidation.success ? '✅' : '❌', 'Phase 1:', purchaseValidation.message);
 
             if (!purchaseValidation.success) {
                 throw new Error(purchaseValidation.message);
@@ -192,7 +134,6 @@ export default function BuyCredit() {
                 payment,
                 creditPackage.package.product.identifier
             );
-            console.log(syncValidation.success ? '✅' : '⚠️', 'Phase 2:', syncValidation.message);
 
             // 3. 刷新数据
             await refresh(); // 刷新 RevenueCat 数据
@@ -206,16 +147,11 @@ export default function BuyCredit() {
             // 等待一小段时间让数据更新
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 获取更新后的积分余额（从 state 获取最新值）
-            // 注意：由于 React state 更新可能异步，这里使用购买前余额 + 购买数量作为预期
+            // 获取更新后的积分余额
             const expectedCreditsAfter = creditsBefore + creditPackage.credits;
-
-            console.log(`✅ Phase 3: Expected credits increase from ${creditsBefore} to ${expectedCreditsAfter}`);
 
             // 根据验证结果显示消息
             if (purchaseValidation.success && syncValidation.success) {
-                // 所有步骤成功
-                console.log('🎉 All phases completed successfully!');
 
                 // 追踪购买成功
                 await analytics.trackPurchase(
@@ -245,9 +181,6 @@ export default function BuyCredit() {
                     ]
                 );
             } else if (purchaseValidation.success) {
-                // 购买成功但同步有问题
-                console.warn('⚠️ Purchase successful but sync had issues');
-
                 // 追踪购买成功但同步失败
                 await analytics.trackPurchase(
                     creditPackage.package.product.identifier,
@@ -282,7 +215,6 @@ export default function BuyCredit() {
 
         } catch (error: any) {
             if (isUserCancelledError(error)) {
-                console.log('ℹ️ User cancelled purchase');
                 // 追踪用户取消
                 await analytics.track('purchase_cancelled', {
                     product_id: creditPackage.package.product.identifier,
@@ -292,8 +224,6 @@ export default function BuyCredit() {
                 return;
             }
 
-            console.error('❌ Purchase error:', error);
-            
             // 追踪购买失败
             await analytics.track('purchase_failed', {
                 product_id: creditPackage.package.product.identifier,

@@ -26,51 +26,30 @@ class RevenueCatService {
    */
   async initialize(userId?: string): Promise<void> {
     if (this.initialized) {
-      console.log('ℹ️ [RevenueCat] Already initialized');
       return;
     }
 
     try {
-      console.log('🚀 [RevenueCat] Starting initialization...');
-      
       const apiKey = Platform.select({
         ios: REVENUECAT_CONFIG.apiKeys.apple,
         default: REVENUECAT_CONFIG.apiKeys.apple,
       });
 
-      console.log(`📦 [RevenueCat] API Key: ${apiKey ? apiKey.substring(0, 8) + '...' : 'undefined'}`);
-
-
       // Validate API key format
       if (!apiKey.startsWith('appl_') && !apiKey.startsWith('goog_') && !apiKey.startsWith('test_')) {
-        console.warn(`⚠️ [RevenueCat] Invalid API key format (starts with: ${apiKey.substring(0, 5)})`);
-        console.warn('💡 Apple keys should start with "appl_", Google keys with "goog_", test keys with "test_"');
         this.initialized = false;
         return;
       }
 
       // Configure SDK
-      console.log('📦 [RevenueCat] Configuring SDK...');
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-      
-      console.log('📦 [RevenueCat] Calling Purchases.configure...');
-      await Purchases.configure({ apiKey });
-      console.log('✅ [RevenueCat] Purchases.configure completed');
+      Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
 
-      // // Set user ID if provided
-      // if (userId) {
-      //   await this.login(userId);
-      // }
+      await Purchases.configure({ apiKey });
 
       this.initialized = true;
-      console.log('✅ [RevenueCat] Initialization successful');
 
     } catch (error: any) {
-      console.error('❌ [RevenueCat] Initialization failed');
-      console.error('❌ [RevenueCat] Error message:', error?.message || 'Unknown error');
-      console.error('❌ [RevenueCat] Error code:', error?.code || 'No code');
-      console.error('❌ [RevenueCat] Error details:', JSON.stringify(error, null, 2));
-      console.warn('⚠️ [RevenueCat] App will continue without subscription features');
+      console.error('❌ [RevenueCat] Initialization failed:', error?.message);
       // DON'T throw - allow app to continue
       this.initialized = false;
     }
@@ -111,7 +90,6 @@ class RevenueCatService {
   async getCustomerInfo(): Promise<CustomerInfo> {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
-      console.log('🔍customerInfo', customerInfo);
       return customerInfo;
     } catch (error) {
       console.error('[RevenueCat] Failed to get customer info:', error);

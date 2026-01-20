@@ -146,16 +146,14 @@ export default function LookbookOne() {
   // 键盘事件监听
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (event) => {
-      console.log('Keyboard shown, height:', event.endCoordinates.height);
       setIsKeyboardVisible(true);
       Animated.timing(inputBottomPosition, {
-        toValue: event.endCoordinates.height + 20, // 键盘高度 + 20px 间距
+        toValue: event.endCoordinates.height + 20,
         duration: 300,
         useNativeDriver: false,
       }).start();
     });
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      console.log('Keyboard hidden');
       setIsKeyboardVisible(false);
       Animated.timing(inputBottomPosition, {
         toValue: 48,
@@ -173,7 +171,6 @@ export default function LookbookOne() {
   // 滚动到指定位置的函数
   const scrollToIndex = useCallback((index: number) => {
     const targetX = index * SCREEN_WIDTH;
-    console.log(`🎯 尝试滚动到索引 ${index}, 偏移 ${targetX}px`);
 
     if (fullscreenScrollRef.current) {
       fullscreenScrollRef.current.scrollTo({
@@ -181,19 +178,14 @@ export default function LookbookOne() {
         y: 0,
         animated: false,
       });
-      console.log(`✅ 滚动命令已发送`);
-    } else {
-      console.warn(`⚠️ fullscreenScrollRef.current 为 null`);
     }
   }, []);
 
   // 同步全局状态到本地状态
   useEffect(() => {
-    // 当全局状态更新时，同步到本地状态
-    console.log(`🔄 [Lookbook] 全局状态更新，同步到本地状态: ${globalImages.length} 张图片`);
     setAllItems(globalAllItems);
     setAvailableStyles(globalAvailableStyles);
-    
+
     // 根据当前选择的风格过滤图片
     if (selectedStyle === 'All') {
       setImages(globalImages);
@@ -213,16 +205,12 @@ export default function LookbookOne() {
   // 加载图片（现在只需要刷新全局状态）
   const loadCollections = useCallback(async () => {
     if (!user?.id) {
-      console.warn('⚠️ 用户未登录，无法加载图片');
       return;
     }
 
     try {
-      // 刷新全局图片状态（ImageContext 会自动更新所有使用该状态的组件）
       await refreshImages();
-      console.log('✅ [Lookbook] 图片状态已刷新');
     } catch (error) {
-      console.error('❌ [Lookbook] 刷新图片失败:', error);
       Alert.alert('Error', 'Failed to refresh your lookbook');
     }
   }, [user?.id, refreshImages]);
@@ -241,7 +229,6 @@ export default function LookbookOne() {
           metadata: item.metadata || {},
         }));
       setImages(allImages);
-      console.log(`🎨 筛选风格: ${style}, 图片数量: ${allImages.length}`);
     } else {
       const filteredImages: ImageItem[] = allItems
         .filter(item => item.style === style && item.image_url && item.image_url.length > 0)
@@ -252,7 +239,6 @@ export default function LookbookOne() {
           metadata: item.metadata || {},
         }));
       setImages(filteredImages);
-      console.log(`🎨 筛选风格: ${style}, 图片数量: ${filteredImages.length}`);
     }
   }, [allItems]);
 
@@ -264,8 +250,6 @@ export default function LookbookOne() {
       toggleImageSelection(images[index].image_url);
       return;
     }
-
-    console.log(`📱 点击图片 ${index}，屏幕宽度: ${SCREEN_WIDTH}，目标偏移: ${index * SCREEN_WIDTH}`);
 
     setCurrentIndex(index);
     setModalVisible(true);
@@ -336,8 +320,6 @@ export default function LookbookOne() {
               // 批量删除
               const deletedCount = await UserImageService.batchDeleteImages(imageIds);
 
-              console.log(`✅ 成功删除 ${imageIds.length} 张图片`);
-
               // 退出选择模式
               setSelectionMode(false);
               setSelectedImages(new Set());
@@ -353,7 +335,6 @@ export default function LookbookOne() {
                 type: 'success',
               });
             } catch (error) {
-              console.error('❌ 批量删除失败:', error);
               Alert.alert('Error', 'Failed to delete images. Please try again.');
             }
           },
@@ -366,9 +347,7 @@ export default function LookbookOne() {
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / SCREEN_WIDTH);
-    console.log(`📜 滚动中: offsetX=${offsetX.toFixed(0)}px, 计算索引=${index}`);
     if (index >= 0 && index < images.length && index !== currentIndex) {
-      console.log(`🔄 更新索引: ${currentIndex} -> ${index}`);
       setCurrentIndex(index);
     }
   };
@@ -405,9 +384,7 @@ export default function LookbookOne() {
                 // 调用删除服务（软删除）
                 await UserImageService.softDeleteImage(itemToDelete.id);
 
-                console.log(`✅ 成功删除图片: ${itemToDelete.id}`);
-
-                // 刷新全局图片状态（ImageContext 会自动更新所有使用该状态的组件）
+                // 刷新全局图片状态
                 await refreshImages();
 
                 // 通知其他页面更新（ImageContext 已经监听，但这里也通知一下以确保同步）
@@ -446,7 +423,6 @@ export default function LookbookOne() {
                 Alert.alert('Error', 'Image not found');
               }
             } catch (error) {
-              console.error('❌ 删除图片失败:', error);
               Alert.alert('Error', 'Failed to delete image. Please try again.');
             }
           },
@@ -471,17 +447,8 @@ export default function LookbookOne() {
         title: 'My Lookbook',
       });
 
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log(`✅ 分享成功: ${result.activityType}`);
-        } else {
-          console.log('✅ 分享成功');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log('📤 分享已取消');
-      }
+      // Share completed
     } catch (error) {
-      console.error('❌ 分享失败:', error);
       Alert.alert('Error', 'Failed to share image. Please try again.');
     }
   };
@@ -651,15 +618,6 @@ export default function LookbookOne() {
                     cachePolicy="memory-disk"
                     priority="high"
                     recyclingKey={`${image.id}-${image.image_url}`}
-                    onProgress={(progress) => {
-                      console.log(`📊 [Lookbook] 图片加载进度: ${progress.loaded}/${progress.total}`);
-                    }}
-                    onLoad={() => {
-                      // console.log(`✅ [Lookbook] 图片加载成功: ${image.image_url}`);
-                    }}
-                    onError={(error) => {
-                      console.error(`❌ [Lookbook] 图片加载失败: ${image.image_url}`, error);
-                    }}
                   />
 
                   {/* 生成中的呼吸动画遮罩 */}
@@ -789,9 +747,6 @@ export default function LookbookOne() {
             snapToAlignment="center"
             contentContainerStyle={{ flexDirection: 'row' }}
             collapsable={false}
-            onLayout={(event) => {
-              console.log(`📐 ScrollView 已布局，初始偏移: ${currentIndex * SCREEN_WIDTH}px`);
-            }}
           >
             {images.map((item, index) => (
               <View
@@ -837,17 +792,14 @@ export default function LookbookOne() {
                 value={inputText}
                 onChangeText={setInputText}
                 onFocus={() => {
-                  console.log('TextInput focused');
                   setIsKeyboardVisible(true);
-                  // 手动触发动画，以防键盘事件没有触发
                   Animated.timing(inputBottomPosition, {
-                    toValue: 340, // 假设键盘高度约为 300px
+                    toValue: 340,
                     duration: 300,
                     useNativeDriver: false,
                   }).start();
                 }}
                 onBlur={() => {
-                  console.log('TextInput blurred');
                   setIsKeyboardVisible(false);
                   Animated.timing(inputBottomPosition, {
                     toValue: 48,
@@ -861,18 +813,10 @@ export default function LookbookOne() {
                 className="p-3"
                 onPress={async () => {
                   if (inputText.trim()) {
-                    // 保存输入文本，然后清空
                     const messageToSend = inputText.trim();
-                    console.log('Sending:', messageToSend);
-
 
                     const session = await ChatSessionService.createSession(user?.id || '', "free_chat");
                     if (session) {
-                      console.log('Navigating to free_chat with params:', {
-                        sessionId: session.id,
-                        imageUri: images[currentIndex],
-                        message: messageToSend
-                      });
                       router.push({
                         pathname: "/free_chat",
                         params: {

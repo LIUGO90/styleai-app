@@ -31,7 +31,7 @@ export default function RootLayout() {
       setClosetBadge(badges.closet);
       setMyBadge(badges.my);
     } catch (error) {
-      console.error('Failed to load badge data:', error);
+      // 静默失败
     }
   }, []);
 
@@ -151,14 +151,12 @@ export default function RootLayout() {
                 
                 // 如果没有子路由或者在 index 页面，不做任何操作
                 if (!myState || myState.index === 0 || myState.routes[myState.index].name === 'index') {
-                  console.log('✅ 已经在 my/index，无需跳转');
-                  return; // 不做任何操作
+                  return;
                 }
               }
-              
+
               // 在子页面（如 subscription），阻止默认行为并跳转到 index
               e.preventDefault();
-              console.log('🔄 从子页面跳转到 my/index');
               router.replace('/tabs/my');
             },
           })}

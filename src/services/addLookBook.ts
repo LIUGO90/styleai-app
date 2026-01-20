@@ -14,7 +14,6 @@ export const updateImageLook = async (requestId: string, imageUrl: string) => {
         
         // 如果成功更新了图片，通知 ImageContext 刷新
         if (savedImages && savedImages.length > 0) {
-            console.log(`🔔 [updateImageLook] 通知图片更新，request_id: ${requestId}`);
             imageUpdateManager.notifyImageUpdate('lookbook');
         }
         
@@ -43,7 +42,6 @@ export const addImageLook = async (
     description?: string,
 ) => {
     try {
-        console.log(`📸 开始保存 ${imagesUrl.length} 张 ${selectedStyles} 风格的图片...`);
         // 批量创建图片记录
         const savedImages = await UserImageService.createImages(
             imagesUrl.map((url, index) => ({
@@ -69,7 +67,6 @@ export const addImageLook = async (
             // 通知图片更新（用于实时刷新页面）
             imageUpdateManager.notifyImageUpdate('lookbook');
 
-            console.log(`✅ 成功保存 ${savedImages.length} 张图片到 Lookbook`);
             return savedImages;
         } else {
             console.error('❌ 保存图片失败');
@@ -118,9 +115,6 @@ export const getRecentLookbooks = async (userId: string, limit: number = 20) => 
 export const deleteLookbookImage = async (imageId: string) => {
     try {
         const success = await UserImageService.softDeleteImage(imageId);
-        if (success) {
-            console.log('✅ Lookbook 图片已删除');
-        }
         return success;
     } catch (error) {
         console.error('❌ deleteLookbookImage 异常:', error);

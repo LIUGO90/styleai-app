@@ -46,15 +46,11 @@ class LongRequestHandler {
    * 初始化服务
    */
   initialize(): void {
-    console.log("🚀 初始化长请求处理器...");
-
     // 监听 App 状态变化
     this.appStateSubscription = AppState.addEventListener(
       "change",
       this.handleAppStateChange.bind(this)
     );
-
-    console.log("✅ 长请求处理器初始化完成");
   }
 
   /**
@@ -66,23 +62,17 @@ class LongRequestHandler {
     // 停止所有轮询
     this.activePollTimers.forEach(timer => clearTimeout(timer));
     this.activePollTimers.clear();
-    
-    console.log("🧹 长请求处理器已清理");
   }
 
   /**
    * 处理 App 状态变化
    */
   private async handleAppStateChange(nextAppState: AppStateStatus): Promise<void> {
-    console.log(`📱 App 状态变化: ${nextAppState}`);
-
     if (nextAppState === "background") {
       // App 进入后台 - 停止所有轮询
-      console.log("⏸️ App 进入后台，停止轮询...");
       this.stopAllPolling();
     } else if (nextAppState === "active") {
       // App 回到前台 - 恢复检查任务
-      console.log("▶️ App 回到前台，检查待完成任务...");
       await this.checkAllPendingTasks();
     }
   }
@@ -91,9 +81,8 @@ class LongRequestHandler {
    * 停止所有轮询
    */
   private stopAllPolling(): void {
-    this.activePollTimers.forEach((timer, taskId) => {
+    this.activePollTimers.forEach((timer) => {
       clearTimeout(timer);
-      console.log(`⏸️ 停止轮询: ${taskId}`);
     });
     this.activePollTimers.clear();
   }
@@ -107,7 +96,6 @@ class LongRequestHandler {
     apiEndpoint: string
   ): Promise<string> {
     try {
-      console.log(`📤 提交任务: ${type}`);
 
       // 发送到服务端
       const response = await fetch(apiEndpoint, {
@@ -128,7 +116,6 @@ class LongRequestHandler {
       };
       await this.persistTask(task);
 
-      console.log(`✅ 任务已提交: ${taskId}`);
       return taskId;
     } catch (error) {
       console.error("❌ 提交任务失败:", error);
@@ -148,7 +135,6 @@ class LongRequestHandler {
   ): Promise<void> {
     // 检查是否已在轮询
     if (this.activePollTimers.has(taskId)) {
-      console.log(`⏭️ 任务已在轮询: ${taskId}`);
       return;
     }
 
@@ -156,7 +142,6 @@ class LongRequestHandler {
       try {
         // 检查 App 状态
         if (AppState.currentState !== "active") {
-          console.log(`⏸️ App 不在前台，停止轮询: ${taskId}`);
           this.activePollTimers.delete(taskId);
           return;
         }
@@ -165,15 +150,12 @@ class LongRequestHandler {
         const response = await fetch(statusEndpoint);
         const taskStatus: TaskStatus = await response.json();
 
-        console.log(`🔍 任务状态: ${taskId} - ${taskStatus.status} (${taskStatus.progress}%)`);
-
         // 更新进度
         onProgress?.(taskStatus.progress);
         await this.updateTaskProgress(taskId, taskStatus.progress);
 
         if (taskStatus.status === "completed") {
           // 任务完成
-          console.log(`✅ 任务完成: ${taskId}`);
           onComplete?.(taskStatus.result);
           await this.removeTask(taskId);
           this.activePollTimers.delete(taskId);
@@ -182,7 +164,6 @@ class LongRequestHandler {
 
         if (taskStatus.status === "failed") {
           // 任务失败
-          console.log(`❌ 任务失败: ${taskId}`);
           onError?.(taskStatus.error || "Unknown error");
           await this.removeTask(taskId);
           this.activePollTimers.delete(taskId);
@@ -213,18 +194,13 @@ class LongRequestHandler {
       const tasks = await this.getAllPendingTasks();
       const now = Date.now();
 
-      console.log(`📋 检查 ${tasks.length} 个待完成任务`);
-
       for (const task of tasks) {
         // 检查是否过期
         const age = now - task.timestamp;
         if (age > this.MAX_TASK_AGE) {
-          console.log(`⏭️ 任务已过期: ${task.taskId}`);
           await this.removeTask(task.taskId);
           continue;
         }
-
-        console.log(`🔍 检查任务: ${task.taskId} (${task.type})`);
 
         // 这里应该查询任务状态
         // 实际实现时，需要根据任务类型调用不同的状态端点
@@ -248,11 +224,7 @@ class LongRequestHandler {
       const response = await fetch(statusEndpoint);
       const status: TaskStatus = await response.json();
 
-      if (status.status === "completed") {
-        console.log(`✅ 任务已完成: ${taskId}`);
-        await this.removeTask(taskId);
-      } else if (status.status === "failed") {
-        console.log(`❌ 任务失败: ${taskId}`);
+      if (status.status === "completed" || status.status === "failed") {
         await this.removeTask(taskId);
       }
 
@@ -280,7 +252,6 @@ class LongRequestHandler {
       }
 
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(tasks));
-      console.log(`💾 任务已持久化: ${task.taskId}`);
     } catch (error) {
       console.error("❌ 持久化任务失败:", error);
     }
@@ -315,7 +286,6 @@ class LongRequestHandler {
       const filtered = tasks.filter((t) => t.taskId !== taskId);
 
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
-      console.log(`🗑️ 任务已移除: ${taskId}`);
 
       // 停止轮询
       const timer = this.activePollTimers.get(taskId);
@@ -350,7 +320,6 @@ class LongRequestHandler {
     try {
       await AsyncStorage.removeItem(this.STORAGE_KEY);
       this.stopAllPolling();
-      console.log("🧹 所有任务已清除");
     } catch (error) {
       console.error("❌ 清除任务失败:", error);
     }

@@ -1,4 +1,9 @@
 import { webWorkerAIService } from "./WebWorkerAIService";
+import { logger } from '@/utils/logger';
+import { analytics } from '@/services/AnalyticsService';
+
+// 创建模块专用 logger
+const log = logger.createModuleLogger('AIRequest');
 
 interface AiRequestResponse {
   status: string,
@@ -55,7 +60,8 @@ export const aiRequest = async (
       },
     });
   } catch (error) {
-    console.error("AI request failed:", error);
+    log.error('AI request failed', error, { garmentImage, occasion });
+    analytics.trackAIError('generation_failed', error, { action: 'ai_request', occasion });
     return {status:"error", jobId: "error", message: "error", images: [] };
   }
 };
@@ -75,7 +81,8 @@ export const aisuggest = async (
       },
     });
   } catch (error) {
-    console.error("AI suggest request failed:", error);
+    log.error('AI suggest request failed', error, { jobId, index });
+    analytics.trackAIError('generation_failed', error, { action: 'ai_suggest', jobId, index });
     return {status:"error", jobId: "error", message: "error", images: [] };
   }
 };
@@ -96,7 +103,8 @@ export const aiRequestGemini = async (
       },
     });
   } catch (error) {
-    console.error("Gemini request failed:", error);
+    log.error('Gemini request failed', error, { userId, jobId, index });
+    analytics.trackAIError('api_error', error, { action: 'gemini_request', jobId, index });
     return [];
   }
 };
@@ -117,7 +125,8 @@ export const aiRequestLookbook = async (
       },
     });
   } catch (error) {
-    console.error("Gemini request failed:", error);
+    log.error('Lookbook request failed', error, { userId, styleOptions, numImages });
+    analytics.trackAIError('generation_failed', error, { action: 'lookbook_request', styleOptions, numImages });
     return [];
   }
 };

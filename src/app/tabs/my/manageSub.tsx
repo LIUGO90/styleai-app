@@ -49,21 +49,10 @@ export default function ManageSubScreen() {
 
   // 获取详细的订阅信息（从 Supabase 加载）
   useEffect(() => {
-    console.log('📊 [Subscription] Supabase subscriptions:', subscriptions);
-    console.log('📊 [Subscription] subscriptionsLoading:', subscriptionsLoading);
-    // console.log('📊 [Subscription] Customer Info:', customerInfo);
-    console.log('📊 [Subscription] isActive:', isActive);
-
     if (customerInfo) {
-      console.log('📊 [Subscription] 使用 RevenueCat 数据加载订阅信息');
-
       const activeEntitlements = customerInfo.entitlements.active;
       const allEntitlements = customerInfo.entitlements.all;
       const activeSubscriptions = customerInfo.activeSubscriptions;
-
-      console.log('📊 [Subscription] Active Entitlements:', Object.keys(activeEntitlements));
-      console.log('📊 [Subscription] All Entitlements:', Object.keys(allEntitlements));
-      console.log('📊 [Subscription] Active Subscriptions:', activeSubscriptions);
 
       // 尝试从所有权益中获取订阅信息（过滤掉积分包）
       const entitlementKeys = Object.keys(activeEntitlements);
@@ -74,12 +63,8 @@ export default function ManageSubScreen() {
         return isSubscriptionProduct(entitlement.productIdentifier);
       });
 
-      console.log('📊 [Subscription] All Entitlements:', entitlementKeys);
-      console.log('📊 [Subscription] Subscription Entitlements (filtered):', subscriptionEntitlements);
-
       if (subscriptionEntitlements.length > 0) {
         const activeEntitlement = activeEntitlements[subscriptionEntitlements[0]];
-        console.log('📊 [Subscription] Active Subscription Entitlement Details:', activeEntitlement);
 
         setSubscriptionDetails({
           productIdentifier: activeEntitlement.productIdentifier,
@@ -102,7 +87,6 @@ export default function ManageSubScreen() {
         });
       } else if (activeSubscriptions.length > 0) {
         // 如果有活跃订阅但没有权益，尝试从所有权益中查找
-        console.log('📊 [Subscription] No active entitlements, checking all entitlements...');
         const allEntitlementKeys = Object.keys(allEntitlements);
 
         // 过滤出真正的订阅产品
@@ -111,11 +95,8 @@ export default function ManageSubScreen() {
           return isSubscriptionProduct(entitlement.productIdentifier);
         });
 
-        console.log('📊 [Subscription] All Subscription Entitlements (filtered):', allSubscriptionEntitlements);
-
         if (allSubscriptionEntitlements.length > 0) {
           const latestEntitlement = allEntitlements[allSubscriptionEntitlements[0]];
-          console.log('📊 [Subscription] Latest Subscription Entitlement Details:', latestEntitlement);
 
           setSubscriptionDetails({
             productIdentifier: latestEntitlement.productIdentifier,
@@ -160,7 +141,6 @@ export default function ManageSubScreen() {
       }
     } else if (!subscriptionsLoading && subscriptions.length === 0) {
       // 没有订阅数据
-      console.log('📊 [Subscription] 没有找到任何订阅');
       setSubscriptionDetails(null);
       setProductInfo(null);
     }

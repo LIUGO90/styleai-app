@@ -23,7 +23,6 @@ export class StyleTemplateService {
         return [];
       }
 
-      console.log(`✅ [StyleTemplateService] 获取到 ${data?.length || 0} 个风格模板`);
       return data as StyleTemplate[];
     } catch (error) {
       console.error('❌ [StyleTemplateService] 获取风格模板异常:', error);

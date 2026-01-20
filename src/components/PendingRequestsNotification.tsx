@@ -47,8 +47,6 @@ const PendingRequestsNotification: React.FC<PendingRequestsNotificationProps> = 
       
       // 设置恢复回调
       persistentAIService.setOnRequestRestored((request) => {
-        console.log('📌 请求正在恢复:', request);
-        
         if (autoRestore) {
           // 自动模式下，更新请求列表
           checkPendingRequests();

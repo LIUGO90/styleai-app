@@ -14,7 +14,7 @@ import {
   Switch,
 } from 'react-native';
 import { usePersistentRequests, usePendingRequestCount } from '@/hooks/usePersistentRequests';
-import { persistentAIService } from '@/services/PersistentAIService';
+import { persistentAIService, generateRequestId } from '@/services/PersistentAIService';
 import PendingRequestsNotification from '@/components/PendingRequestsNotification';
 
 const PersistentRequestsExample: React.FC = () => {
@@ -52,8 +52,11 @@ const PersistentRequestsExample: React.FC = () => {
 
       console.log('🎬 开始 ForYou 请求...');
       
+      const requestId = generateRequestId('foryou', userId);
+      
       const results = await persistentAIService.requestForYou(
         userId,
+        requestId,
         imageUrls,
         prompt,
         {

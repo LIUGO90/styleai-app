@@ -36,8 +36,6 @@ export default function MyProfile() {
 
   // 获取订阅状态
   const { subscriptionStatus, isActive, loading: subscriptionLoading } = useSubscription();
-  console.log("🎈isActive", isActive);
-  console.log("🎈subscriptionStatus", subscriptionStatus);
   // Load saved avatar, name, and email
   const loadUserData = async (forceRefresh = false) => {
     try {
@@ -127,7 +125,6 @@ export default function MyProfile() {
       // 2. Read file as base6
       // 3. Save to local AsyncStorage
       const imageUrl = await uploadImageWithFileSystem(user?.id || "", manipResult.uri);
-      console.log("🎈imageUrl", imageUrl);
 
       // 更新数据库
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', user?.id || "");

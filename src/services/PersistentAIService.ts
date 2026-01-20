@@ -74,8 +74,6 @@ class PersistentAIService {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    console.log("🚀 初始化持久化 AI 服务...");
-
     // 监听 App 状态变化
     this.appStateSubscription = AppState.addEventListener(
       "change",
@@ -86,7 +84,6 @@ class PersistentAIService {
     await this.restoreRequests();
 
     this.isInitialized = true;
-    console.log("✅ 持久化 AI 服务初始化完成");
   }
 
   /**
@@ -96,23 +93,14 @@ class PersistentAIService {
     if (this.appStateSubscription) {
       this.appStateSubscription.remove();
     }
-    console.log("🧹 持久化 AI 服务已清理");
   }
 
   /**
    * 处理 App 状态变化
    */
   private async handleAppStateChange(nextAppState: AppStateStatus): Promise<void> {
-    console.log(`📱 App 状态变化: ${nextAppState}`);
-
-    if (nextAppState === "background") {
-      // App 进入后台
-      console.log("⏸️ App 进入后台，保存请求状态...");
-      // 注意：当前实现中，请求会在后台继续
-      // 如果需要暂停，需要调用 webWorkerAIService 的相关方法
-    } else if (nextAppState === "active") {
-      // App 回到前台
-      console.log("▶️ App 回到前台，检查待恢复的请求...");
+    if (nextAppState === "active") {
+      // App 回到前台，检查待恢复的请求
       await this.restoreRequests();
     }
   }
@@ -134,11 +122,9 @@ class PersistentAIService {
       }
 
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
-      
+
       // 更新缓存
       this.requestCache = queue;
-      
-      console.log(`💾 请求已持久化: ${request.id}`);
     } catch (error) {
       console.error("❌ 持久化请求失败:", error);
       // 清除缓存以确保下次读取最新数据
@@ -164,8 +150,6 @@ class PersistentAIService {
       
       // 更新缓存
       this.requestCache = filtered;
-      
-      console.log(`🗑️ 请求已移除: ${requestId}`);
     } catch (error) {
       console.error("❌ 移除请求失败:", error);
       // 清除缓存
@@ -180,7 +164,6 @@ class PersistentAIService {
     try {
       const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
       if (!stored) {
-        console.log("📭 没有待恢复的请求");
         return;
       }
 
@@ -199,13 +182,9 @@ class PersistentAIService {
       //   return;
       // }
 
-      console.log(`🔄 发现 ${queue.length} 个待恢复的请求`);
-
       // 重新提交请求
       for (const request of queue) {
         if (request.retryCount < request.maxRetries) {
-          console.log(`  📌 待恢复请求: ${request.type} - ${request.id} (重试次数: ${request.retryCount}/${request.maxRetries})`);
-          
           // 触发回调通知
           if (this.onRequestRestored) {
             this.onRequestRestored(request);
@@ -213,13 +192,9 @@ class PersistentAIService {
 
           // 如果启用了自动恢复，则立即重新提交请求
           if (this.autoRestore) {
-            console.log(`  ▶️ 自动恢复请求: ${request.id}`);
-            this.executeRestoredRequest(request).catch((error) => {
-              console.error(`  ❌ 恢复请求失败: ${request.id}`, error);
-            });
+            this.executeRestoredRequest(request).catch(() => {});
           }
         } else {
-          console.log(`  ⏭️ 跳过已达最大重试次数的请求: ${request.id}`);
           await this.removePersistedRequest(request.id);
         }
       }
@@ -277,12 +252,10 @@ class PersistentAIService {
 
         case "chat":
           // 如果有聊天请求类型，可以在这里添加
-          console.log(`⚠️ 暂不支持恢复 chat 类型的请求: ${request.id}`);
           break;
 
         case "analyze":
           // 如果有分析请求类型，可以在这里添加
-          console.log(`⚠️ 暂不支持恢复 analyze 类型的请求: ${request.id}`);
           break;
 
         default:
@@ -291,18 +264,11 @@ class PersistentAIService {
 
       // 成功后移除持久化
       await this.removePersistedRequest(request.id);
-      console.log(`  ✅ 请求恢复成功: ${request.id}`);
     } catch (error) {
-      console.error(`  ❌ 执行恢复的请求失败: ${request.id}`, error);
-      
-      // 如果还有重试机会，保持在队列中
-      if (request.retryCount < request.maxRetries) {
-        console.log(`  🔄 请求将在下次重试: ${request.id}`);
-      } else {
-        console.log(`  💀 请求已达最大重试次数，移除: ${request.id}`);
+      // 如果已达最大重试次数，移除
+      if (request.retryCount >= request.maxRetries) {
         await this.removePersistedRequest(request.id);
       }
-      
       throw error;
     }
   }
@@ -333,7 +299,6 @@ class PersistentAIService {
       await this.persistRequest(persistedRequest);
 
       // 执行请求
-      console.log(`🎬 开始 ForYou 请求: ${requestId}`);
       const result = await webWorkerAIService.aiRequestForYou(
         persistedRequest.id,
         userId,
@@ -344,7 +309,6 @@ class PersistentAIService {
 
       // 成功后移除持久化
       await this.removePersistedRequest(requestId);
-      console.log(`✅ ForYou 请求成功: ${requestId}`);
 
       return result;
     } catch (error) {
@@ -381,7 +345,6 @@ class PersistentAIService {
     try {
       await this.persistRequest(persistedRequest);
 
-      console.log(`🎬 开始 Lookbook 请求: ${requestId}`);
       const result = await webWorkerAIService.aiRequestLookbook(
         userId,
         imageUrl,
@@ -391,11 +354,9 @@ class PersistentAIService {
       );
 
       await this.removePersistedRequest(requestId);
-      console.log(`✅ Lookbook 请求成功: ${requestId}`);
 
       return result;
     } catch (error) {
-      console.error(`❌ Lookbook 请求失败: ${requestId}`, error);
 
       persistedRequest.retryCount++;
       await this.persistRequest(persistedRequest);
@@ -408,8 +369,6 @@ class PersistentAIService {
    * 手动重试失败的请求
    */
   async retryFailedRequests(): Promise<void> {
-    console.log("🔄 尝试重试失败的请求...");
-
     try {
       const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
       if (!stored) return;
@@ -418,11 +377,8 @@ class PersistentAIService {
 
       for (const request of queue) {
         if (request.retryCount >= request.maxRetries) {
-          console.log(`⏭️ 跳过: ${request.id} (已达最大重试次数)`);
           continue;
         }
-
-        console.log(`🔄 重试: ${request.type} - ${request.id}`);
 
         try {
           // 根据类型重新执行
@@ -435,13 +391,12 @@ class PersistentAIService {
               break;
           }
             // 可以添加更多类型
-          
         } catch (error) {
-          console.error(`❌ 重试失败: ${request.id}`, error);
+          // 重试失败，继续下一个
         }
       }
     } catch (error) {
-      console.error("❌ 重试请求失败:", error);
+      // 静默失败
     }
   }
 
@@ -469,9 +424,7 @@ class PersistentAIService {
       await AsyncStorage.removeItem(this.STORAGE_KEY);
       // 清除缓存
       this.requestCache = [];
-      console.log("🧹 所有持久化请求已清除");
     } catch (error) {
-      console.error("❌ 清除请求失败:", error);
       // 清除缓存
       this.requestCache = null;
     }
@@ -508,7 +461,6 @@ class PersistentAIService {
    */
   setAutoRestore(enabled: boolean): void {
     this.autoRestore = enabled;
-    console.log(`⚙️ 自动恢复已${enabled ? "启用" : "禁用"}`);
   }
 
   /**
@@ -539,12 +491,10 @@ class PersistentAIService {
       }
 
       if (request.retryCount >= request.maxRetries) {
-        console.warn(`⚠️ 请求已达最大重试次数: ${requestId}`);
         await this.removePersistedRequest(requestId);
         return;
       }
 
-      console.log(`🔄 手动恢复请求: ${requestId}`);
       await this.executeRestoredRequest(request);
     } catch (error) {
       console.error(`❌ 手动恢复请求失败: ${requestId}`, error);
@@ -556,8 +506,6 @@ class PersistentAIService {
    * 手动恢复所有待处理的请求
    */
   async manuallyRestoreAllRequests(): Promise<void> {
-    console.log("🔄 手动恢复所有待处理的请求...");
-
     try {
       const requests = await this.getAllPersistedRequests();
       const validRequests = requests.filter(
@@ -565,24 +513,17 @@ class PersistentAIService {
       );
 
       if (validRequests.length === 0) {
-        console.log("📭 没有待恢复的请求");
         return;
       }
-
-      console.log(`🔄 开始恢复 ${validRequests.length} 个请求`);
 
       for (const request of validRequests) {
         try {
           await this.executeRestoredRequest(request);
         } catch (error) {
-          console.error(`❌ 恢复请求失败: ${request.id}`, error);
           // 继续处理下一个请求
         }
       }
-
-      console.log("✅ 所有请求恢复完成");
     } catch (error) {
-      console.error("❌ 手动恢复所有请求失败:", error);
       throw error;
     }
   }

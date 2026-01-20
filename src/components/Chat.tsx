@@ -515,14 +515,11 @@ export function Chat({
           );
 
           if (deductSuccess) {
-            console.log(`✅ [StyleAnItem] 成功扣除 ${10 * images.length} 积分`);
             await refreshCredits();
-          } else {
-            console.warn('⚠️ [StyleAnItem] 积分扣除失败，但图片已生成');
           }
 
         } catch (error) {
-          console.error('❌ [StyleAnItem] 积分扣除异常:', error);
+          // 积分扣除异常
         }
       }
     });

@@ -57,7 +57,6 @@ export class ShopLookService {
         return [];
       }
 
-      console.log(`✅ [ShopLookService] 获取到 ${data?.length || 0} 个 ShopLook (look_id: ${lookId})`);
       return data as ShopLook[];
     } catch (error) {
       console.error('❌ [ShopLookService] 获取 ShopLook 异常:', error);
@@ -71,7 +70,6 @@ export class ShopLookService {
    * @returns Map<look_id, ShopLook[]>
    */
   static async getShopLooksByLookIds(lookIds: string[]): Promise<Map<string, ShopLook[]>> {
-    console.log(`✅ [ShopLookService] 批量获取 ShopLook 开始，共 ${lookIds} 个 look_id`);
     const result = new Map<string, ShopLook[]>();
     
     if (lookIds.length === 0) {
@@ -79,7 +77,6 @@ export class ShopLookService {
     }
 
     try {
-      console.log(`✅ [ShopLookService] 开始查询 supabase...`);
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select(`
@@ -88,8 +85,6 @@ export class ShopLookService {
         .in('look_id', lookIds)
         .order('order', { ascending: false });
 
-      console.log(`✅ [ShopLookService] 查询完成: data=${JSON.stringify(data)}, error=${JSON.stringify(error)}`);
-      
       if (error) {
         console.error('❌ [ShopLookService] 批量获取 ShopLook 失败:', error);
         return result;
@@ -105,9 +100,7 @@ export class ShopLookService {
           .select('*')
           .in('id', resourceIds)
           .is('deleted_at', null);
-        
-        console.log(`✅ [ShopLookService] 资源查询: ${JSON.stringify(resourcesData)}`);
-        
+
         for (const res of (resourcesData || [])) {
           resourcesMap.set(res.id, res as Resource);
         }
@@ -125,7 +118,6 @@ export class ShopLookService {
         };
         result.get(lookId)!.push(shoplook);
       }
-      console.log(`✅ [ShopLookService] 批量获取 ShopLook 完成，共 ${data?.length || 0} 条记录`, JSON.stringify(data));
       return result;
     } catch (error) {
       console.error('❌ [ShopLookService] 批量获取 ShopLook 异常:', error);

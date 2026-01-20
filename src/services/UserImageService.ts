@@ -38,7 +38,6 @@ export class UserImageService {
         throw error;
       }
 
-      console.log('✅ 图片记录创建成功:', data.id);
       return data as UserImage;
     } catch (error) {
       console.error('❌ 创建图片记录异常:', error);
@@ -121,7 +120,6 @@ export class UserImageService {
         throw error;
       }
 
-      console.log(`✅ 成功更新图片记录，request_id: ${requestId}`);
       return (data || []) as UserImage[];
 
     } catch (error) {
@@ -154,7 +152,6 @@ export class UserImageService {
         throw error;
       }
 
-      console.log('✅ 批量创建成功，共', data.length, '条记录');
       return data as UserImage[];
     } catch (error) {
       console.error('❌ 批量创建图片记录异常:', error);
@@ -206,7 +203,6 @@ export class UserImageService {
         throw error;
       }
 
-      console.log(`✅ 获取用户图片成功: ${data?.length || 0} 条记录`);
       return data as UserImage[];
     } catch (error) {
       console.error('❌ 获取用户图片异常:', error);
@@ -257,7 +253,6 @@ export class UserImageService {
         throw error;
       }
 
-      console.log('✅ 图片更新成功:', imageId);
       return data as UserImage;
     } catch (error) {
       console.error('❌ 更新图片异常:', error);
@@ -281,7 +276,6 @@ export class UserImageService {
         return false;
       }
 
-      console.log('✅ 图片已标记为删除:', imageId);
       return true;
     } catch (error) {
       console.error('❌ 软删除图片异常:', error);
@@ -304,7 +298,6 @@ export class UserImageService {
         return false;
       }
 
-      console.log('✅ 图片已永久删除:', imageId);
       return true;
     } catch (error) {
       console.error('❌ 硬删除图片异常:', error);
@@ -327,7 +320,6 @@ export class UserImageService {
         return false;
       }
 
-      console.log('✅ 图片已恢复:', imageId);
       return true;
     } catch (error) {
       console.error('❌ 恢复图片异常:', error);
@@ -350,7 +342,6 @@ export class UserImageService {
         return 0;
       }
 
-      console.log('✅ 批量删除成功，共', count, '条记录');
       return count || 0;
     } catch (error) {
       console.error('❌ 批量删除图片异常:', error);

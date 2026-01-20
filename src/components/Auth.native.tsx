@@ -21,8 +21,6 @@ async function fetchUserProfileWithRetry(
 ): Promise<{ data: any; error: any }> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`📡 尝试获取用户配置 (${attempt}/${maxRetries})...`);
-
       const profilePromise = supabase
         .from('profiles')
         .select('name, fullbodyphoto, images')
@@ -36,29 +34,20 @@ async function fetchUserProfileWithRetry(
       const result = await Promise.race([profilePromise, timeoutPromise]) as any;
 
       if (result.error) {
-        console.warn(`⚠️ 第 ${attempt} 次查询返回错误:`, result.error);
         if (attempt < maxRetries) {
-          // 等待后重试（递增延迟）
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           continue;
         }
         return result;
       }
 
-      console.log(`✅ 成功获取用户配置 (尝试 ${attempt} 次)`);
       return result;
 
     } catch (error) {
-      console.warn(`⚠️ 第 ${attempt} 次查询失败:`, error);
-
       if (attempt < maxRetries) {
-        // 等待后重试（递增延迟：1s, 2s, 3s）
         const delay = 1000 * attempt;
-        console.log(`⏳ 等待 ${delay}ms 后重试...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
-        // 所有重试都失败
-        console.error(`❌ 查询失败，已重试 ${maxRetries} 次`);
         return { data: null, error };
       }
     }
@@ -103,10 +92,7 @@ export function AppleAuth() {
         // 传递完整的credential信息，包括email和fullName
         const { userId, error } = await signInWithApple(credential);
 
-        console.log("🆔 User ID:", userId);
-
         if (error) {
-          console.error("Apple sign in error:", error);
 
           // 检查是否是网络错误
           if (error.message?.includes('Network') && error.message?.includes('fetch')) {
@@ -125,13 +111,10 @@ export function AppleAuth() {
             );
           }
         } else {
-          console.log("🧐 用户登录成功 ", userId)
-
           const onboardingDataStr = await AsyncStorage.getItem("onboardingData");
 
           if (!onboardingDataStr) {
             // 新用户：需要创建数据并查询远程配置
-            console.log("🆕 新用户登录");
             setLoadingMessage("Loading data...");
 
             const onboardingData: OnboardingData = {
@@ -151,9 +134,6 @@ export function AppleAuth() {
             const { data: userProfile, error } = await fetchUserProfileWithRetry(userId || "", 3, 8000);
 
             if (error) {
-              // 查询失败后的处理
-              console.error("❌ 无法获取用户配置:", error);
-
               Alert.alert(
                 "Network Connection Problem",
                 "Cannot load your configuration information, please check your network connection.\n\nYou can:\n1. Retry connection\n2. Continue using (need to re-set)",
@@ -165,8 +145,6 @@ export function AppleAuth() {
                   {
                     text: "Continue",
                     onPress: () => {
-                      // 允许用户继续，但需要重新引导
-                      console.log("⚠️ 用户选择继续，跳转到引导页");
                       router.replace("/onboarding");
                     },
                   },
@@ -177,36 +155,29 @@ export function AppleAuth() {
 
             // 成功获取配置，处理数据
             if (userProfile?.fullbodyphoto && userProfile.fullbodyphoto.length > 0) {
-              console.log("✅ 用户已完成引导，有全身照");
               onboardingData.fullBodyPhoto = userProfile.fullbodyphoto;
               await AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
 
               if (userProfile?.images && userProfile.images.length > 0) {
-                console.log("✅ 用户有lookbook图片");
                 await AsyncStorage.setItem("newlook",userProfile.images);
                 router.replace("/");
               } else {
                 router.replace("/onboarding");
               }
             } else {
-              console.log("🎯 用户需要完成引导流程");
               router.replace("/onboarding");
             }
           } else {
             // 老用户：已有本地数据
-            console.log("👤 老用户登录");
-
             try {
               const onboardingData = JSON.parse(onboardingDataStr);
 
               // 检查本地数据完整性
               if (!onboardingData.userId || !onboardingData.fullBodyPhoto) {
-                console.warn("⚠️ 本地数据不完整，需要重新同步");
                 throw new Error("Incomplete local data");
               }
 
-              // 老用户直接进入主页（优先体验）
-              console.log("✅ 老用户直接进入主页");
+              // 老用户直接进入主页
               router.replace("/");
 
               // 后台同步远程数据（不阻塞登录）
@@ -214,7 +185,6 @@ export function AppleAuth() {
               fetchUserProfileWithRetry(userId || "", 2, 5000)
                 .then(({ data }) => {
                   if (data?.images && data.images.length > 0) {
-                    console.log("🔄 后台同步lookbook成功");
                     AsyncStorage.setItem("newlook", data.images);
                   }
                   if (data?.fullbodyphoto) {
@@ -222,13 +192,12 @@ export function AppleAuth() {
                     AsyncStorage.setItem("onboardingData", JSON.stringify(onboardingData));
                   }
                 })
-                .catch(err => {
-                  console.warn("⚠️ 后台同步失败（不影响使用）:", err);
+                .catch(() => {
+                  // 后台同步失败，不影响使用
                 });
 
             } catch (parseError) {
               // 本地数据损坏，重新查询
-              console.error("❌ 本地数据损坏，重新查询:", parseError);
               setLoadingMessage("Loading data...");
 
               const { data: userProfile, error } = await fetchUserProfileWithRetry(userId || "", 3, 8000);

@@ -24,8 +24,6 @@ export class ForYouService {
         return [];
       }
 
-      console.log(`✅ [ForYouService] 获取到 ${data?.length || 0} 个 ForYou 项目`);
-
       return data as ForYou[];
     } catch (error) {
       console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);
@@ -48,7 +46,6 @@ export class ForYouService {
         return [];
       }
 
-      console.log(`✅ [ForYouService] 获取到 ${data?.length || 0} 个 ForYou 项目`);
       return data as ForYou[];
     } catch (error) {
       console.error('❌ [ForYouService] 获取 ForYou 数据异常:', error);
@@ -120,7 +117,6 @@ export class ForYouService {
         return null;
       }
 
-      console.log('✅ ForYou 创建成功:', data);
       return data as ForYou;
     } catch (error) {
       console.error('❌ [ForYouService] 创建 ForYou 异常:', error);
@@ -143,7 +139,6 @@ export class ForYouService {
         return false;
       }
 
-      console.log('✅ ForYou 删除成功');
       return true;
     } catch (error) {
       console.error('❌ [ForYouService] 删除 ForYou 异常:', error);

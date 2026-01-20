@@ -63,7 +63,6 @@ export default function HomeScreen() {
 
 
   useEffect(() => {
-    console.log("🎈credits", credits);
     setStarNumber(credits?.available_credits || 0);
   }, [credits]);
 
@@ -72,28 +71,16 @@ export default function HomeScreen() {
     setRefreshing(true);
     await refreshCredits();
     try {
-      // 清除图片缓存
-      console.log('🧹 开始清除图片缓存...');
-      // await Promise.all([
-      //   Image.clearMemoryCache(),  // 清除内存缓存
-      //   Image.clearDiskCache(),    // 清除磁盘缓存
-      // ]);
-      // console.log('✅ 图片缓存清除完成');
-
-      // 清空现有数据，强制重新渲染
-      // setForyou([]);
-
       // 增加刷新计数器，强制重新渲染图片
       setRefreshKey(prev => prev + 1);
 
-      // 短暂延迟，确保清空操作完成
+      // 短暂延迟，确保操作完成
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // 重新加载数据
       await loadForYouData();
     } catch (error) {
-      console.error('❌ 清除缓存失败:', error);
-      // 即使清除缓存失败，也要加载数据
+      // 即使失败，也要加载数据
       await loadForYouData();
     } finally {
       setRefreshing(false);

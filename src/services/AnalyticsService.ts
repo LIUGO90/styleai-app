@@ -280,7 +280,7 @@ class AnalyticsService {
 
   /**
    * 追踪图像生成事件
-   * 
+   *
    * @param style 风格
    * @param creditsUsed 使用的积分
    * @param success 是否成功
@@ -297,6 +297,100 @@ class AnalyticsService {
       credits_used: creditsUsed,
       success,
       ...additionalProperties,
+    });
+  }
+
+  /**
+   * 追踪错误事件（结构化错误上报）
+   *
+   * 用于在关键流程中上报错误，即使 Amplitude 失败也会本地记录
+   *
+   * @param module 模块名称（如 'PaymentService', 'AIService'）
+   * @param errorType 错误类型（如 'payment_failed', 'generation_failed'）
+   * @param error 错误对象
+   * @param context 上下文信息
+   * @example
+   * ```typescript
+   * analytics.trackError('PaymentService', 'payment_failed', error, {
+   *   product_id: 'credits_100',
+   *   user_action: 'purchase_credits'
+   * });
+   * ```
+   */
+  async trackError(
+    module: string,
+    errorType: string,
+    error: any,
+    context?: Record<string, any>
+  ): Promise<void> {
+    const errorMessage = error instanceof Error ? error.message : String(error || 'Unknown error');
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    const eventData = {
+      module,
+      error_type: errorType,
+      error_message: errorMessage,
+      error_stack: __DEV__ ? errorStack : undefined, // 生产环境不上报堆栈（隐私考虑）
+      timestamp: new Date().toISOString(),
+      ...context,
+    };
+
+    try {
+      await amplitude.track(`[Error] ${module}:${errorType}`, eventData).promise;
+
+      if (__DEV__) {
+        console.error(`❌ [Analytics] Error tracked: ${module}:${errorType}`, eventData);
+      }
+    } catch (trackError: any) {
+      // Amplitude 上报失败时，确保本地有记录
+      console.error(`[Analytics] Failed to track error (fallback log):`, {
+        module,
+        errorType,
+        errorMessage,
+        context,
+      });
+    }
+  }
+
+  /**
+   * 追踪支付错误
+   */
+  async trackPaymentError(
+    errorType: 'purchase_failed' | 'sync_failed' | 'restore_failed' | 'credits_deduct_failed',
+    error: any,
+    context?: Record<string, any>
+  ): Promise<void> {
+    await this.trackError('Payment', errorType, error, {
+      ...context,
+      flow: 'payment',
+    });
+  }
+
+  /**
+   * 追踪 AI 生成错误
+   */
+  async trackAIError(
+    errorType: 'generation_failed' | 'request_timeout' | 'api_error',
+    error: any,
+    context?: Record<string, any>
+  ): Promise<void> {
+    await this.trackError('AI', errorType, error, {
+      ...context,
+      flow: 'ai_generation',
+    });
+  }
+
+  /**
+   * 追踪认证错误
+   */
+  async trackAuthError(
+    errorType: 'login_failed' | 'logout_failed' | 'session_expired',
+    error: any,
+    context?: Record<string, any>
+  ): Promise<void> {
+    await this.trackError('Auth', errorType, error, {
+      ...context,
+      flow: 'authentication',
     });
   }
 }

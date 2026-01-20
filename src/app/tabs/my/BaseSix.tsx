@@ -70,8 +70,7 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
   // 监听 image 状态变化
   useEffect(() => {
-    console.log('🔍Image state changed:', image);
-    console.log('🔍Image length:', image.length);
+    // image state updated
   }, [image]);
 
   useEffect(() => {
@@ -85,35 +84,21 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   useEffect(() => {
     const loadAllSubscriptionPackages = async () => {
       try {
-        console.log('🔍Loading all subscription packages...');
         const offerings = await revenueCatService.getOfferings();
-        console.log('🔍All offerings:', Object.keys(offerings.all));
-
         const allPackages: PurchasesPackage[] = [];
 
         // 遍历所有 Offerings 寻找订阅产品
         Object.values(offerings.all).forEach((offering) => {
-          console.log(`🔍Checking offering: ${offering.identifier}`);
           offering.availablePackages.forEach((pkg) => {
             if (pkg.product.productType === 'AUTO_RENEWABLE_SUBSCRIPTION' &&
               !pkg.product.identifier.includes('AIPoints')) {
-              console.log(`🔍Found subscription: ${pkg.identifier}`);
               allPackages.push(pkg);
             }
           });
         });
 
-        console.log('🔍Total subscription packages found:', allPackages.length);
-
         // 按价格排序（从低到高）
-        const sortedPackages = allPackages.sort((a, b) => {
-          const priceA = a.product.price;
-          const priceB = b.product.price;
-          console.log(`🔍Sorting: ${a.identifier} ($${priceA}) vs ${b.identifier} ($${priceB})`);
-          return priceA - priceB;
-        });
-
-        console.log('🔍Sorted packages by price:', sortedPackages.map(p => `${p.identifier}: $${p.product.price}`));
+        const sortedPackages = allPackages.sort((a, b) => a.product.price - b.product.price);
         setAllSubscriptionPackages(sortedPackages);
 
         // 自动选择第一个订阅选项（最便宜的）
@@ -121,7 +106,7 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
           setSelectedPackage(sortedPackages[0]);
         }
       } catch (error) {
-        console.error('🔍Error loading subscription packages:', error);
+        // 静默失败
       }
     };
 
@@ -129,39 +114,30 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   }, []);
 
   const loadImagesUrl = async () => {
-    console.log('🔍loadImagesUrl');
     try {
       const imagesUrl = await AsyncStorage.getItem("newlook");
-      console.log('🔍imagesUrl', imagesUrl);
       if (imagesUrl) {
         const images = imagesUrl.split(',');
         setImage(images);
       } else {
-        console.log('🔍No imagesUrl found, trying user profile...');
         // 如果没有本地图片，从用户配置获取
         if (user?.id) {
           try {
-            console.log('🔍Fetching user profile for user:', user.id);
             const { data: userProfile, error } = await fetchUserProfileWithRetry(user.id, 3, 8000);
             if (error) {
-              console.warn('Failed to fetch user profile:', error);
               setImage([]);
             } else {
-              console.log('🔍User profile images:', userProfile?.images);
               const images = userProfile?.images?.split(',') || [];
               setImage(images);
             }
           } catch (error) {
-            console.error('Error fetching user profile:', error);
             setImage([]);
           }
         } else {
-          console.log('🔍No user ID, setting empty array');
           setImage([]);
         }
       }
     } catch (error) {
-      console.error('Error loading images:', error);
       setImage([]);
     }
   }
@@ -191,14 +167,11 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
     }
 
     try {
-      console.log('🔄 Starting subscription purchase...');
-
       // 1. 通过 RevenueCat 购买
       const result = await purchase(selectedPackage);
 
       // 验证购买结果
       const purchaseValidation = validatePurchaseResult(result);
-      console.log(purchaseValidation.success ? '✅' : '❌', 'Phase 1:', purchaseValidation.message);
 
       if (!purchaseValidation.success) {
         throw new Error(purchaseValidation.message);
@@ -215,22 +188,12 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
         payment,
         selectedPackage.product.identifier
       );
-      console.log(syncValidation.success ? '✅' : '⚠️', 'Phase 2:', syncValidation.message);
-
-      if (payment) {
-        console.log('✅ Subscription payment saved to database:', payment.id);
-      } else {
-        console.warn('⚠️ Failed to save subscription payment to database');
-      }
 
       // 3. 刷新订阅状态
       await refreshSubscription();
-      console.log('✅ Phase 3: Subscription status refreshed');
 
       // 4. 成功处理
       if (purchaseValidation.success) {
-        console.log('🎉 Subscription purchase completed successfully!');
-
         Alert.alert(
           'Subscription Success!',
           `Your subscription is now active, you can now use all premium features!\n\n${syncValidation.success ? 'All data has been synced' : 'Data is syncing in the background'}`,
@@ -245,11 +208,9 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
 
     } catch (error: any) {
       if (isUserCancelledError(error)) {
-        console.log('ℹ️ User cancelled subscription purchase');
         return;
       }
 
-      console.error('❌ Subscription error:', error);
       Alert.alert(
         'Subscription Failed',
         'Unable to complete subscription, please try again later',
@@ -285,19 +246,15 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   };
 
   const handleTermsPress = () => {
-    // 替换为您的实际 Terms of Service URL
     const termsUrl = 'https://magiclookbook.com/tos';
-    Linking.openURL(termsUrl).catch(err => {
-      console.error('Failed to open Terms of Service:', err);
+    Linking.openURL(termsUrl).catch(() => {
       Alert.alert('Error', 'Unable to open Terms of Service page');
     });
   };
 
   const handlePrivacyPress = () => {
-    // 替换为您的实际 Privacy Policy URL
     const privacyUrl = 'https://magiclookbook.com/privacy';
-    Linking.openURL(privacyUrl).catch(err => {
-      console.error('Failed to open Privacy Policy:', err);
+    Linking.openURL(privacyUrl).catch(() => {
       Alert.alert('Error', 'Unable to open Privacy Policy page');
     });
   };
@@ -319,7 +276,6 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   const getDailyPrice = (pkg: PurchasesPackage): string => {
     const price = pkg.product.price;
     const identifier = pkg.identifier.toLowerCase();
-    console.log('🔍identifier', identifier, price);
     if (identifier.includes('annual') || identifier.includes('yearly')) {
       return `$${(price / 12).toFixed(2)}/mo`;
     } else if (identifier.includes('quarterly') || identifier.includes('three_month')) {
@@ -333,7 +289,6 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
   // 获取折扣标签
   const getDiscountLabel = (pkg: PurchasesPackage, packages: PurchasesPackage[]): string | null => {
     const identifier = pkg.identifier.toLowerCase();
-    console.log('🖼️ identifier', identifier, packages);
     if (identifier.includes('annual') || identifier.includes('yearly')) {
       return `25% OFF`;
     } else if (identifier.includes('three_month')) {
@@ -424,7 +379,6 @@ export default function BaseSix({ isPaywall = false, onClose }: { isPaywall?: bo
               </View>
             ) : (
               allSubscriptionPackages.slice(0, 3).map((pkg, index) => {
-                console.log(`🔍Rendering subscription ${index}: ${pkg.identifier}`);
                 const isSelected = selectedPackage?.identifier === pkg.identifier;
                 const discountLabel = getDiscountLabel(pkg, currentOffering?.availablePackages || []);
 
