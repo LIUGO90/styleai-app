@@ -84,7 +84,11 @@ export default function ForYouScreen() {
     const loadTemplates = async () => {
         if (imageData?.name) {
             try {
+                console.time('[ForYou] loadTemplates-total');
+
+                console.time('[ForYou] getTemplateByName');
                 const templates = await StyleTemplateService.getTemplateByName(imageData.name);
+                console.timeEnd('[ForYou] getTemplateByName');
                 console.log(`✅ [ForYou] 获取到 ${templates?.length || 0} 个 ${imageData.name} 模板`);
 
                 if (templates && templates.length > 0) {
@@ -92,7 +96,11 @@ export default function ForYouScreen() {
                     setCurrentIndex(0);
 
                     // 加载关联的 ShopLook 资源
+                    console.time('[ForYou] loadShoplooks');
                     await loadShoplooks(templates);
+                    console.timeEnd('[ForYou] loadShoplooks');
+
+                    console.timeEnd('[ForYou] loadTemplates-total');
 
                     // 确保数据设置后再滚动
                     setTimeout(() => {
@@ -100,9 +108,12 @@ export default function ForYouScreen() {
                             flatListRef.current?.scrollToIndex({ index: 0, animated: false });
                         }
                     }, 200);
+                } else {
+                    console.timeEnd('[ForYou] loadTemplates-total');
                 }
             } catch (error) {
                 console.error('❌ [ForYou] 加载模板失败:', error);
+                console.timeEnd('[ForYou] loadTemplates-total');
             }
         }
     };

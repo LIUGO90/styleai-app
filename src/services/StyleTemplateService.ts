@@ -35,12 +35,14 @@ export class StyleTemplateService {
    */
   static async getTemplateByName(name: string): Promise<StyleTemplate[] | null> {
     try {
+      console.time(`[StyleTemplateService] getTemplateByName-${name}`);
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
         .eq('name', name)
         .eq('state', true)
         .order('order', { ascending: false });
+      console.timeEnd(`[StyleTemplateService] getTemplateByName-${name}`);
 
       if (error) {
         console.error('❌ [StyleTemplateService] 获取风格模板失败:', error);

@@ -77,6 +77,7 @@ export class ShopLookService {
     }
 
     try {
+      console.time('[ShopLookService] query-shoplook');
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select(`
@@ -84,6 +85,7 @@ export class ShopLookService {
         `)
         .in('look_id', lookIds)
         .order('order', { ascending: false });
+      console.timeEnd('[ShopLookService] query-shoplook');
 
       if (error) {
         console.error('❌ [ShopLookService] 批量获取 ShopLook 失败:', error);
@@ -93,13 +95,15 @@ export class ShopLookService {
       // 获取所有 resource_id 并查询资源
       const resourceIds = [...new Set((data || []).map(item => item.resource_id))];
       const resourcesMap = new Map<string, Resource>();
-      
+
       if (resourceIds.length > 0) {
+        console.time('[ShopLookService] query-resources');
         const { data: resourcesData } = await supabase
           .from(this.RESOURCES_TABLE)
           .select('*')
           .in('id', resourceIds)
           .is('deleted_at', null);
+        console.timeEnd('[ShopLookService] query-resources');
 
         for (const res of (resourcesData || [])) {
           resourcesMap.set(res.id, res as Resource);
