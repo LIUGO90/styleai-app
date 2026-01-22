@@ -340,6 +340,11 @@ export default function HomeScreen() {
                     justifyContent: 'space-between',
                     marginBottom: 16, // 内容之间的行间距 16pt
                   }}
+
+                  initialNumToRender={4}    // 初始只画 1 个
+                  maxToRenderPerBatch={4}
+
+
                   renderItem={({ item: image, index }) => {
                     const isEven = index % 2 === 0;
                     return (

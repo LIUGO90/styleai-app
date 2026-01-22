@@ -458,6 +458,12 @@ export default function ForYouScreen() {
                                 itemVisiblePercentThreshold: 50
                             }}
                             keyExtractor={(item, index) => `image-${item.id}-${index}-${reloadKey}`}
+
+                            // 尝试一次只加载一张
+                            initialNumToRender={1}
+                            maxToRenderPerBatch={1}
+                            windowSize={1} 
+
                             renderItem={({ item, index }) => (
                                 <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
                                     <View style={styles.imageContainer}>
