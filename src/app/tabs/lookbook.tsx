@@ -577,7 +577,7 @@ export default function LookbookOne() {
         contentContainerStyle={{
           paddingHorizontal: 16, // 左右边距 16pt
           paddingTop: 16, // 内容之间的行间距 16pt
-          paddingBottom: 220  // 足够大的固定间距，确保内容不被遮挡
+          paddingBottom: `${500}%`  // 足够大的固定间距，确保内容不被遮挡
         }}
       >
         {/* 当前显示的图片数量提示 */}
